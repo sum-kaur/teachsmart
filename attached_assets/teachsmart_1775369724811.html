@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeachSmart</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal: #0d9488;
+    --teal-light: #ccfbf1;
+    --teal-mid: #5eead4;
+    --teal-dark: #0f766e;
+    --slate: #f1f5f9;
+    --slate-mid: #e2e8f0;
+    --slate-dark: #94a3b8;
+    --ink: #0f172a;
+    --ink-mid: #334155;
+    --ink-light: #64748b;
+    --white: #ffffff;
+    --amber: #f59e0b;
+    --amber-light: #fef3c7;
+    --red: #ef4444;
+    --red-light: #fee2e2;
+    --green: #10b981;
+    --green-light: #d1fae5;
+    --blue: #3b82f6;
+    --blue-light: #dbeafe;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow: 0 4px 16px rgba(0,0,0,0.08);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--slate);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── LAYOUT ── */
+  .app { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 240px;
+    background: var(--ink);
+    display: flex;
+    flex-direction: column;
+    padding: 28px 0;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    padding: 0 24px 32px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 20px;
+  }
+
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: var(--teal);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  .logo-text {
+    font-family: 'DM Serif Display', serif;
+    color: var(--white);
+    font-size: 20px;
+    letter-spacing: -0.3px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 24px;
+    color: var(--slate-dark);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-left: 3px solid transparent;
+    text-decoration: none;
+  }
+
+  .nav-item:hover { color: var(--white); background: rgba(255,255,255,0.05); }
+  .nav-item.active { color: var(--teal-mid); border-left-color: var(--teal); background: rgba(13,148,136,0.1); }
+  .nav-icon { width: 18px; text-align: center; font-size: 16px; }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 20px 24px 0;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .avatar-row {
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .avatar {
+    width: 34px; height: 34px;
+    background: var(--teal);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; color: white;
+  }
+
+  .avatar-name { font-size: 13px; font-weight: 500; color: var(--slate-dark); }
+  .avatar-role { font-size: 11px; color: var(--ink-light); }
+
+  .main {
+    margin-left: 240px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .topbar {
+    background: var(--white);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--slate-mid);
+    position: sticky; top: 0; z-index: 50;
+  }
+
+  .topbar-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--ink);
+    letter-spacing: -0.3px;
+  }
+
+  .topbar-sub { font-size: 13px; color: var(--ink-light); margin-top: 1px; }
+
+  .trust-badges { display: flex; gap: 8px; }
+
+  .trust-badge {
+    display: flex; align-items: center; gap: 5px;
+    background: var(--green-light);
+    color: var(--green);
+    font-size: 11px; font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+
+  .content { padding: 32px; flex: 1; }
+
+  /* ── SCREEN SYSTEM ── */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ── SCREEN 1: INPUT ── */
+  .input-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 40px;
+    max-width: 780px;
+    margin: 0 auto;
+  }
+
+  .card-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-light);
+    margin-bottom: 16px;
+  }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+
+  label { font-size: 13px; font-weight: 500; color: var(--ink-mid); }
+
+  select, input[type="text"] {
+    padding: 10px 14px;
+    border: 1.5px solid var(--slate-mid);
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--white);
+    outline: none;
+    transition: border-color 0.15s;
+    appearance: none;
+  }
+
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+
+  select:focus, input:focus { border-color: var(--teal); }
+
+  .divider { border: none; border-top: 1px solid var(--slate-mid); margin: 28px 0; }
+
+  .chips-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+
+  .chip {
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--slate-mid);
+    font-size: 13px; font-weight: 500;
+    color: var(--ink-mid);
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--white);
+    user-select: none;
+  }
+
+  .chip:hover { border-color: var(--teal); color: var(--teal); }
+  .chip.selected { border-color: var(--teal); background: var(--teal-light); color: var(--teal-dark); }
+
+  .resource-type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+
+  .type-card {
+    border: 1.5px solid var(--slate-mid);
+    border-radius: var(--radius-sm);
+    padding: 16px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--white);
+  }
+
+  .type-card:hover { border-color: var(--teal); }
+  .type-card.selected { border-color: var(--teal); background: var(--teal-light); }
+  .type-card-icon { font-size: 24px; margin-bottom: 8px; }
+  .type-card-label { font-size: 12px; font-weight: 600; color: var(--ink-mid); }
+  .type-card.selected .type-card-label { color: var(--teal-dark); }
+
+  .btn-primary {
+    background: var(--teal);
+    color: white;
+    border: none;
+    padding: 13px 28px;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-primary:hover { background: var(--teal-dark); transform: translateY(-1px); box-shadow: var(--shadow); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .btn-secondary {
+    background: var(--white);
+    color: var(--ink-mid);
+    border: 1.5px solid var(--slate-mid);
+    padding: 11px 20px;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-secondary:hover { border-color: var(--teal); color: var(--teal); }
+
+  /* ── LOADING ── */
+  .loading-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: 20px;
+  }
+
+  .spinner {
+    width: 48px; height: 48px;
+    border: 3px solid var(--slate-mid);
+    border-top-color: var(--teal);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text { font-size: 15px; color: var(--ink-light); }
+  .loading-steps { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+
+  .loading-step {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; color: var(--slate-dark);
+    opacity: 0;
+    animation: fadeIn 0.4s forwards;
+  }
+
+  .loading-step.done { color: var(--teal); }
+  @keyframes fadeIn { to { opacity: 1; } }
+
+  /* ── SCREEN 2: RESULTS ── */
+  .results-layout { display: grid; grid-template-columns: 260px 1fr; gap: 24px; max-width: 1100px; }
+
+  .filter-panel {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 24px;
+    height: fit-content;
+    position: sticky;
+    top: 88px;
+  }
+
+  .filter-title { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 16px; }
+
+  .filter-group { margin-bottom: 20px; }
+  .filter-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-light); margin-bottom: 8px; }
+
+  .filter-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 0;
+    font-size: 13px; color: var(--ink-mid);
+    cursor: pointer;
+  }
+
+  .toggle-switch {
+    width: 32px; height: 18px;
+    background: var(--slate-mid);
+    border-radius: 9px;
+    position: relative;
+    transition: background 0.2s;
+    cursor: pointer;
+  }
+
+  .toggle-switch.on { background: var(--teal); }
+
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    background: white;
+    border-radius: 50%;
+    top: 2px; left: 2px;
+    transition: transform 0.2s;
+  }
+
+  .toggle-switch.on::after { transform: translateX(14px); }
+
+  .alignment-bar-wrap {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .alignment-left { flex: 1; }
+  .alignment-label { font-size: 12px; font-weight: 600; color: var(--ink-light); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .alignment-syllabus { font-size: 15px; font-weight: 600; color: var(--ink); }
+  .alignment-strand { font-size: 13px; color: var(--ink-light); }
+  .alignment-outcomes { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .outcome-tag { background: var(--teal-light); color: var(--teal-dark); font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
+
+  .alignment-score-block { text-align: center; }
+  .alignment-score-num { font-family: 'DM Serif Display', serif; font-size: 48px; color: var(--teal); line-height: 1; }
+  .alignment-score-label { font-size: 11px; color: var(--ink-light); font-weight: 500; }
+  .alignment-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; margin-top: 6px; }
+  .badge-green { background: var(--green-light); color: var(--green); }
+  .badge-amber { background: var(--amber-light); color: var(--amber); }
+  .badge-red { background: var(--red-light); color: var(--red); }
+
+  .resources-grid { display: flex; flex-direction: column; gap: 16px; }
+
+  .resource-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    border: 1.5px solid transparent;
+    overflow: hidden;
+    transition: all 0.2s;
+  }
+
+  .resource-card:hover { border-color: var(--teal-mid); box-shadow: var(--shadow); transform: translateY(-2px); }
+
+  .card-header { padding: 20px 24px 0; }
+  .card-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+
+  .trust-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 20px;
+  }
+
+  .pill-green { background: var(--green-light); color: var(--green); }
+  .pill-amber { background: var(--amber-light); color: var(--amber); }
+  .pill-blue { background: var(--blue-light); color: var(--blue); }
+  .pill-red { background: var(--red-light); color: var(--red); }
+
+  .card-type { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-light); margin-bottom: 4px; }
+  .card-title { font-size: 17px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+  .card-source { font-size: 13px; color: var(--ink-light); }
+  .card-body { padding: 12px 24px; font-size: 14px; color: var(--ink-mid); line-height: 1.6; }
+
+  .why-this {
+    margin: 0 24px 12px;
+    background: var(--teal-light);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--teal-dark);
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+
+  .local-tags { padding: 0 24px 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .local-tag { font-size: 12px; color: var(--blue); background: var(--blue-light); padding: 3px 9px; border-radius: 4px; font-weight: 500; }
+
+  .card-footer {
+    padding: 14px 24px;
+    border-top: 1px solid var(--slate-mid);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card-align-score { font-size: 13px; color: var(--ink-light); }
+  .card-align-score strong { color: var(--teal); }
+
+  .card-actions { display: flex; gap: 8px; }
+
+  /* ── SCREEN 3: LESSON PLAN ── */
+  .lesson-layout { max-width: 860px; margin: 0 auto; }
+
+  .lesson-header {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .lesson-header-left { flex: 1; }
+  .lesson-resource-name { font-size: 18px; font-weight: 700; color: var(--ink); }
+  .lesson-resource-meta { font-size: 13px; color: var(--ink-light); margin-top: 3px; }
+  .lesson-outcomes { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .lesson-header-actions { display: flex; gap: 10px; }
+
+  .overview-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+
+  .overview-meta {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 20px; padding-bottom: 20px;
+    border-bottom: 1px solid var(--slate-mid);
+  }
+
+  .meta-pill {
+    background: var(--slate);
+    color: var(--ink-mid);
+    font-size: 13px; font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+  }
+
+  .objective-text { font-size: 15px; color: var(--ink-mid); line-height: 1.7; margin-bottom: 20px; }
+
+  .activities-list { display: flex; flex-direction: column; gap: 14px; }
+
+  .activity-item {
+    display: flex; gap: 14px;
+    align-items: flex-start;
+  }
+
+  .activity-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--teal);
+    margin-top: 7px;
+    flex-shrink: 0;
+  }
+
+  .activity-label { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+  .activity-text { font-size: 14px; color: var(--ink-mid); line-height: 1.6; }
+
+  .local-callout {
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    border: 1.5px solid #bfdbfe;
+    border-radius: var(--radius-sm);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .local-callout-title { font-size: 14px; font-weight: 700; color: var(--blue); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .local-callout-body { font-size: 14px; color: var(--ink-mid); line-height: 1.6; }
+
+  .questions-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+
+  .questions-list { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+
+  .question-item {
+    padding: 14px 18px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--slate-mid);
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+
+  .diff-pill {
+    font-size: 11px; font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .diff-foundation { background: var(--green-light); color: var(--green); }
+  .diff-core { background: var(--amber-light); color: var(--amber); }
+  .diff-extension { background: var(--red-light); color: var(--red); }
+
+  .question-text { font-size: 14px; color: var(--ink-mid); line-height: 1.5; }
+
+  .notes-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+
+  .notes-textarea {
+    width: 100%;
+    min-height: 100px;
+    border: 1.5px solid var(--slate-mid);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--ink-mid);
+    resize: vertical;
+    outline: none;
+    margin-top: 12px;
+    transition: border-color 0.15s;
+    line-height: 1.6;
+  }
+
+  .notes-textarea:focus { border-color: var(--teal); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 28px; right: 28px;
+    background: var(--ink);
+    color: white;
+    padding: 12px 20px;
+    border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 500;
+    z-index: 999;
+    display: none;
+    align-items: center; gap: 8px;
+    box-shadow: var(--shadow-lg);
+    animation: slideUp 0.3s ease;
+  }
+
+  .toast.visible { display: flex; }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .section-heading { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--ink); }
+  .back-btn { color: var(--ink-light); font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; border: none; background: none; padding: 0; }
+  .back-btn:hover { color: var(--teal); }
+
+  /* Recent resources table */
+  .recent-table {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    margin-top: 28px;
+  }
+
+  .table-header { padding: 18px 24px; border-bottom: 1px solid var(--slate-mid); font-size: 14px; font-weight: 600; color: var(--ink); }
+  .table-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; padding: 14px 24px; border-bottom: 1px solid var(--slate); align-items: center; font-size: 14px; }
+  .table-row:last-child { border-bottom: none; }
+  .table-row:hover { background: var(--slate); }
+  .table-cell { color: var(--ink-mid); }
+  .table-cell.bold { color: var(--ink); font-weight: 500; }
+  .verified-badge { background: var(--green-light); color: var(--green); font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+
+  /* Dashboard CTAs */
+  .cta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+  .cta-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 28px;
+    border: 1.5px solid var(--slate-mid);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .cta-card:hover { border-color: var(--teal); box-shadow: var(--shadow); transform: translateY(-2px); }
+  .cta-card-icon { font-size: 28px; margin-bottom: 12px; }
+  .cta-card-title { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+  .cta-card-desc { font-size: 14px; color: var(--ink-light); line-height: 1.5; }
+
+  @media print {
+    .sidebar, .topbar, .card-actions, .lesson-header-actions, .notes-card { display: none !important; }
+    .main { margin-left: 0; }
+    .content { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">📚</div>
+      <span class="logo-text">TeachSmart</span>
+    </div>
+    <a class="nav-item active" onclick="showDashboard()">
+      <span class="nav-icon">⊞</span> Dashboard
+    </a>
+    <a class="nav-item" onclick="showScreen('screen-input')">
+      <span class="nav-icon">✦</span> New Resource
+    </a>
+    <a class="nav-item">
+      <span class="nav-icon">📁</span> My Library
+    </a>
+    <a class="nav-item">
+      <span class="nav-icon">📊</span> Insights
+    </a>
+    <a class="nav-item">
+      <span class="nav-icon">⚙</span> Settings
+    </a>
+    <div class="sidebar-footer">
+      <div class="avatar-row">
+        <div class="avatar">SJ</div>
+        <div>
+          <div class="avatar-name">Sarah Johnson</div>
+          <div class="avatar-role">Science · Year 9–10</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="topbar-title">Dashboard</div>
+        <div class="topbar-sub" id="topbar-sub">Good morning, Sarah</div>
+      </div>
+      <div class="trust-badges">
+        <div class="trust-badge">✓ NSW Aligned</div>
+        <div class="trust-badge">⚖ Bias Checked</div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ═══════════════════════════════════════════════
+           DASHBOARD
+      ═══════════════════════════════════════════════ -->
+      <div id="screen-dashboard" class="screen active">
+        <div class="cta-grid">
+          <div class="cta-card" onclick="showScreen('screen-input')">
+            <div class="cta-card-icon">✦</div>
+            <div class="cta-card-title">Generate a New Resource</div>
+            <div class="cta-card-desc">Start from scratch. Pick your year level, topic, and class context — AI finds curriculum-aligned resources and adapts them for your students.</div>
+          </div>
+          <div class="cta-card" onclick="showToast('📄 File upload coming in v2!')">
+            <div class="cta-card-icon">📄</div>
+            <div class="cta-card-title">Adapt an Existing File</div>
+            <div class="cta-card-desc">Upload a PDF, Word doc, or slide deck and TeachSmart will verify curriculum alignment and suggest adaptations for your class.</div>
+          </div>
+        </div>
+
+        <div class="recent-table">
+          <div class="table-header">Recent Resources</div>
+          <div class="table-row" style="background:var(--slate); font-size:11px; font-weight:600; color:var(--ink-light); text-transform:uppercase; letter-spacing:0.06em;">
+            <div>Name</div><div>Type</div><div>Subject</div><div>Date</div><div>Status</div>
+          </div>
+          <div class="table-row">
+            <div class="table-cell bold">Australia's Changing Climate — Lesson Plan</div>
+            <div class="table-cell">Lesson Plan</div>
+            <div class="table-cell">Science</div>
+            <div class="table-cell">2 Apr 2026</div>
+            <div><span class="verified-badge">✓ Verified</span></div>
+          </div>
+          <div class="table-row">
+            <div class="table-cell bold">Murray-Darling Basin — Discussion Activity</div>
+            <div class="table-cell">Discussion</div>
+            <div class="table-cell">Geography</div>
+            <div class="table-cell">29 Mar 2026</div>
+            <div><span class="verified-badge">✓ Verified</span></div>
+          </div>
+          <div class="table-row">
+            <div class="table-cell bold">Stage 5 Earth Systems — Worksheet</div>
+            <div class="table-cell">Worksheet</div>
+            <div class="table-cell">Science</div>
+            <div class="table-cell">21 Mar 2026</div>
+            <div><span class="verified-badge">✓ Verified</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════
+           SCREEN 1: INPUT FORM
+      ═══════════════════════════════════════════════ -->
+      <div id="screen-input" class="screen">
+        <div class="section-header">
+          <div class="section-heading">New Resource</div>
+        </div>
+        <div class="input-card">
+          <div class="card-section-title">Teaching Context</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Year Level</label>
+              <select id="year-level">
+                <option value="7">Year 7</option>
+                <option value="8">Year 8</option>
+                <option value="9" selected>Year 9</option>
+                <option value="10">Year 10</option>
+                <option value="11">Year 11</option>
+                <option value="12">Year 12</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>State / Territory</label>
+              <select id="state-select" onchange="loadSyllabi()">
+                <option value="NSW" selected>NSW</option>
+                <option value="VIC">VIC</option>
+                <option value="QLD">QLD</option>
+                <option value="WA">WA</option>
+                <option value="SA">SA</option>
+                <option value="TAS">TAS</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Subject</label>
+              <select id="subject-select">
+                <option>Science</option>
+                <option>Biology</option>
+                <option>Chemistry</option>
+                <option>Geography</option>
+                <option>English</option>
+                <option>Mathematics</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:24px;">
+            <label>Topic</label>
+            <input type="text" id="topic-input" placeholder="e.g. Climate Change, Photosynthesis, WWI causes…" value="Climate Change">
+          </div>
+
+          <hr class="divider">
+          <div class="card-section-title">Resource Type</div>
+          <div class="resource-type-grid">
+            <div class="type-card selected" onclick="selectType(this)">
+              <div class="type-card-icon">📋</div>
+              <div class="type-card-label">Lesson Plan</div>
+            </div>
+            <div class="type-card" onclick="selectType(this)">
+              <div class="type-card-icon">📝</div>
+              <div class="type-card-label">Worksheet</div>
+            </div>
+            <div class="type-card" onclick="selectType(this)">
+              <div class="type-card-icon">💬</div>
+              <div class="type-card-label">Discussion</div>
+            </div>
+            <div class="type-card" onclick="selectType(this)">
+              <div class="type-card-icon">✏️</div>
+              <div class="type-card-label">Assessment</div>
+            </div>
+          </div>
+
+          <hr class="divider">
+          <div class="card-section-title">Class Context</div>
+          <div class="chips-row">
+            <div class="chip" onclick="toggleChip(this)" data-value="mixed">Mixed Ability</div>
+            <div class="chip selected" onclick="toggleChip(this)" data-value="eal">EAL/D Students</div>
+            <div class="chip" onclick="toggleChip(this)" data-value="gifted">High Achievers</div>
+            <div class="chip" onclick="toggleChip(this)" data-value="support">Learning Support</div>
+            <div class="chip" onclick="toggleChip(this)" data-value="inquiry">Inquiry-Based</div>
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
+            <div style="font-size:12px; color:var(--ink-light);">
+              ✦ CurricuLLM alignment + Cogniti adaptation
+            </div>
+            <button class="btn-primary" onclick="runSearch()">
+              Find Curriculum-Aligned Resources →
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════
+           LOADING SCREEN
+      ═══════════════════════════════════════════════ -->
+      <div id="screen-loading" class="screen">
+        <div class="loading-screen">
+          <div class="spinner"></div>
+          <div class="loading-text">Searching for resources…</div>
+          <div class="loading-steps">
+            <div class="loading-step" style="animation-delay:0.2s" id="step1">⬤ Checking NSW curriculum alignment…</div>
+            <div class="loading-step" style="animation-delay:0.9s" id="step2">⬤ Searching verified Australian sources…</div>
+            <div class="loading-step" style="animation-delay:1.6s" id="step3">⬤ Scoring resources for bias and safety…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════
+           SCREEN 2: RESULTS
+      ═══════════════════════════════════════════════ -->
+      <div id="screen-results" class="screen">
+        <div class="section-header">
+          <div style="display:flex; align-items:center; gap:16px;">
+            <button class="back-btn" onclick="showScreen('screen-input')">← Back</button>
+            <div class="section-heading" id="results-heading">Results for Climate Change</div>
+          </div>
+        </div>
+
+        <!-- Alignment Bar -->
+        <div class="alignment-bar-wrap">
+          <div class="alignment-left">
+            <div class="alignment-label">Curriculum Alignment</div>
+            <div class="alignment-syllabus" id="align-syllabus">NSW Stage 5 Science</div>
+            <div class="alignment-strand" id="align-strand">Earth and Space Sciences</div>
+            <div class="alignment-outcomes" id="align-outcomes">
+              <span class="outcome-tag">SC5-12ES</span>
+              <span class="outcome-tag">SC5-13ES</span>
+              <span class="outcome-tag">SC5-WS1</span>
+            </div>
+          </div>
+          <div class="alignment-score-block">
+            <div class="alignment-score-num" id="align-score">92%</div>
+            <div class="alignment-score-label">Alignment Score</div>
+            <div class="alignment-badge badge-green" id="align-badge">✓ Curriculum Matched</div>
+          </div>
+        </div>
+
+        <div class="results-layout">
+          <!-- Filter Panel -->
+          <div class="filter-panel">
+            <div class="filter-title">Filter Results</div>
+            <div class="filter-group">
+              <div class="filter-label">Resource Type</div>
+              <div class="filter-toggle"><span>Articles</span><div class="toggle-switch on" onclick="this.classList.toggle('on')"></div></div>
+              <div class="filter-toggle"><span>Videos</span><div class="toggle-switch on" onclick="this.classList.toggle('on')"></div></div>
+              <div class="filter-toggle"><span>Interactives</span><div class="toggle-switch" onclick="this.classList.toggle('on')"></div></div>
+              <div class="filter-toggle"><span>Datasets</span><div class="toggle-switch" onclick="this.classList.toggle('on')"></div></div>
+            </div>
+            <div class="filter-group">
+              <div class="filter-label">Trust Level</div>
+              <div class="filter-toggle"><span>Verified sources only</span><div class="toggle-switch on" onclick="this.classList.toggle('on')"></div></div>
+              <div class="filter-toggle"><span>Bias checked</span><div class="toggle-switch on" onclick="this.classList.toggle('on')"></div></div>
+            </div>
+            <div class="filter-group">
+              <div class="filter-label">Duration</div>
+              <div class="filter-toggle"><span>Under 30 min</span><div class="toggle-switch" onclick="this.classList.toggle('on')"></div></div>
+              <div class="filter-toggle"><span>30–60 min</span><div class="toggle-switch on" onclick="this.classList.toggle('on')"></div></div>
+              <div class="filter-toggle"><span>60+ min</span><div class="toggle-switch" onclick="this.classList.toggle('on')"></div></div>
+            </div>
+          </div>
+
+          <!-- Resource Cards -->
+          <div class="resources-grid" id="resources-grid">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════
+           ADAPTING LOADING
+      ═══════════════════════════════════════════════ -->
+      <div id="screen-adapting" class="screen">
+        <div class="loading-screen">
+          <div class="spinner"></div>
+          <div class="loading-text">Adapting lesson plan…</div>
+          <div class="loading-steps">
+            <div class="loading-step" style="animation-delay:0.2s">⬤ Building lesson objectives…</div>
+            <div class="loading-step" style="animation-delay:0.9s">⬤ Generating EAL/D differentiation…</div>
+            <div class="loading-step" style="animation-delay:1.6s">⬤ Adding NSW local context…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════
+           SCREEN 3: LESSON PLAN
+      ═══════════════════════════════════════════════ -->
+      <div id="screen-lesson" class="screen">
+        <div class="lesson-layout">
+          <div class="lesson-header">
+            <div class="lesson-header-left">
+              <button class="back-btn" style="margin-bottom:8px;" onclick="showScreen('screen-results')">← Back to Results</button>
+              <div class="lesson-resource-name" id="lesson-resource-name">Australia's Changing Climate</div>
+              <div class="lesson-resource-meta" id="lesson-resource-meta">CSIRO Climate Science Centre · NSW Stage 5 Science</div>
+              <div class="lesson-outcomes" id="lesson-outcomes">
+                <span class="outcome-tag">SC5-12ES</span>
+                <span class="outcome-tag">SC5-13ES</span>
+              </div>
+            </div>
+            <div class="lesson-header-actions">
+              <button class="btn-secondary" onclick="showToast('📎 Adding to Google Classroom…')">📎 Google Classroom</button>
+              <button class="btn-primary" onclick="exportPDF()">Export PDF ↓</button>
+            </div>
+          </div>
+
+          <!-- Overview -->
+          <div class="overview-card" id="lesson-overview">
+            <div class="card-section-title">Lesson Overview</div>
+            <div class="overview-meta">
+              <span class="meta-pill" id="lesson-meta-year">Year 9</span>
+              <span class="meta-pill" id="lesson-meta-duration">60 min</span>
+              <span class="meta-pill" id="lesson-meta-subject">Science</span>
+            </div>
+            <div class="objective-text" id="lesson-objective">
+              Students will investigate evidence for climate change using real CSIRO and BOM data, explain the impact on Australian ecosystems, and evaluate human responses at local and national levels.
+            </div>
+            <div class="card-section-title" style="margin-bottom:12px;">Activities</div>
+            <div class="activities-list" id="lesson-activities"></div>
+          </div>
+
+          <!-- NSW Local Context -->
+          <div class="local-callout" id="lesson-local">
+            <div class="local-callout-title">🗺 NSW local context — 2019–20 Black Summer Bushfires</div>
+            <div class="local-callout-body" id="lesson-local-body">
+              The Black Summer fires burned 5.5 million hectares across NSW. CSIRO analysis links the severity directly to climate-change-driven warming and drought — a powerful real-world hook for Stage 5 Earth Systems outcomes.
+            </div>
+          </div>
+
+          <!-- Questions -->
+          <div class="questions-card">
+            <div class="card-section-title">Differentiated Worksheet Questions</div>
+            <div class="questions-list" id="lesson-questions"></div>
+          </div>
+
+          <!-- Teacher Notes -->
+          <div class="notes-card">
+            <div class="card-section-title">Teacher Notes (Private)</div>
+            <textarea class="notes-textarea" placeholder="Add your own preparation notes here — these won't be exported…"></textarea>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<div class="toast" id="toast">
+  <span id="toast-text"></span>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────
+const state = {
+  yearLevel: 9,
+  stateCode: 'NSW',
+  subject: 'Science',
+  topic: 'Climate Change',
+  classContext: ['eal'],
+  alignmentResult: null,
+  resources: null,
+  selectedResource: null,
+  lessonPlan: null,
+};
+
+// ── MOCK DATA ──────────────────────────────────────────
+const MOCK_ALIGNMENT = {
+  alignmentScore: 92,
+  syllabus: "NSW Stage 5 Science",
+  strand: "Earth and Space Sciences",
+  outcomes: [
+    { id: "SC5-12ES", description: "Explains how..." },
+    { id: "SC5-13ES", description: "Relates..." },
+    { id: "SC5-WS1", description: "Questioning and predicting..." }
+  ],
+  notes: "Strong match with Stage 5 Earth Systems"
+};
+
+const MOCK_RESOURCES = [
+  {
+    id: "csiro-climate-nsw-2024",
+    title: "Australia's Changing Climate",
+    source: "CSIRO Climate Science Centre",
+    type: "Interactive Article",
+    description: "A comprehensive, data-rich exploration of Australia's climate trajectory using real BOM station records and CSIRO modelling. Directly references NSW regional impacts including coastal erosion and inland drought.",
+    alignmentScore: 96,
+    safetyRating: "verified",
+    biasFlag: "low",
+    localContextTags: ["NSW", "bushfire", "drought"],
+    outcomeIds: ["SC5-12ES", "SC5-13ES"]
+  },
+  {
+    id: "abc-edu-climate-2024",
+    title: "Climate Science in Your Backyard",
+    source: "ABC Education",
+    type: "Video Series",
+    description: "A three-part video series presenting climate data through the lens of Australian communities. Each episode focuses on a different ecosystem — reef, outback, and urban — with student discussion questions included.",
+    alignmentScore: 88,
+    safetyRating: "verified",
+    biasFlag: "low",
+    localContextTags: ["NSW", "BOM"],
+    outcomeIds: ["SC5-12ES", "SC5-WS1"]
+  },
+  {
+    id: "bom-data-explorer",
+    title: "BOM Climate Data Explorer",
+    source: "Bureau of Meteorology",
+    type: "Interactive Dataset",
+    description: "Live and historical weather and climate station data for every Australian location. Students can interrogate real temperature and rainfall trends over the past 100 years at their own school's nearest BOM station.",
+    alignmentScore: 82,
+    safetyRating: "verified",
+    biasFlag: "low",
+    localContextTags: ["NSW", "BOM", "drought"],
+    outcomeIds: ["SC5-12ES", "SC5-13ES", "SC5-WS1"]
+  }
+];
+
+const MOCK_LESSON = {
+  objective: "Students will investigate evidence for climate change using real CSIRO and BOM data, explain the impact on Australian ecosystems, and evaluate human responses at local and national levels. Students with EAL/D backgrounds will be supported with visual aids and key vocabulary scaffolds.",
+  duration: "60 min",
+  activities: [
+    { label: "Hook (5 min)", text: "Display CSIRO's Australian temperature anomaly graph (1910–2024). Ask: What do you notice? What questions does this raise? Pair-share before class discussion." },
+    { label: "Explore (20 min)", text: "Students navigate the Australia's Changing Climate interactive article in pairs. EAL/D pairs receive the vocabulary scaffold sheet with key terms pre-defined. Each pair records three pieces of evidence on their worksheet." },
+    { label: "Analyse (15 min)", text: "Class examines the 2019–20 Black Summer bushfire case study. Students map the chain of causation from greenhouse gas emissions to fire conditions using the provided cause-effect template." },
+    { label: "Evaluate (15 min)", text: "Small groups compare government, scientific, and community responses to climate change. Each group prepares a 2-minute verbal summary. Gifted extension: critique the adequacy of current policy using CSIRO projections." },
+    { label: "Reflect (5 min)", text: "Exit ticket: In one sentence, explain one piece of evidence for climate change and one way it affects NSW. Collect for formative assessment." }
+  ],
+  localExample: {
+    title: "NSW local context — 2019–20 Black Summer Bushfires",
+    body: "The Black Summer fires burned 5.5 million hectares across NSW. CSIRO analysis links the severity directly to climate-change-driven warming and drought — a powerful real-world hook for Stage 5 Earth Systems outcomes."
+  },
+  questions: [
+    { q: "By how many degrees has Australia's average temperature risen since 1910? Use the CSIRO graph to find your answer.", difficulty: "foundation" },
+    { q: "What is the enhanced greenhouse effect? Explain how it differs from the natural greenhouse effect.", difficulty: "core" },
+    { q: "Using BOM data, describe the trend in extreme heat days in NSW since 1970. What does this suggest about future climate?", difficulty: "core" },
+    { q: "Evaluate the claim: 'Australia's 2019–20 bushfire season was made significantly more likely by climate change.' Use at least two pieces of scientific evidence.", difficulty: "extension" },
+    { q: "Design a monitoring study that could track climate change impacts on a local NSW ecosystem over the next 10 years. Justify your choice of indicators.", difficulty: "extension" }
+  ]
+};
+
+// ── NAVIGATION ─────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+
+  const titles = {
+    'screen-dashboard': ['Dashboard', 'Good morning, Sarah'],
+    'screen-input': ['New Resource', 'Generate curriculum-aligned materials'],
+    'screen-results': ['Search Results', 'CurricuLLM · Alignment checked'],
+    'screen-lesson': ['Lesson Plan', 'Adapted by Cogniti AI'],
+    'screen-loading': ['Searching…', ''],
+    'screen-adapting': ['Adapting…', ''],
+  };
+  if (titles[id]) {
+    document.getElementById('topbar-title').textContent = titles[id][0];
+    document.getElementById('topbar-sub').textContent = titles[id][1];
+  }
+
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+}
+
+function showDashboard() {
+  showScreen('screen-dashboard');
+  document.querySelectorAll('.nav-item')[0].classList.add('active');
+}
+
+// ── FORM INTERACTIONS ──────────────────────────────────
+function selectType(el) {
+  document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function toggleChip(el) {
+  el.classList.toggle('selected');
+  const val = el.dataset.value;
+  if (el.classList.contains('selected')) {
+    if (!state.classContext.includes(val)) state.classContext.push(val);
+  } else {
+    state.classContext = state.classContext.filter(v => v !== val);
+  }
+}
+
+function loadSyllabi() {
+  // In production: GET CurricuLLM /syllabi?state=...
+  // For demo: local state update only
+  showToast('📋 Syllabi loaded for ' + document.getElementById('state-select').value);
+}
+
+// ── SEARCH FLOW ────────────────────────────────────────
+function runSearch() {
+  state.topic = document.getElementById('topic-input').value || 'Climate Change';
+  state.yearLevel = parseInt(document.getElementById('year-level').value);
+  state.stateCode = document.getElementById('state-select').value;
+  state.subject = document.getElementById('subject-select').value;
+
+  showScreen('screen-loading');
+
+  // Simulate parallel API calls with timeout fallback
+  setTimeout(() => {
+    state.alignmentResult = MOCK_ALIGNMENT;
+    state.resources = MOCK_RESOURCES;
+    renderResults();
+    showScreen('screen-results');
+    showToast('✓ Using cached curriculum data');
+  }, 2400);
+}
+
+function renderResults() {
+  document.getElementById('results-heading').textContent = 'Results for ' + state.topic;
+
+  const a = state.alignmentResult;
+  document.getElementById('align-syllabus').textContent = a.syllabus;
+  document.getElementById('align-strand').textContent = a.strand;
+  document.getElementById('align-score').textContent = a.alignmentScore + '%';
+
+  const outcomesEl = document.getElementById('align-outcomes');
+  outcomesEl.innerHTML = a.outcomes.map(o => `<span class="outcome-tag">${o.id}</span>`).join('');
+
+  const badge = document.getElementById('align-badge');
+  if (a.alignmentScore >= 80) { badge.textContent = '✓ Curriculum Matched'; badge.className = 'alignment-badge badge-green'; }
+  else if (a.alignmentScore >= 60) { badge.textContent = '~ Partial Match'; badge.className = 'alignment-badge badge-amber'; }
+  else { badge.textContent = '✗ Low Alignment'; badge.className = 'alignment-badge badge-red'; }
+
+  const grid = document.getElementById('resources-grid');
+  grid.innerHTML = state.resources.map(r => renderCard(r)).join('');
+}
+
+const TRUSTED_SOURCES = ['CSIRO', 'ABC Education', 'BOM', 'Bureau of Meteorology', 'ACARA'];
+const WHY_MAP = {
+  'NSW': 'Directly references NSW data',
+  'bushfire': 'Includes Black Summer bushfire case study',
+  'BOM': 'Uses real BOM station data',
+  'drought': 'Covers NSW drought impacts'
+};
+
+function renderCard(r) {
+  const isVerified = r.safetyRating === 'verified';
+  const isTrusted = TRUSTED_SOURCES.some(s => r.source.includes(s));
+  const why = r.localContextTags.map(t => WHY_MAP[t]).filter(Boolean)[0] || 'Aligned with NSW curriculum';
+
+  const tags = r.localContextTags.map(t => `<span class="local-tag">📍 ${t}</span>`).join('');
+
+  return `
+    <div class="resource-card">
+      <div class="card-header">
+        <div class="card-badges">
+          ${isVerified ? '<span class="trust-pill pill-green">✓ Safe &amp; Reviewed</span>' : '<span class="trust-pill pill-amber">⚠ Unverified</span>'}
+          ${r.biasFlag === 'low' ? '<span class="trust-pill pill-amber">⚑ Bias Checked</span>' : '<span class="trust-pill pill-red">✗ Bias Flagged</span>'}
+          ${isTrusted ? `<span class="trust-pill pill-green">✓ ${r.source.split(' ')[0]} Verified</span>` : ''}
+        </div>
+        <div class="card-type">${r.type}</div>
+        <div class="card-title">${r.title}</div>
+        <div class="card-source">${r.source}</div>
+      </div>
+      <div class="card-body">${r.description}</div>
+      <div class="why-this">💡 ${why}</div>
+      <div class="local-tags">${tags}</div>
+      <div class="card-footer">
+        <div class="card-align-score">Alignment: <strong>${r.alignmentScore}%</strong> · ${r.outcomeIds.join(', ')}</div>
+        <div class="card-actions">
+          <button class="btn-secondary" onclick="showToast('👁 Preview coming in v2')">Preview</button>
+          <button class="btn-primary" onclick="adaptResource('${r.id}')">Adapt for Year ${state.yearLevel} →</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── ADAPT FLOW ─────────────────────────────────────────
+function adaptResource(resourceId) {
+  state.selectedResource = state.resources.find(r => r.id === resourceId);
+  showScreen('screen-adapting');
+
+  setTimeout(() => {
+    state.lessonPlan = MOCK_LESSON;
+    renderLesson();
+    showScreen('screen-lesson');
+    showToast('✓ Lesson plan ready — using cached Cogniti response');
+  }, 2800);
+}
+
+function renderLesson() {
+  const r = state.selectedResource;
+  const lp = state.lessonPlan;
+  const a = state.alignmentResult;
+
+  document.getElementById('lesson-resource-name').textContent = r.title;
+  document.getElementById('lesson-resource-meta').textContent = `${r.source} · ${a.syllabus}`;
+
+  const outEl = document.getElementById('lesson-outcomes');
+  outEl.innerHTML = a.outcomes.map(o => `<span class="outcome-tag">${o.id}</span>`).join('');
+
+  document.getElementById('lesson-meta-year').textContent = `Year ${state.yearLevel}`;
+  document.getElementById('lesson-meta-duration').textContent = lp.duration;
+  document.getElementById('lesson-meta-subject').textContent = state.subject;
+
+  document.getElementById('lesson-objective').textContent = lp.objective;
+
+  const actEl = document.getElementById('lesson-activities');
+  actEl.innerHTML = lp.activities.map(a => `
+    <div class="activity-item">
+      <div class="activity-dot"></div>
+      <div>
+        <div class="activity-label">${a.label}</div>
+        <div class="activity-text">${a.text}</div>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('lesson-local').querySelector('.local-callout-title').textContent = '🗺 ' + lp.localExample.title;
+  document.getElementById('lesson-local-body').textContent = lp.localExample.body;
+
+  const qEl = document.getElementById('lesson-questions');
+  qEl.innerHTML = lp.questions.map(q => `
+    <div class="question-item">
+      <span class="diff-pill diff-${q.difficulty}">${q.difficulty.charAt(0).toUpperCase() + q.difficulty.slice(1)}</span>
+      <div class="question-text">${q.q}</div>
+    </div>
+  `).join('');
+}
+
+// ── EXPORT ─────────────────────────────────────────────
+function exportPDF() {
+  showToast('🖨 Opening print dialog…');
+  setTimeout(() => window.print(), 500);
+}
+
+// ── TOAST ──────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-text').textContent = msg;
+  t.classList.add('visible');
+  setTimeout(() => t.classList.remove('visible'), 3200);
+}
+
+// ── INIT ───────────────────────────────────────────────
+showDashboard();
+</script>
+</body>
+</html>

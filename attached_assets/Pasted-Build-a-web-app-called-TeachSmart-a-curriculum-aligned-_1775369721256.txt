@@ -1,0 +1,13 @@
+Build a web app called TeachSmart — a curriculum-aligned resource finder for Australian teachers. Use Node.js + Express backend with a single public/index.html frontend.
+The app has 4 screens navigated via client-side state (no page reloads):
+1. Dashboard — sidebar nav, two CTA cards (Generate Resource, Adapt File), recent resources table
+2. Input Form — dropdowns for Year Level (7–12), State (NSW default), Subject; text input for Topic; resource type selector (Lesson Plan, Worksheet, Discussion, Assessment); class context chips (Mixed Ability, EAL/D, High Achievers, Learning Support, Inquiry-Based); a search button
+3. Results — alignment score bar showing percentage + syllabus + outcome codes; filter panel with toggles; resource cards with trust badges (verified/bias checked), a "Why this?" teal callout, local context tags, and an "Adapt for Year 9" button
+4. Lesson Plan — resource reference header, lesson overview with activities timeline, a blue NSW local context callout box, differentiated questions with Foundation/Core/Extension pills, teacher notes textarea, Export PDF and Google Classroom buttons
+Backend: proxy API calls to two external services using environment variables CURRICULLM_API_KEY and COGNITI_API_KEY. All API calls must fall back to hardcoded mock data if the API fails or times out (8 second timeout).
+Mock data to use as fallback:
+- Alignment: score 92%, NSW Stage 5 Science, Earth and Space Sciences, outcomes SC5-12ES SC5-13ES SC5-WS1
+- 3 resources: CSIRO "Australia's Changing Climate" (96% alignment), ABC Education "Climate Science in Your Backyard" (88%), BOM "Climate Data Explorer" (82%)
+- Lesson plan with 5 activities (Hook 5min, Explore 20min, Analyse 15min, Evaluate 15min, Reflect 5min), NSW local context callout about 2019-20 Black Summer bushfires, 5 questions across Foundation/Core/Extension difficulty levels
+Design: sidebar navigation (dark), white cards, teal (#0d9488) as primary colour, DM Sans font, DM Serif Display for headings. Clean, professional, minimal. No purple gradients.
+Add a .env file placeholder with CURRICULLM_API_KEY and COGNITI_API_KEY as empty strings.

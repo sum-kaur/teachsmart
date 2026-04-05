@@ -3,13 +3,19 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: TeachSmart API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: resources
+    description: Curriculum resource operations
+  - name: lessons
+    description: Lesson plan operations
+  - name: dashboard
+    description: Dashboard operations
 paths:
   /healthz:
     get:
@@ -24,6 +30,77 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /resources/search:
+    post:
+      operationId: searchResources
+      tags: [resources]
+      summary: Search for curriculum-aligned resources
+      description: Search for resources based on curriculum parameters, proxied to CurriculLM API with fallback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchResourcesBody"
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResourcesResponse"
+
+  /resources/recent:
+    get:
+      operationId: getRecentResources
+      tags: [resources]
+      summary: Get recent resources
+      description: Returns recently searched/accessed resources
+      responses:
+        "200":
+          description: List of recent resources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecentResource"
+
+  /lessons/generate:
+    post:
+      operationId: generateLessonPlan
+      tags: [lessons]
+      summary: Generate a lesson plan
+      description: Generate a detailed lesson plan for a selected resource, proxied to Cogniti API with fallback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateLessonPlanBody"
+      responses:
+        "200":
+          description: Generated lesson plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonPlan"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get dashboard statistics
+      description: Returns summary statistics for the teacher dashboard
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +111,254 @@ components:
       required:
         - status
 
+    SearchResourcesBody:
+      type: object
+      properties:
+        yearLevel:
+          type: string
+          description: Year level (e.g. "Year 9")
+        state:
+          type: string
+          description: Australian state (e.g. "NSW")
+        subject:
+          type: string
+          description: Subject area (e.g. "Science")
+        topic:
+          type: string
+          description: Specific topic to search for
+        resourceType:
+          type: string
+          description: Type of resource (Lesson Plan, Worksheet, Discussion, Assessment)
+        classContext:
+          type: array
+          items:
+            type: string
+          description: Class context chips (Mixed Ability, EAL/D, High Achievers, etc.)
+      required:
+        - yearLevel
+        - state
+        - subject
+        - topic
+        - resourceType
+
+    SearchResourcesResponse:
+      type: object
+      properties:
+        alignment:
+          $ref: "#/components/schemas/AlignmentInfo"
+        resources:
+          type: array
+          items:
+            $ref: "#/components/schemas/Resource"
+      required:
+        - alignment
+        - resources
+
+    AlignmentInfo:
+      type: object
+      properties:
+        score:
+          type: integer
+          description: Alignment score percentage (0-100)
+        syllabus:
+          type: string
+          description: Syllabus name (e.g. "NSW Stage 5 Science")
+        strand:
+          type: string
+          description: Strand name (e.g. "Earth and Space Sciences")
+        outcomeCodes:
+          type: array
+          items:
+            type: string
+          description: Outcome code identifiers
+      required:
+        - score
+        - syllabus
+        - strand
+        - outcomeCodes
+
+    Resource:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        source:
+          type: string
+          description: Publisher/source organization
+        type:
+          type: string
+          description: Resource type
+        alignmentScore:
+          type: integer
+          description: Alignment score percentage (0-100)
+        description:
+          type: string
+        whyThis:
+          type: string
+          description: Explanation of why this resource is a good match
+        localContextTags:
+          type: array
+          items:
+            type: string
+          description: Australian local context tags
+        trustBadges:
+          type: array
+          items:
+            type: string
+          description: Trust badges (verified, bias-checked, etc.)
+        url:
+          type: ["string", "null"]
+          description: External URL for resource
+      required:
+        - id
+        - title
+        - source
+        - type
+        - alignmentScore
+        - description
+        - whyThis
+        - localContextTags
+        - trustBadges
+        - url
+
+    GenerateLessonPlanBody:
+      type: object
+      properties:
+        resourceId:
+          type: string
+        resourceTitle:
+          type: string
+        yearLevel:
+          type: string
+        state:
+          type: string
+        subject:
+          type: string
+        topic:
+          type: string
+        classContext:
+          type: array
+          items:
+            type: string
+      required:
+        - resourceId
+        - resourceTitle
+        - yearLevel
+        - state
+        - subject
+        - topic
+
+    LessonPlan:
+      type: object
+      properties:
+        resourceTitle:
+          type: string
+        yearLevel:
+          type: string
+        subject:
+          type: string
+        topic:
+          type: string
+        duration:
+          type: integer
+          description: Total lesson duration in minutes
+        overview:
+          type: string
+        activities:
+          type: array
+          items:
+            $ref: "#/components/schemas/LessonActivity"
+        localContextCallout:
+          type: string
+          description: NSW/Australian local context note
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/DifferentiatedQuestion"
+        teacherNotes:
+          type: string
+      required:
+        - resourceTitle
+        - yearLevel
+        - subject
+        - topic
+        - duration
+        - overview
+        - activities
+        - localContextCallout
+        - questions
+        - teacherNotes
+
+    LessonActivity:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Activity name (e.g. "Hook", "Explore")
+        duration:
+          type: integer
+          description: Duration in minutes
+        description:
+          type: string
+      required:
+        - name
+        - duration
+        - description
+
+    DifferentiatedQuestion:
+      type: object
+      properties:
+        level:
+          type: string
+          description: Difficulty level (Foundation, Core, Extension)
+        question:
+          type: string
+      required:
+        - level
+        - question
+
+    RecentResource:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        subject:
+          type: string
+        yearLevel:
+          type: string
+        topic:
+          type: string
+        alignmentScore:
+          type: integer
+        searchedAt:
+          type: string
+          description: ISO date string
+      required:
+        - id
+        - title
+        - subject
+        - yearLevel
+        - topic
+        - alignmentScore
+        - searchedAt
+
+    DashboardStats:
+      type: object
+      properties:
+        totalSearches:
+          type: integer
+        resourcesGenerated:
+          type: integer
+        averageAlignmentScore:
+          type: integer
+        topSubject:
+          type: string
+      required:
+        - totalSearches
+        - resourcesGenerated
+        - averageAlignmentScore
+        - topSubject

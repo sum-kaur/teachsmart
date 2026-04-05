@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface DifferentiatedQuestion {
+  /** Difficulty level (Foundation, Core, Extension) */
+  level: string;
+  question: string;
 }
