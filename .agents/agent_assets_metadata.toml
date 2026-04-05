@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "rDDE4D9xMlCCVVDGPmfto"
+uri = "file://README.md"
+type = "text"
+title = "TeachSmart — GitHub README"
