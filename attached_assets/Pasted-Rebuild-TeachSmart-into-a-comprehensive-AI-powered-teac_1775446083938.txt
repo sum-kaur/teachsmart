@@ -1,0 +1,168 @@
+Rebuild TeachSmart into a comprehensive AI-powered teaching platform. Keep all existing functionality but add the following features. Do not break anything that currently works.
+1. UNIT PLANNER (New Screen before search)
+Add a Unit Planner screen that captures full teaching context:
+- Unit title
+- Textbook name and edition (optional)
+- Total lessons in unit (number input)
+- Current lesson number (number input)  
+- Previous lesson summary (text field)
+- Today's learning intention (text field)
+- Success criteria (text field)
+- Assessment type at end of unit 
+  (dropdown: exam, project, portfolio, presentation)
+Store all this in app state as unitContext. Pass it into every Claude prompt so generated lesson plans say "Lesson 7 of 18 — building on your previous lesson about X, today's plan focuses on Y." This makes every output genuinely positioned within a teaching sequence, not a standalone generic plan.
+2. VOICE INPUT
+Add a microphone button next to every text input field in the app using the Web Speech API (built into Chrome, no external API needed):
+javascriptconst recognition = new webkitSpeechRecognition();
+recognition.continuous = false;
+recognition.interimResults = true;
+recognition.lang = 'en-AU'; // Australian English default
+When the teacher clicks the mic icon, it records and transcribes directly into the text field. Show a pulsing red indicator while recording. Support these languages via a language selector dropdown on the settings page:
+
+English (Australian) — en-AU
+Mandarin — zh-CN
+Arabic — ar-SA
+Hindi — hi-IN
+Vietnamese — vi-VN
+Greek — el-GR
+Italian — it-IT
+Punjabi — pa-IN
+
+Store selected language in state as preferredLanguage. Pass it into Claude prompts as: "Respond in {language}. Generate all lesson content, questions, and activities in {language}."
+3. MULTILINGUAL UI
+Add a language toggle in the top navigation bar with a globe icon 🌐. When changed, Claude regenerates all visible text content in the selected language. Static UI labels (buttons, nav items) switch using a simple translation object hardcoded in the frontend:
+javascriptconst translations = {
+  'en': { dashboard: 'Dashboard', newResource: 'New Resource', ... },
+  'zh': { dashboard: '仪表板', newResource: '新资源', ... },
+  'ar': { dashboard: 'لوحة القيادة', newResource: 'مورد جديد', ... },
+  // etc
+}
+4. PRESENTATION EXPORT (The big one)
+After the lesson plan is generated, add a prominent "Generate Slides →" button next to the existing Export PDF button.
+When clicked, call Claude with this prompt:
+Convert this lesson plan into a complete slide deck for classroom presentation.
+Lesson context: {lessonPlan + unitContext + alignmentResult}
+
+Return ONLY valid JSON, no markdown:
+{
+  "title": string,
+  "slides": [
+    {
+      "slideNumber": number,
+      "type": "title" | "objective" | "content" | "activity" | 
+              "discussion" | "local_context" | "assessment" | "summary",
+      "heading": string,
+      "bulletPoints": string[],
+      "teacherNote": string,
+      "backgroundTheme": "teal" | "white" | "dark" | "highlight",
+      "emoji": string
+    }
+  ]
+}
+
+Generate exactly 12 slides:
+Slide 1: Title slide with lesson title, year level, date
+Slide 2: Learning intentions and success criteria
+Slide 3: Hook/engagement activity
+Slides 4-8: Core content (one concept per slide, max 4 bullet points each)
+Slide 9: Local context (NSW/state specific example)
+Slide 10: Student activity instructions
+Slide 11: Discussion questions (Foundation, Core, Extension)
+Slide 12: Summary and exit ticket
+Then render this as a live interactive slideshow directly in the browser using HTML/CSS/JS with these features:
+
+Full screen presentation mode (press F or click fullscreen button)
+Arrow key navigation between slides
+Each slide has a smooth fade or slide transition animation
+Title slides have teal gradient background
+Content slides have white background with teal accents
+The local context slide has a blue gradient background
+Teacher notes shown in a small panel below each slide (hidden in fullscreen mode)
+Slide counter showing "3 / 12" in the corner
+Keyboard shortcut: press T to toggle teacher notes
+A "Present" button that opens the slideshow in a new fullscreen tab
+
+Export options on the slideshow screen:
+
+"Export as PDF" — uses window.print() with print-specific CSS that prints each slide as a full A4 page
+"Copy slide text" — copies all slide content as plain text to clipboard
+"Export as HTML" — downloads the entire slideshow as a self-contained HTML file the teacher can open anywhere, share with students, or upload to Google Classroom
+
+5. SEMESTER PLANNER (New screen in sidebar)
+Add a "Semester Plan" item to the sidebar navigation. This screen lets teachers build a full semester overview:
+Semester Setup:
+- School term (Term 1-4)
+- Start date and end date  
+- Total weeks
+- Subject and year level
+
+Then for each week:
+- Week topic/theme (text input)
+- Key outcomes for that week (text input)
+- Assessment events (checkbox: quiz, assignment, exam)
+When the teacher clicks "Generate Semester Plan with AI", call Claude with:
+Create a detailed {totalWeeks}-week semester plan for Year {yearLevel} 
+{subject} in {state} covering the Australian Curriculum v9 outcomes.
+Start date: {startDate}
+
+Return ONLY valid JSON:
+{
+  "semesterTitle": string,
+  "weeks": [
+    {
+      "weekNumber": number,
+      "dateRange": string,
+      "topic": string,
+      "outcomes": string[],
+      "keyActivities": string[],
+      "assessmentEvent": string | null,
+      "resources": string[]
+    }
+  ]
+}
+Display this as a visual timeline — a horizontal scrollable week-by-week calendar view with colour coding:
+
+Green weeks = content delivery
+Amber weeks = revision
+Red weeks = assessment
+Blue weeks = excursions/events
+
+Each week card is clickable — clicking it pre-fills the Unit Planner and takes the teacher directly to search for resources for that week's topic. This connects the semester plan directly to the daily lesson flow.
+6. MY LIBRARY SCREEN (make it functional)
+The "My Library" nav item currently does nothing. Make it functional:
+
+When a teacher clicks "Save Resource" on any resource card, it saves to localStorage under key teachsmart_library
+When a teacher completes a lesson plan, a "Save to Library" button saves the full lesson plan object to localStorage
+The My Library screen shows two tabs: "Saved Resources" and "Lesson Plans"
+Each saved item shows title, subject, year level, date saved, and a "Load" button that restores it into the app state
+A "Clear Library" button at the bottom with a confirmation dialog
+
+7. STUDENT INTEREST PROFILE (lightweight version of Idea 2)
+On the Input Form, add a collapsible "Student Interests" section below Class Context chips. It shows a simple grid of interest category toggles:
+Sports & PE    |  Music & Arts   |  Gaming & Tech
+Science & Space|  Social Media   |  Food & Cooking  
+Environment    |  Cultural Pride  |  Current Events
+When interests are selected, add them to the Claude resource prompt:
+"Note: this class has high interest in {selectedInterests}. Where possible, surface resources and examples that connect curriculum content to these interests."
+8. PERFORMANCE — pre-generate all demo scenarios
+Create data/demoScenarios.js with 5 complete hardcoded responses for:
+
+Year 9 · NSW · Science · Climate Change
+Year 9 · NSW · Mathematics · Algebra
+Year 8 · VIC · English · Romeo and Juliet
+Year 10 · QLD · History · Rights and Freedoms
+Year 7 · NSW · Geography · Ecosystems
+
+Check for exact match before every Claude call. If matched, return instantly with 400ms fake delay. Claude only fires for searches outside these 5 scenarios.
+Set max_tokens to 600 on all Claude calls. Set 10 second timeout on all API calls with mock fallback.
+9. LIVING CONTEXT FEED (from earlier prompt)
+Add the "This Week in Your Area" dashboard feed using BOM weather data and postcode-based Aboriginal Country context as described previously. This should already be partially built — if so, just ensure it's wired up correctly.
+10. ACCESSIBILITY
+
+All buttons and inputs must have aria-labels
+Font size toggle in settings (Small / Medium / Large) stored in localStorage
+High contrast mode toggle in settings
+All animated transitions respect prefers-reduced-motion
+
+
+Do all of this in one pass. Use Replit's built-in Anthropic integration for all Claude calls. Keep all existing working functionality intact. The app must still work with mock fallback data if any API call fails. Deploy automatically when done.

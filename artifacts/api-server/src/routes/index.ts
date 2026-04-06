@@ -4,6 +4,8 @@ import alignmentRouter from "./alignment";
 import resourcesRouter from "./resources";
 import lessonsRouter from "./lessons";
 import feedRouter from "./feed";
+import slidesRouter from "./slides";
+import semesterPlanRouter from "./semesterPlan";
 
 const router: IRouter = Router();
 
@@ -12,5 +14,7 @@ router.use(alignmentRouter);
 router.use(resourcesRouter);
 router.use(lessonsRouter);
 router.use(feedRouter);
+router.use(slidesRouter);
+router.use(semesterPlanRouter);
 
 export default router;

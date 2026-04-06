@@ -28,7 +28,7 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 
 ## TeachSmart App
 
-TeachSmart is a curriculum-aligned resource finder for Australian teachers (Years 7-12).
+TeachSmart is a curriculum-aligned resource finder for Australian teachers (Years 7–12).
 
 ### Architecture
 
@@ -43,24 +43,67 @@ TeachSmart is a curriculum-aligned resource finder for Australian teachers (Year
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/healthz` | GET | Health check |
-| `/api/alignment` | POST | Score curriculum alignment using Claude + local JSON data |
-| `/api/resources` | POST | Find trusted Australian teaching resources via Claude |
-| `/api/lesson` | POST | Generate a complete differentiated lesson plan via Claude |
+| `/api/alignment` | POST | Score curriculum alignment using Claude + local JSON data. Accepts optional `unitContext` and `preferredLanguage`. 10s timeout. |
+| `/api/resources` | POST | Find trusted Australian teaching resources via Claude. Accepts optional `studentInterests`, `unitContext`, `preferredLanguage`. 10s timeout. |
+| `/api/lesson` | POST | Generate complete differentiated lesson plan via Claude. Accepts optional `unitContext`, `preferredLanguage`. 10s timeout. |
+| `/api/slides` | POST | Generate 12-slide presentation deck from lesson plan via Claude. Accepts `lessonPlan`, `unitContext`, `alignmentResult`, `subject`, `yearLevel`, `topic`, `state`. 20s timeout. |
+| `/api/semester-plan` | POST | Generate full semester plan via Claude. Accepts `subject`, `yearLevel`, `state`, `term`, `startDate`, `totalWeeks`, `weekTopics[]`, `preferredLanguage`. 20s timeout. |
 | `/api/resources/recent` | GET | Recent resources for dashboard |
 | `/api/dashboard/stats` | GET | Dashboard summary statistics |
+| `/api/feed` | POST | Live weather + local teaching opportunities |
+
+### Demo Scenarios (Instant Responses)
+
+5 hardcoded demo scenarios in `artifacts/api-server/src/lib/demoScenarios.ts` that return pre-built data (~400ms simulated delay) without calling Claude:
+
+| Year | State | Subject | Topic |
+|------|-------|---------|-------|
+| Year 9 | NSW | Science | Climate Change |
+| Year 9 | NSW | Mathematics | Algebra |
+| Year 8 | VIC | English | Romeo and Juliet |
+| Year 10 | QLD | History | Rights and Freedoms |
+| Year 7 | NSW | Geography | Ecosystems |
+
+Match logic: case-insensitive substring match on topic keywords, year level, state, and subject.
 
 ### Features
 
-- **Dashboard**: Stats cards (total searches, resources generated, avg alignment score, top subject), quick action cards, recent resources table
-- **Input Form**: Year Level (7-12), State (all AU states/territories), Subject, Topic, Resource Type, Class Context (Mixed Ability, EAL/D, High Achievers etc.)
-- **Results**: Real curriculum alignment panel with AC9 outcome codes, resource cards with trust badges, local context tags, alignment scores
-- **Lesson Plan**: Activities timeline (Hook/Explore/Analyse/Evaluate/Reflect), Australian local context callout, differentiated questions (Foundation/Core/Extension), teacher notes textarea
+- **Dashboard**: Stats cards, 3 quick action cards (Unit Planner, Generate Resource, Semester Planner), local feed, recent resources
+- **Unit Planner** (`unit-planner` screen): Captures unit title, textbook, total/current lesson, learning intention, success criteria, assessment type. When set, passes this context to all Claude calls so lesson plans are positioned within the unit sequence.
+- **Search Form**: Year Level/State/Subject/Topic/Postcode. Voice input (Web Speech API) on topic field. Student Interests (collapsible chips). Class context chips.
+- **Results**: Alignment bar, resource cards with "Why this resource?" teal callout, "Save" bookmark button per resource.
+- **Lesson Plan**: Activities timeline, local context, differentiated questions, teacher notes. "Generate Slides →" button + "Save to Library" button.
+- **Slideshow** (`slideshow` screen): 12-slide interactive presenter. Keyboard navigation (← →), fullscreen mode (F), toggle notes (T). HTML export + print-to-PDF buttons.
+- **My Library** (`library` screen): localStorage-based. Two tabs: Saved Resources and Lesson Plans. Delete individual items or clear all.
+- **Semester Planner** (`semester` screen): Configure term, start date, weeks, optional per-week topics/assessments. AI generates full plan. Click any week to search resources for that week.
+- **Settings** (`settings` screen): 8 UI languages (EN, ZH, AR, HI, VI, EL, IT, PA). Font size (small/medium/large). High contrast toggle.
+- **Multilingual**: Sidebar language flags. `preferredLanguage` passed to Claude for content generation in selected language.
+
+### Component Files
+
+```
+artifacts/teachsmart/src/
+  pages/
+    Home.tsx — main orchestrator (state, routing, screen rendering)
+  components/
+    VoiceMic.tsx — Web Speech API mic button
+    Slideshow.tsx — interactive presenter + HTML/PDF export
+    UnitPlanner.tsx — unit context capture form
+    Library.tsx — localStorage resource + lesson library
+    SemesterPlanner.tsx — AI semester overview + week grid
+    Settings.tsx — language, font size, high contrast
+  lib/
+    translations.ts — 8-language T object + useTranslation hook
+    library.ts — localStorage CRUD (saveResource, saveLesson, delete, clearAll)
+```
 
 ### AI Integration
 
 - Uses `@workspace/integrations-anthropic-ai` (Replit-provisioned Anthropic client)
-- All 3 Claude-backed endpoints (`/alignment`, `/resources`, `/lesson`) have mock data fallback on failure
-- Timeout: 8 seconds per API call; falls back to mock data on timeout
+- max_tokens: 600 (alignment), 2000 (resources), 4000 (lessons), 8192 (slides, semester-plan)
+- All Claude endpoints check demo scenarios first, then fall back to mock data on failure
+- Timeout: 10s (alignment/resources/lessons), 20s (slides/semester-plan)
+- New endpoints (slides, semester-plan) not in OpenAPI spec — called with direct `fetch()` from frontend
 
 ### Curriculum Data
 
@@ -68,22 +111,19 @@ TeachSmart is a curriculum-aligned resource finder for Australian teachers (Year
 - `science.json`, `english.json`, `mathematics.json`, `humanities.json`
 - `arts.json`, `hpe.json`, `technologies.json`, `languages.json`
 
-Each file contains content descriptions organized by year level and strand (Years 7-12).
+Each file contains content descriptions organized by year level and strand (Years 7–12).
 
 ### Living Context Feed
 
-The dashboard includes a "This Week in Your Area" section powered by live data:
+- **Postcode input**: In search form, default `2150` (Parramatta, NSW)
+- **Local context database**: `artifacts/api-server/src/lib/localContext.ts`
+- **BOM weather**: Live, no API key, 5s timeout with mock fallback
+- **Claude feed cards**: 3 location-specific teaching opportunity cards
+- **Feed auto-loads** on dashboard mount, refreshes on postcode/state change
 
-- **Postcode input**: Added to the search form next to State. Default is `2150` (Parramatta, NSW).
-- **Local context database**: `artifacts/api-server/src/lib/localContext.ts` contains hardcoded entries for 5 postcodes (2150, 2000, 4870, 3000, 6000) and state-level fallbacks.
-- **BOM weather**: Live weather data fetched from BOM JSON feeds (no API key required, 5s timeout with mock fallback).
-- **Claude feed cards**: 3 location-specific teaching opportunity cards per request (type, icon, headline, teaching angle, curriculum link). 8s timeout with mock fallback.
-- **Feed auto-loads** on dashboard mount using default postcode 2150. Refreshes when teacher changes postcode (on 4-digit entry) or state in the search form.
+### Design System
 
-### Mock Data Fallback
-
-All Claude endpoints fall back gracefully to hardcoded mock data if:
-- Claude API is unavailable or times out (8s)
-- No curriculum data found for the requested subject/year
-
-The fallback includes Science/Climate Change example data with realistic alignment scores and resources.
+- Primary: teal `#0d9488`
+- Sidebar: dark `#0f172a`
+- Fonts: DM Serif Display (headings), DM Sans (body)
+- Tailwind CSS with custom sidebar/primary tokens
