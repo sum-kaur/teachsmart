@@ -6,3 +6,9 @@ id = "rDDE4D9xMlCCVVDGPmfto"
 uri = "file://README.md"
 type = "text"
 title = "TeachSmart — GitHub README"
+
+[[outputs]]
+id = "b7yAS3xeR43s4fEds_X65"
+uri = "file://TEACHSMART_DEMO_GUIDE.md"
+type = "text"
+title = "TeachSmart — Demo & Testing Guide"
