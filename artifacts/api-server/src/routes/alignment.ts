@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { GetAlignmentBody } from "@workspace/api-zod";
-import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { groq, GROQ_MODEL } from "../lib/groq";
 import { getOutcomesForSubjectAndYear } from "../lib/curriculum";
 import { getDemoScenario } from "../lib/demoScenarios";
 
@@ -69,17 +69,19 @@ Only include the most relevant 3-5 outcomes. The strand should be the most relev
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-6", max_tokens: 600,
+    const completion = await groq.chat.completions.create({
+      model: GROQ_MODEL,
       messages: [{ role: "user", content: prompt }],
+      max_tokens: 600,
+      temperature: 0.7,
     });
     clearTimeout(timeout);
-    const text = message.content[0].type === "text" ? message.content[0].text : "";
+    const text = completion.choices[0]?.message?.content ?? "";
     const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     res.json({ ...JSON.parse(cleaned), usedFallback: false });
   } catch (err) {
     clearTimeout(timeout);
-    req.log.warn({ err }, "Claude alignment call failed, using fallback");
+    req.log.warn({ err }, "AI alignment call failed, using fallback");
     res.json(MOCK_ALIGNMENT);
   }
 });

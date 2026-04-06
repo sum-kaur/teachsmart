@@ -1,0 +1,49 @@
+Replace the Anthropic Claude API integration with Groq API throughout the entire codebase. Do not break any existing functionality. Follow these steps exactly:
+1. Install the Groq SDK
+Run in the shell:
+npm install groq-sdk
+or if using pnpm:
+pnpm add groq-sdk
+2. Replace all AI API calls in the backend
+Find every place in the codebase where the Anthropic client or Claude API is called and replace it with the Groq SDK using this exact pattern:
+javascriptconst Groq = require('groq-sdk');
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+async function callAI(prompt) {
+  try {
+    const response = await groq.chat.completions.create({
+      model: "llama3-70b-8192",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 1000,
+      temperature: 0.7
+    });
+    return response.choices[0].message.content;
+  } catch (err) {
+    console.warn('Groq fallback triggered:', err.message);
+    return null; // caller handles fallback
+  }
+}
+If the project uses TypeScript, use the equivalent TypeScript syntax with proper types.
+3. Update all environment variable references
+
+Replace every instance of ANTHROPIC_API_KEY with GROQ_API_KEY in all files
+Update .env.example to:
+
+GROQ_API_KEY=your_groq_key_here
+SESSION_SECRET=any-random-string-here
+
+Remove any reference to ANTHROPIC_API_KEY from .env.example
+
+4. Remove the Anthropic SDK
+Uninstall the Anthropic package if it is installed:
+npm uninstall @anthropic-ai/sdk
+or:
+pnpm remove @anthropic-ai/sdk
+5. Keep all fallback mock data exactly as is
+Every API call already has a fallback to pre-generated mock data. Keep this fallback logic completely unchanged. If the Groq call returns null or throws, the existing mock data should be returned exactly as before.
+6. Keep the 5 instant demo scenarios completely unchanged
+The demo scenarios for Climate Change, Algebra, Romeo and Juliet, Rights and Freedoms, and Ecosystems bypass the API entirely. Do not touch them.
+7. Update any frontend references
+If the frontend mentions Claude or Anthropic in any visible UI text, loading messages, or comments, replace with neutral language like "AI" or "Powered by AI".
+8. Test that it works
+After making all changes, confirm the app starts without errors and the API server runs correctly. Log a message like "Groq API ready" on server startup to confirm the integration is active.

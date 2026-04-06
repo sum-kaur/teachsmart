@@ -598,7 +598,7 @@ export default function Home() {
     if (isGeneratingLesson) {
       return (
         <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
-          {renderTopbar("Generating Lesson Plan", "Claude is writing your lesson...")}
+          {renderTopbar("Generating Lesson Plan", "AI is writing your lesson...")}
           <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] gap-5">
             <div className="w-12 h-12 border-4 border-slate-200 border-t-primary rounded-full animate-spin"></div>
             <div className="text-[15px] text-muted-foreground">Designing your lesson plan...</div>

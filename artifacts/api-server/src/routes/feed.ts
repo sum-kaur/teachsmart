@@ -1,11 +1,11 @@
 import { Router, type IRouter } from "express";
 import { GetFeedBody } from "@workspace/api-zod";
-import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { groq, GROQ_MODEL } from "../lib/groq";
 import { LOCAL_CONTEXT, STATE_FALLBACK, BOM_URLS, MOCK_WEATHER } from "../lib/localContext";
 
 const router: IRouter = Router();
 const BOM_TIMEOUT_MS = 5000;
-const CLAUDE_TIMEOUT_MS = 8000;
+const AI_TIMEOUT_MS = 8000;
 
 interface WeatherObs {
   temp: number;
@@ -120,26 +120,27 @@ Return ONLY valid JSON, no markdown:
 }`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), CLAUDE_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
 
   let feedItems = MOCK_FEED_ITEMS;
   let usedFallback = false;
 
   try {
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 4096,
+    const completion = await groq.chat.completions.create({
+      model: GROQ_MODEL,
       messages: [{ role: "user", content: prompt }],
+      max_tokens: 2000,
+      temperature: 0.7,
     });
     clearTimeout(timeout);
 
-    const text = message.content[0].type === "text" ? message.content[0].text : "";
+    const text = completion.choices[0]?.message?.content ?? "";
     const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    const parsed = JSON.parse(cleaned);
-    feedItems = parsed.feedItems ?? MOCK_FEED_ITEMS;
+    const parsedJson = JSON.parse(cleaned);
+    feedItems = parsedJson.feedItems ?? MOCK_FEED_ITEMS;
   } catch (err) {
     clearTimeout(timeout);
-    req.log.warn({ err }, "Claude feed call failed, using fallback");
+    req.log.warn({ err }, "AI feed call failed, using fallback");
     usedFallback = true;
   }
 

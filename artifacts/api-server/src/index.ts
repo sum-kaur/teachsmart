@@ -22,4 +22,5 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+  logger.info("Groq API ready");
 });

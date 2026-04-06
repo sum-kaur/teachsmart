@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { groq, GROQ_MODEL } from "../lib/groq";
 
 const router: IRouter = Router();
 const TIMEOUT_MS = 20000;
@@ -83,17 +83,19 @@ Make bulletPoints short and classroom-readable (max 10 words each). TeacherNote 
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-6", max_tokens: 8192,
+    const completion = await groq.chat.completions.create({
+      model: GROQ_MODEL,
       messages: [{ role: "user", content: prompt }],
+      max_tokens: 6000,
+      temperature: 0.7,
     });
     clearTimeout(timeout);
-    const text = message.content[0].type === "text" ? message.content[0].text : "";
+    const text = completion.choices[0]?.message?.content ?? "";
     const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     res.json({ ...JSON.parse(cleaned), usedFallback: false });
   } catch (err) {
     clearTimeout(timeout);
-    req.log.warn({ err }, "Claude slides call failed, using fallback");
+    req.log.warn({ err }, "AI slides call failed, using fallback");
     res.json(MOCK_SLIDES);
   }
 });
