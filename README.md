@@ -44,7 +44,12 @@ pnpm install
 
 ### Environment Variables
 
-Create a `.env` file in the project root (never commit this file):
+Copy `.env.example` to `.env` and fill in your values (never commit `.env`):
+
+```bash
+cp .env.example .env        # Mac / Linux
+copy .env.example .env      # Windows
+```
 
 ```
 GROQ_API_KEY=your_groq_api_key_here
