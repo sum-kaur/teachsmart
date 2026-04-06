@@ -81,7 +81,8 @@ export default function Home() {
   const preferredLanguage = voiceLang;
 
   const { data: dashboardStats = MOCK_DASHBOARD_STATS } = useGetDashboardStats();
-  const { data: recentResources = MOCK_RECENT } = useGetRecentResources();
+  const { data: recentResourcesRaw } = useGetRecentResources();
+  const recentResources = Array.isArray(recentResourcesRaw) ? recentResourcesRaw : MOCK_RECENT;
   const feedMutation = useGetFeed();
 
   const getApiBase = () => {
