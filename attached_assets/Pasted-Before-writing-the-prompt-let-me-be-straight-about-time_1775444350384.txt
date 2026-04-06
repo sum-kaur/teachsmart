@@ -1,0 +1,77 @@
+Before writing the prompt, let me be straight about timelines given Demo Day is April 9th — that's 3 days away.
+Idea 2 (Student Voice) and Idea 4 (Community Map) are both genuinely complex — QR codes, anonymous sessions, map pinning, and crowdsourced data storage are each a day of work minimum. I'd strongly recommend pitching those as roadmap features only.
+Idea 1 (Living Context Feed) is the one worth building. It's dramatic in a demo, uses free public APIs, and adds maybe half a day of work. Here's the prompt:
+
+Add a "This Week in Your Area" Living Context Feed to the TeachSmart dashboard. This feed appears on the Dashboard screen above the Recent Resources table and updates based on the teacher's selected state and postcode.
+1. Add a postcode input field to the existing Input Form next to the State dropdown. Store it in app state as postcode.
+2. Build a small hardcoded local context database in a file called data/localContext.js with entries for these 5 postcodes:
+2150 (Parramatta, NSW)
+- Aboriginal Country: Darug Country
+- Landmark: Parramatta River, Parramatta Park
+- Local context: Burramattagal people, Western Sydney urban growth
+
+2000 (Sydney CBD, NSW)
+- Aboriginal Country: Gadigal Country
+- Landmark: Sydney Harbour, The Rocks
+- Local context: Eora Nation, colonial history, harbour ecology
+
+4870 (Cairns, QLD)
+- Aboriginal Country: Yidinji and Gimuy Walubara Yidinji Country
+- Landmark: Great Barrier Reef, Daintree Rainforest
+- Local context: reef ecology, tropical climate, Indigenous tourism
+
+3000 (Melbourne CBD, VIC)
+- Aboriginal Country: Wurundjeri Woi Wurrung Country
+- Landmark: Yarra River, Port Phillip Bay
+- Local context: Kulin Nation, urban biodiversity, bay ecology
+
+6000 (Perth CBD, WA)
+- Aboriginal Country: Whadjuk Noongar Country
+- Landmark: Swan River, Kings Park
+- Local context: Noongar seasons, Mediterranean climate, wildflowers
+For any other postcode entered, fall back to the teacher's selected state with generic state-level context.
+3. Add a /api/feed POST route in server.js that accepts { postcode, state, subject, yearLevel } and does two things in parallel:
+First, fetch live BOM weather data for the nearest capital city using this free BOM JSON feed — no API key needed:
+Sydney:  http://www.bom.gov.au/fwo/IDN60901/IDN60901.94767.json
+Melbourne: http://www.bom.gov.au/fwo/IDV60901/IDV60901.95936.json
+Brisbane: http://www.bom.gov.au/fwo/IDQ60901/IDQ60901.94576.json
+Perth: http://www.bom.gov.au/fwo/IDW60901/IDW60901.94608.json
+Adelaide: http://www.bom.gov.au/fwo/IDS60901/IDS60901.94672.json
+Extract the latest observation: temperature, weather description, rainfall, and wind.
+Second, call Claude with this prompt:
+You are a creative Australian curriculum teacher assistant.
+
+Local context for this teacher:
+- Location: {postcode}, {state}
+- Aboriginal Country: {localContext.country}
+- Nearby landmarks: {localContext.landmarks}
+- Subject: {subject}, Year {yearLevel}
+- Current weather: {temp}°C, {weatherDescription}, rainfall {rainfall}mm
+
+Generate 3 teaching opportunity cards for "This Week in Your Area". 
+Each card should connect something real and current about this location 
+to a curriculum teaching opportunity for this teacher's subject and year level.
+
+Return ONLY valid JSON, no markdown:
+{
+  "feedItems": [
+    {
+      "type": "weather" | "local_history" | "environment" | "community",
+      "headline": string (max 10 words),
+      "teachingAngle": string (1-2 sentences connecting this to curriculum),
+      "curriculumLink": string (which strand or topic this connects to),
+      "icon": "🌦" | "🗺" | "🌿" | "🏘"
+    }
+  ]
+}
+If BOM fetch fails or times out (5 second timeout), use hardcoded mock weather data for the state. If Claude call fails, use hardcoded mock feed items for the postcode.
+4. Add the feed UI to the Dashboard screen in public/index.html. Display it as a horizontal row of 3 cards above the Recent Resources table. Each card shows:
+
+An icon and type label at the top
+The headline in bold
+The teaching angle text
+A teal "curriculum link" tag at the bottom
+
+Style it consistently with the existing card design — white background, subtle shadow, teal accents. Add a small "📍 Detecting your area..." loading state while the feed loads.
+5. Trigger the feed automatically when the Dashboard loads using the default postcode 2150 and state NSW. Refresh it when the teacher changes their postcode or state on the Input Form.
+Keep all existing functionality exactly as it is. Only add, never remove.

@@ -70,6 +70,16 @@ TeachSmart is a curriculum-aligned resource finder for Australian teachers (Year
 
 Each file contains content descriptions organized by year level and strand (Years 7-12).
 
+### Living Context Feed
+
+The dashboard includes a "This Week in Your Area" section powered by live data:
+
+- **Postcode input**: Added to the search form next to State. Default is `2150` (Parramatta, NSW).
+- **Local context database**: `artifacts/api-server/src/lib/localContext.ts` contains hardcoded entries for 5 postcodes (2150, 2000, 4870, 3000, 6000) and state-level fallbacks.
+- **BOM weather**: Live weather data fetched from BOM JSON feeds (no API key required, 5s timeout with mock fallback).
+- **Claude feed cards**: 3 location-specific teaching opportunity cards per request (type, icon, headline, teaching angle, curriculum link). 8s timeout with mock fallback.
+- **Feed auto-loads** on dashboard mount using default postcode 2150. Refreshes when teacher changes postcode (on 4-digit entry) or state in the search form.
+
 ### Mock Data Fallback
 
 All Claude endpoints fall back gracefully to hardcoded mock data if:

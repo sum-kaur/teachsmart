@@ -142,6 +142,43 @@ export const GenerateLessonResponse = zod.object({
 });
 
 /**
+ * Fetches live BOM weather and generates teaching opportunity cards via Claude
+ * @summary Get living context feed for teacher's area
+ */
+export const GetFeedBody = zod.object({
+  postcode: zod.string(),
+  state: zod.string(),
+  subject: zod.string(),
+  yearLevel: zod.string(),
+});
+
+export const GetFeedResponse = zod.object({
+  feedItems: zod.array(
+    zod.object({
+      type: zod.string(),
+      headline: zod.string(),
+      teachingAngle: zod.string(),
+      curriculumLink: zod.string(),
+      icon: zod.string(),
+    }),
+  ),
+  weather: zod.object({
+    temp: zod.number(),
+    description: zod.string(),
+    rainfall: zod.number(),
+    wind: zod.number(),
+    city: zod.string(),
+    usedFallback: zod.boolean(),
+  }),
+  localContext: zod.object({
+    suburb: zod.string(),
+    country: zod.string(),
+    landmarks: zod.string(),
+  }),
+  usedFallback: zod.boolean(),
+});
+
+/**
  * Returns recently searched/accessed resources
  * @summary Get recent resources
  */

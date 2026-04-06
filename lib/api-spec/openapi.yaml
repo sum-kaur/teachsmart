@@ -91,6 +91,26 @@ paths:
               schema:
                 $ref: "#/components/schemas/LessonPlan"
 
+  /feed:
+    post:
+      operationId: getFeed
+      tags: [dashboard]
+      summary: Get living context feed for teacher's area
+      description: Fetches live BOM weather and generates teaching opportunity cards via Claude
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedRequestBody"
+      responses:
+        "200":
+          description: Feed result with weather and teaching opportunity cards
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedResult"
+
   /resources/recent:
     get:
       operationId: getRecentResources
@@ -341,6 +361,96 @@ components:
         - activities
         - localExample
         - questions
+        - usedFallback
+
+    FeedRequestBody:
+      type: object
+      properties:
+        postcode:
+          type: string
+        state:
+          type: string
+        subject:
+          type: string
+        yearLevel:
+          type: string
+      required:
+        - postcode
+        - state
+        - subject
+        - yearLevel
+
+    WeatherData:
+      type: object
+      properties:
+        temp:
+          type: number
+        description:
+          type: string
+        rainfall:
+          type: number
+        wind:
+          type: number
+        city:
+          type: string
+        usedFallback:
+          type: boolean
+      required:
+        - temp
+        - description
+        - rainfall
+        - wind
+        - city
+        - usedFallback
+
+    FeedItem:
+      type: object
+      properties:
+        type:
+          type: string
+        headline:
+          type: string
+        teachingAngle:
+          type: string
+        curriculumLink:
+          type: string
+        icon:
+          type: string
+      required:
+        - type
+        - headline
+        - teachingAngle
+        - curriculumLink
+        - icon
+
+    FeedResult:
+      type: object
+      properties:
+        feedItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/FeedItem"
+        weather:
+          $ref: "#/components/schemas/WeatherData"
+        localContext:
+          type: object
+          properties:
+            suburb:
+              type: string
+            country:
+              type: string
+            landmarks:
+              type: string
+          required:
+            - suburb
+            - country
+            - landmarks
+        usedFallback:
+          type: boolean
+      required:
+        - feedItems
+        - weather
+        - localContext
         - usedFallback
 
     RecentResource:

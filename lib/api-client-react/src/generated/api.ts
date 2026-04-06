@@ -20,6 +20,8 @@ import type {
   AlignmentRequestBody,
   AlignmentResult,
   DashboardStats,
+  FeedRequestBody,
+  FeedResult,
   HealthStatus,
   LessonPlan,
   LessonRequestBody,
@@ -372,6 +374,93 @@ export const useGenerateLesson = <
   TContext
 > => {
   return useMutation(getGenerateLessonMutationOptions(options));
+};
+
+/**
+ * Fetches live BOM weather and generates teaching opportunity cards via Claude
+ * @summary Get living context feed for teacher's area
+ */
+export const getGetFeedUrl = () => {
+  return `/api/feed`;
+};
+
+export const getFeed = async (
+  feedRequestBody: FeedRequestBody,
+  options?: RequestInit,
+): Promise<FeedResult> => {
+  return customFetch<FeedResult>(getGetFeedUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(feedRequestBody),
+  });
+};
+
+export const getGetFeedMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof getFeed>>,
+    TError,
+    { data: BodyType<FeedRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof getFeed>>,
+  TError,
+  { data: BodyType<FeedRequestBody> },
+  TContext
+> => {
+  const mutationKey = ["getFeed"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof getFeed>>,
+    { data: BodyType<FeedRequestBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return getFeed(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GetFeedMutationResult = NonNullable<
+  Awaited<ReturnType<typeof getFeed>>
+>;
+export type GetFeedMutationBody = BodyType<FeedRequestBody>;
+export type GetFeedMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Get living context feed for teacher's area
+ */
+export const useGetFeed = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof getFeed>>,
+    TError,
+    { data: BodyType<FeedRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof getFeed>>,
+  TError,
+  { data: BodyType<FeedRequestBody> },
+  TContext
+> => {
+  return useMutation(getGetFeedMutationOptions(options));
 };
 
 /**

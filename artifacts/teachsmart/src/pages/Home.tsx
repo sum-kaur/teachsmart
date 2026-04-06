@@ -1,14 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
   BookOpen, Compass, Search, FileText, Download, Edit, ArrowLeft, 
-  CheckCircle, Settings, Home as HomeIcon, FileStack, BarChart3
+  CheckCircle, Settings, Home as HomeIcon, FileStack, BarChart3, MapPin
 } from "lucide-react";
 import { 
   useGetDashboardStats, 
   useGetRecentResources, 
   useGetAlignment,
   useGetResources,
-  useGenerateLesson
+  useGenerateLesson,
+  useGetFeed
 } from "@workspace/api-client-react";
 
 type AlignmentResult = {
@@ -42,6 +43,21 @@ type LessonPlan = {
   usedFallback: boolean;
 };
 
+type FeedItem = {
+  type: string;
+  headline: string;
+  teachingAngle: string;
+  curriculumLink: string;
+  icon: string;
+};
+
+type FeedResult = {
+  feedItems: FeedItem[];
+  weather: { temp: number; description: string; rainfall: number; wind: number; city: string; usedFallback: boolean };
+  localContext: { suburb: string; country: string; landmarks: string };
+  usedFallback: boolean;
+};
+
 const MOCK_DASHBOARD_STATS = {
   totalSearches: 124,
   resourcesGenerated: 89,
@@ -65,7 +81,8 @@ export default function Home() {
     subject: 'Science',
     topic: '',
     resourceType: 'Lesson Plan',
-    classContext: [] as string[]
+    classContext: [] as string[],
+    postcode: '2150',
   });
   
   const [isSearching, setIsSearching] = useState(false);
@@ -75,6 +92,8 @@ export default function Home() {
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const [lessonPlan, setLessonPlan] = useState<LessonPlan | null>(null);
   const [teacherNotes, setTeacherNotes] = useState('');
+  const [feedResult, setFeedResult] = useState<FeedResult | null>(null);
+  const [isFeedLoading, setIsFeedLoading] = useState(false);
   
   const { data: dashboardStats = MOCK_DASHBOARD_STATS } = useGetDashboardStats();
   const { data: recentResources = MOCK_RECENT_RESOURCES } = useGetRecentResources();
@@ -82,6 +101,25 @@ export default function Home() {
   const alignmentMutation = useGetAlignment();
   const resourcesMutation = useGetResources();
   const lessonMutation = useGenerateLesson();
+  const feedMutation = useGetFeed();
+
+  const loadFeed = useCallback(async (postcode: string, state: string, subject: string, yearLevel: string) => {
+    setIsFeedLoading(true);
+    try {
+      const result = await feedMutation.mutateAsync({
+        data: { postcode, state, subject, yearLevel }
+      });
+      setFeedResult(result as FeedResult);
+    } catch {
+      setFeedResult(null);
+    } finally {
+      setIsFeedLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadFeed(searchParams.postcode, searchParams.state, searchParams.subject, searchParams.yearLevel);
+  }, []);
 
   const handleSearch = async () => {
     if (!searchParams.topic) return;
@@ -292,6 +330,69 @@ export default function Home() {
           </div>
         </div>
 
+        <div className="mb-7">
+          <div className="flex items-center gap-2 mb-3">
+            <MapPin className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold text-foreground">This Week in Your Area</span>
+            <span className="text-[11px] text-muted-foreground ml-1">
+              {feedResult ? `📍 ${feedResult.localContext.suburb} · ${feedResult.weather.temp}°C ${feedResult.weather.description}` : ''}
+            </span>
+            {isFeedLoading && (
+              <span className="text-[11px] text-muted-foreground animate-pulse ml-1">📍 Detecting your area...</span>
+            )}
+          </div>
+
+          {isFeedLoading && (
+            <div className="grid grid-cols-3 gap-4">
+              {[0, 1, 2].map(i => (
+                <div key={i} className="bg-white rounded-xl border border-border p-5 animate-pulse">
+                  <div className="h-4 bg-slate-100 rounded w-2/3 mb-3"></div>
+                  <div className="h-3 bg-slate-100 rounded w-full mb-2"></div>
+                  <div className="h-3 bg-slate-100 rounded w-4/5"></div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!isFeedLoading && feedResult && (
+            <div className="grid grid-cols-3 gap-4">
+              {feedResult.feedItems.map((item, i) => {
+                const typeColorMap: Record<string, string> = {
+                  weather: "bg-sky-50 text-sky-700",
+                  local_history: "bg-amber-50 text-amber-700",
+                  environment: "bg-green-50 text-green-700",
+                  community: "bg-purple-50 text-purple-700",
+                };
+                const typeColor = typeColorMap[item.type] ?? "bg-slate-50 text-slate-600";
+                return (
+                  <div key={i} className="bg-white rounded-xl shadow-sm border border-border p-5 flex flex-col gap-3 hover:shadow-md hover:border-teal-200 transition-all" data-testid={`feed-card-${i}`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{item.icon}</span>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${typeColor}`}>
+                        {item.type.replace("_", " ")}
+                      </span>
+                    </div>
+                    <div className="text-[14px] font-bold text-foreground leading-snug">{item.headline}</div>
+                    <div className="text-[13px] text-slate-600 leading-relaxed flex-1">{item.teachingAngle}</div>
+                    <div className="text-[11px] font-semibold text-primary bg-teal-50 px-2.5 py-1 rounded-full w-fit">{item.curriculumLink}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {!isFeedLoading && !feedResult && (
+            <div className="grid grid-cols-3 gap-4 opacity-50">
+              {['🌦', '🗺', '🌿'].map((icon, i) => (
+                <div key={i} className="bg-white rounded-xl border border-border p-5 text-center text-slate-400 text-sm">
+                  <div className="text-2xl mb-2">{icon}</div>
+                  <div>Enter your postcode to see local teaching opportunities</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
           <div className="px-6 py-4 border-b border-border text-sm font-semibold text-foreground">Recent Resources</div>
           <div className="divide-y divide-border">
@@ -353,7 +454,7 @@ export default function Home() {
           <div className="bg-white rounded-xl shadow-sm border border-border p-10 max-w-4xl mx-auto">
             <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">Curriculum Target</div>
             
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-4 gap-4 mb-6">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[13px] font-medium text-slate-600">Year Level</label>
                 <select 
@@ -370,11 +471,33 @@ export default function Home() {
                 <select 
                   className="px-3.5 py-2.5 border border-border rounded-lg text-sm bg-white outline-none focus:border-primary transition-colors appearance-none cursor-pointer"
                   value={searchParams.state}
-                  onChange={(e) => setSearchParams({...searchParams, state: e.target.value})}
+                  onChange={(e) => {
+                    const newState = e.target.value;
+                    setSearchParams(prev => ({...prev, state: newState}));
+                    loadFeed(searchParams.postcode, newState, searchParams.subject, searchParams.yearLevel);
+                  }}
                   data-testid="select-state"
                 >
                   {['NSW', 'QLD', 'VIC', 'WA', 'SA', 'TAS', 'ACT', 'NT'].map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[13px] font-medium text-slate-600">Postcode</label>
+                <input
+                  type="text"
+                  maxLength={4}
+                  className="px-3.5 py-2.5 border border-border rounded-lg text-sm bg-white outline-none focus:border-primary transition-colors"
+                  placeholder="e.g. 2150"
+                  value={searchParams.postcode}
+                  onChange={(e) => {
+                    const newPostcode = e.target.value.replace(/\D/g, '').slice(0, 4);
+                    setSearchParams(prev => ({...prev, postcode: newPostcode}));
+                    if (newPostcode.length === 4) {
+                      loadFeed(newPostcode, searchParams.state, searchParams.subject, searchParams.yearLevel);
+                    }
+                  }}
+                  data-testid="input-postcode"
+                />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-[13px] font-medium text-slate-600">Subject</label>

@@ -90,6 +90,43 @@ export interface LessonPlan {
   usedFallback: boolean;
 }
 
+export interface FeedRequestBody {
+  postcode: string;
+  state: string;
+  subject: string;
+  yearLevel: string;
+}
+
+export interface WeatherData {
+  temp: number;
+  description: string;
+  rainfall: number;
+  wind: number;
+  city: string;
+  usedFallback: boolean;
+}
+
+export interface FeedItem {
+  type: string;
+  headline: string;
+  teachingAngle: string;
+  curriculumLink: string;
+  icon: string;
+}
+
+export type FeedResultLocalContext = {
+  suburb: string;
+  country: string;
+  landmarks: string;
+};
+
+export interface FeedResult {
+  feedItems: FeedItem[];
+  weather: WeatherData;
+  localContext: FeedResultLocalContext;
+  usedFallback: boolean;
+}
+
 export interface RecentResource {
   id: string;
   title: string;
