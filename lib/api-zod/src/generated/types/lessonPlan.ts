@@ -5,20 +5,15 @@
  * TeachSmart API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { DifferentiatedQuestion } from "./differentiatedQuestion";
 import type { LessonActivity } from "./lessonActivity";
+import type { LessonQuestion } from "./lessonQuestion";
+import type { LocalExample } from "./localExample";
 
 export interface LessonPlan {
-  resourceTitle: string;
-  yearLevel: string;
-  subject: string;
-  topic: string;
-  /** Total lesson duration in minutes */
-  duration: number;
-  overview: string;
+  objective: string;
+  duration: string;
   activities: LessonActivity[];
-  /** NSW/Australian local context note */
-  localContextCallout: string;
-  questions: DifferentiatedQuestion[];
-  teacherNotes: string;
+  localExample: LocalExample;
+  questions: LessonQuestion[];
+  usedFallback: boolean;
 }

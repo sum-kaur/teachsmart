@@ -16,60 +16,129 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
- * Search for resources based on curriculum parameters, proxied to CurriculLM API with fallback
- * @summary Search for curriculum-aligned resources
+ * Filters matching curriculum outcomes and uses Claude to score alignment
+ * @summary Score curriculum alignment for a topic
  */
-export const SearchResourcesBody = zod.object({
-  yearLevel: zod.string().describe('Year level (e.g. \"Year 9\")'),
-  state: zod.string().describe('Australian state (e.g. \"NSW\")'),
-  subject: zod.string().describe('Subject area (e.g. \"Science\")'),
-  topic: zod.string().describe("Specific topic to search for"),
-  resourceType: zod
-    .string()
-    .describe(
-      "Type of resource (Lesson Plan, Worksheet, Discussion, Assessment)",
-    ),
-  classContext: zod
-    .array(zod.string())
-    .optional()
-    .describe(
-      "Class context chips (Mixed Ability, EAL\/D, High Achievers, etc.)",
-    ),
+export const GetAlignmentBody = zod.object({
+  subject: zod.string(),
+  yearLevel: zod.string(),
+  topic: zod.string(),
+  state: zod.string(),
 });
 
-export const SearchResourcesResponse = zod.object({
-  alignment: zod.object({
-    score: zod.number().describe("Alignment score percentage (0-100)"),
-    syllabus: zod
-      .string()
-      .describe('Syllabus name (e.g. \"NSW Stage 5 Science\")'),
-    strand: zod
-      .string()
-      .describe('Strand name (e.g. \"Earth and Space Sciences\")'),
-    outcomeCodes: zod.array(zod.string()).describe("Outcome code identifiers"),
+export const GetAlignmentResponse = zod.object({
+  alignmentScore: zod.number(),
+  syllabus: zod.string(),
+  strand: zod.string(),
+  outcomes: zod.array(
+    zod.object({
+      id: zod.string(),
+      description: zod.string(),
+    }),
+  ),
+  notes: zod.string(),
+  usedFallback: zod.boolean(),
+});
+
+/**
+ * Uses Claude to find trusted Australian educational resources for the topic
+ * @summary Find curriculum-aligned resources
+ */
+export const GetResourcesBody = zod.object({
+  subject: zod.string(),
+  yearLevel: zod.string(),
+  topic: zod.string(),
+  state: zod.string(),
+  alignmentResult: zod.object({
+    alignmentScore: zod.number(),
+    syllabus: zod.string(),
+    strand: zod.string(),
+    outcomes: zod.array(
+      zod.object({
+        id: zod.string(),
+        description: zod.string(),
+      }),
+    ),
+    notes: zod.string(),
+    usedFallback: zod.boolean(),
   }),
+});
+
+export const GetResourcesResponse = zod.object({
   resources: zod.array(
     zod.object({
       id: zod.string(),
       title: zod.string(),
-      source: zod.string().describe("Publisher\/source organization"),
-      type: zod.string().describe("Resource type"),
-      alignmentScore: zod
-        .number()
-        .describe("Alignment score percentage (0-100)"),
+      source: zod.string(),
+      type: zod.string(),
       description: zod.string(),
-      whyThis: zod
-        .string()
-        .describe("Explanation of why this resource is a good match"),
-      localContextTags: zod
-        .array(zod.string())
-        .describe("Australian local context tags"),
-      trustBadges: zod
-        .array(zod.string())
-        .describe("Trust badges (verified, bias-checked, etc.)"),
-      url: zod.string().nullable().describe("External URL for resource"),
+      alignmentScore: zod.number(),
+      safetyRating: zod.string(),
+      biasFlag: zod.string(),
+      localContextTags: zod.array(zod.string()),
+      outcomeIds: zod.array(zod.string()),
     }),
   ),
+  usedFallback: zod.boolean(),
+});
+
+/**
+ * Uses Claude to generate a complete, differentiated lesson plan
+ * @summary Generate a lesson plan
+ */
+export const GenerateLessonBody = zod.object({
+  subject: zod.string(),
+  yearLevel: zod.string(),
+  topic: zod.string(),
+  state: zod.string(),
+  resource: zod.object({
+    id: zod.string(),
+    title: zod.string(),
+    source: zod.string(),
+    type: zod.string(),
+    description: zod.string(),
+    alignmentScore: zod.number(),
+    safetyRating: zod.string(),
+    biasFlag: zod.string(),
+    localContextTags: zod.array(zod.string()),
+    outcomeIds: zod.array(zod.string()),
+  }),
+  alignmentResult: zod.object({
+    alignmentScore: zod.number(),
+    syllabus: zod.string(),
+    strand: zod.string(),
+    outcomes: zod.array(
+      zod.object({
+        id: zod.string(),
+        description: zod.string(),
+      }),
+    ),
+    notes: zod.string(),
+    usedFallback: zod.boolean(),
+  }),
+  classContext: zod.array(zod.string()).optional(),
+});
+
+export const GenerateLessonResponse = zod.object({
+  objective: zod.string(),
+  duration: zod.string(),
+  activities: zod.array(
+    zod.object({
+      label: zod.string(),
+      text: zod.string(),
+    }),
+  ),
+  localExample: zod.object({
+    title: zod.string(),
+    body: zod.string(),
+  }),
+  questions: zod.array(
+    zod.object({
+      q: zod.string(),
+      difficulty: zod.string(),
+    }),
+  ),
+  usedFallback: zod.boolean(),
 });
 
 /**
@@ -83,53 +152,11 @@ export const GetRecentResourcesResponseItem = zod.object({
   yearLevel: zod.string(),
   topic: zod.string(),
   alignmentScore: zod.number(),
-  searchedAt: zod.string().describe("ISO date string"),
+  searchedAt: zod.string(),
 });
 export const GetRecentResourcesResponse = zod.array(
   GetRecentResourcesResponseItem,
 );
-
-/**
- * Generate a detailed lesson plan for a selected resource, proxied to Cogniti API with fallback
- * @summary Generate a lesson plan
- */
-export const GenerateLessonPlanBody = zod.object({
-  resourceId: zod.string(),
-  resourceTitle: zod.string(),
-  yearLevel: zod.string(),
-  state: zod.string(),
-  subject: zod.string(),
-  topic: zod.string(),
-  classContext: zod.array(zod.string()).optional(),
-});
-
-export const GenerateLessonPlanResponse = zod.object({
-  resourceTitle: zod.string(),
-  yearLevel: zod.string(),
-  subject: zod.string(),
-  topic: zod.string(),
-  duration: zod.number().describe("Total lesson duration in minutes"),
-  overview: zod.string(),
-  activities: zod.array(
-    zod.object({
-      name: zod.string().describe('Activity name (e.g. \"Hook\", \"Explore\")'),
-      duration: zod.number().describe("Duration in minutes"),
-      description: zod.string(),
-    }),
-  ),
-  localContextCallout: zod
-    .string()
-    .describe("NSW\/Australian local context note"),
-  questions: zod.array(
-    zod.object({
-      level: zod
-        .string()
-        .describe("Difficulty level (Foundation, Core, Extension)"),
-      question: zod.string(),
-    }),
-  ),
-  teacherNotes: zod.string(),
-});
 
 /**
  * Returns summary statistics for the teacher dashboard

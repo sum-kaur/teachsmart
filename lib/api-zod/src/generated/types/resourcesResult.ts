@@ -5,10 +5,9 @@
  * TeachSmart API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { AlignmentInfo } from "./alignmentInfo";
 import type { Resource } from "./resource";
 
-export interface SearchResourcesResponse {
-  alignment: AlignmentInfo;
+export interface ResourcesResult {
   resources: Resource[];
+  usedFallback: boolean;
 }

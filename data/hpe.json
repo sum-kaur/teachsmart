@@ -1,0 +1,48 @@
+{
+  "learningArea": "Health and Physical Education",
+  "version": "Australian Curriculum v9",
+  "yearLevels": [
+    {
+      "year": "Year 7",
+      "strands": [
+        {
+          "name": "Personal, Social and Community Health",
+          "contentDescriptions": [
+            { "id": "AC9HP7P01", "description": "Investigate and analyse the internal and external influences on adolescent health decisions and develop strategies to promote wellbeing." },
+            { "id": "AC9HP7P02", "description": "Examine personal strengths, manage emotions and apply skills to establish and maintain respectful relationships." }
+          ]
+        },
+        {
+          "name": "Movement and Physical Activity",
+          "contentDescriptions": [
+            { "id": "AC9HP7M01", "description": "Demonstrate and refine specialised movement skills in a range of physical activity contexts." },
+            { "id": "AC9HP7M02", "description": "Apply movement concepts and strategies to improve performance and collaborate with others in physical activities." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 9",
+      "strands": [
+        {
+          "name": "Personal, Social and Community Health",
+          "contentDescriptions": [
+            { "id": "AC9HP9P01", "description": "Investigate how personal identity, cultural values and societal expectations shape health decisions and behaviours." },
+            { "id": "AC9HP9P02", "description": "Evaluate strategies to promote health and wellbeing in the community and critically analyse health information." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 10",
+      "strands": [
+        {
+          "name": "Personal, Social and Community Health",
+          "contentDescriptions": [
+            { "id": "AC9HP10P01", "description": "Critically evaluate the effectiveness of health promotion strategies and develop action plans to address health issues in the community." }
+          ]
+        }
+      ]
+    }
+  ]
+}

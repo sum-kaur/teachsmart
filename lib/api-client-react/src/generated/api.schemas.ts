@@ -9,97 +9,85 @@ export interface HealthStatus {
   status: string;
 }
 
-export interface SearchResourcesBody {
-  /** Year level (e.g. "Year 9") */
-  yearLevel: string;
-  /** Australian state (e.g. "NSW") */
-  state: string;
-  /** Subject area (e.g. "Science") */
+export interface AlignmentRequestBody {
   subject: string;
-  /** Specific topic to search for */
+  yearLevel: string;
   topic: string;
-  /** Type of resource (Lesson Plan, Worksheet, Discussion, Assessment) */
-  resourceType: string;
-  /** Class context chips (Mixed Ability, EAL/D, High Achievers, etc.) */
-  classContext?: string[];
+  state: string;
 }
 
-export interface AlignmentInfo {
-  /** Alignment score percentage (0-100) */
-  score: number;
-  /** Syllabus name (e.g. "NSW Stage 5 Science") */
+export interface AlignmentOutcome {
+  id: string;
+  description: string;
+}
+
+export interface AlignmentResult {
+  alignmentScore: number;
   syllabus: string;
-  /** Strand name (e.g. "Earth and Space Sciences") */
   strand: string;
-  /** Outcome code identifiers */
-  outcomeCodes: string[];
+  outcomes: AlignmentOutcome[];
+  notes: string;
+  usedFallback: boolean;
+}
+
+export interface ResourcesRequestBody {
+  subject: string;
+  yearLevel: string;
+  topic: string;
+  state: string;
+  alignmentResult: AlignmentResult;
 }
 
 export interface Resource {
   id: string;
   title: string;
-  /** Publisher/source organization */
   source: string;
-  /** Resource type */
   type: string;
-  /** Alignment score percentage (0-100) */
-  alignmentScore: number;
   description: string;
-  /** Explanation of why this resource is a good match */
-  whyThis: string;
-  /** Australian local context tags */
+  alignmentScore: number;
+  safetyRating: string;
+  biasFlag: string;
   localContextTags: string[];
-  /** Trust badges (verified, bias-checked, etc.) */
-  trustBadges: string[];
-  /**
-   * External URL for resource
-   * @nullable
-   */
-  url: string | null;
+  outcomeIds: string[];
 }
 
-export interface SearchResourcesResponse {
-  alignment: AlignmentInfo;
+export interface ResourcesResult {
   resources: Resource[];
+  usedFallback: boolean;
 }
 
-export interface GenerateLessonPlanBody {
-  resourceId: string;
-  resourceTitle: string;
-  yearLevel: string;
-  state: string;
+export interface LessonRequestBody {
   subject: string;
+  yearLevel: string;
   topic: string;
+  state: string;
+  resource: Resource;
+  alignmentResult: AlignmentResult;
   classContext?: string[];
 }
 
 export interface LessonActivity {
-  /** Activity name (e.g. "Hook", "Explore") */
-  name: string;
-  /** Duration in minutes */
-  duration: number;
-  description: string;
+  label: string;
+  text: string;
 }
 
-export interface DifferentiatedQuestion {
-  /** Difficulty level (Foundation, Core, Extension) */
-  level: string;
-  question: string;
+export interface LessonQuestion {
+  q: string;
+  difficulty: string;
+}
+
+export interface LocalExample {
+  title: string;
+  body: string;
 }
 
 export interface LessonPlan {
-  resourceTitle: string;
-  yearLevel: string;
-  subject: string;
-  topic: string;
-  /** Total lesson duration in minutes */
-  duration: number;
-  overview: string;
+  objective: string;
+  duration: string;
   activities: LessonActivity[];
-  /** NSW/Australian local context note */
-  localContextCallout: string;
-  questions: DifferentiatedQuestion[];
-  teacherNotes: string;
+  localExample: LocalExample;
+  questions: LessonQuestion[];
+  usedFallback: boolean;
 }
 
 export interface RecentResource {
@@ -109,7 +97,6 @@ export interface RecentResource {
   yearLevel: string;
   topic: string;
   alignmentScore: number;
-  /** ISO date string */
   searchedAt: string;
 }
 

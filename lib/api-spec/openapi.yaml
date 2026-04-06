@@ -10,8 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
-  - name: resources
-    description: Curriculum resource operations
+  - name: curriculum
+    description: Curriculum alignment and resource operations
   - name: lessons
     description: Lesson plan operations
   - name: dashboard
@@ -31,30 +31,70 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
-  /resources/search:
+  /alignment:
     post:
-      operationId: searchResources
-      tags: [resources]
-      summary: Search for curriculum-aligned resources
-      description: Search for resources based on curriculum parameters, proxied to CurriculLM API with fallback
+      operationId: getAlignment
+      tags: [curriculum]
+      summary: Score curriculum alignment for a topic
+      description: Filters matching curriculum outcomes and uses Claude to score alignment
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SearchResourcesBody"
+              $ref: "#/components/schemas/AlignmentRequestBody"
       responses:
         "200":
-          description: Search results
+          description: Alignment result
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SearchResourcesResponse"
+                $ref: "#/components/schemas/AlignmentResult"
+
+  /resources:
+    post:
+      operationId: getResources
+      tags: [curriculum]
+      summary: Find curriculum-aligned resources
+      description: Uses Claude to find trusted Australian educational resources for the topic
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResourcesRequestBody"
+      responses:
+        "200":
+          description: Resource results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourcesResult"
+
+  /lesson:
+    post:
+      operationId: generateLesson
+      tags: [lessons]
+      summary: Generate a lesson plan
+      description: Uses Claude to generate a complete, differentiated lesson plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LessonRequestBody"
+      responses:
+        "200":
+          description: Generated lesson plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LessonPlan"
 
   /resources/recent:
     get:
       operationId: getRecentResources
-      tags: [resources]
+      tags: [dashboard]
       summary: Get recent resources
       description: Returns recently searched/accessed resources
       responses:
@@ -66,26 +106,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/RecentResource"
-
-  /lessons/generate:
-    post:
-      operationId: generateLessonPlan
-      tags: [lessons]
-      summary: Generate a lesson plan
-      description: Generate a detailed lesson plan for a selected resource, proxied to Cogniti API with fallback
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/GenerateLessonPlanBody"
-      responses:
-        "200":
-          description: Generated lesson plan
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LessonPlan"
 
   /dashboard/stats:
     get:
@@ -111,71 +131,78 @@ components:
       required:
         - status
 
-    SearchResourcesBody:
+    AlignmentRequestBody:
       type: object
       properties:
-        yearLevel:
-          type: string
-          description: Year level (e.g. "Year 9")
-        state:
-          type: string
-          description: Australian state (e.g. "NSW")
         subject:
           type: string
-          description: Subject area (e.g. "Science")
+        yearLevel:
+          type: string
         topic:
           type: string
-          description: Specific topic to search for
-        resourceType:
+        state:
           type: string
-          description: Type of resource (Lesson Plan, Worksheet, Discussion, Assessment)
-        classContext:
-          type: array
-          items:
-            type: string
-          description: Class context chips (Mixed Ability, EAL/D, High Achievers, etc.)
       required:
-        - yearLevel
-        - state
         - subject
+        - yearLevel
         - topic
-        - resourceType
+        - state
 
-    SearchResourcesResponse:
+    AlignmentOutcome:
       type: object
       properties:
-        alignment:
-          $ref: "#/components/schemas/AlignmentInfo"
-        resources:
-          type: array
-          items:
-            $ref: "#/components/schemas/Resource"
+        id:
+          type: string
+        description:
+          type: string
       required:
-        - alignment
-        - resources
+        - id
+        - description
 
-    AlignmentInfo:
+    AlignmentResult:
       type: object
       properties:
-        score:
+        alignmentScore:
           type: integer
-          description: Alignment score percentage (0-100)
         syllabus:
           type: string
-          description: Syllabus name (e.g. "NSW Stage 5 Science")
         strand:
           type: string
-          description: Strand name (e.g. "Earth and Space Sciences")
-        outcomeCodes:
+        outcomes:
           type: array
           items:
-            type: string
-          description: Outcome code identifiers
+            $ref: "#/components/schemas/AlignmentOutcome"
+        notes:
+          type: string
+        usedFallback:
+          type: boolean
       required:
-        - score
+        - alignmentScore
         - syllabus
         - strand
-        - outcomeCodes
+        - outcomes
+        - notes
+        - usedFallback
+
+    ResourcesRequestBody:
+      type: object
+      properties:
+        subject:
+          type: string
+        yearLevel:
+          type: string
+        topic:
+          type: string
+        state:
+          type: string
+        alignmentResult:
+          $ref: "#/components/schemas/AlignmentResult"
+      required:
+        - subject
+        - yearLevel
+        - topic
+        - state
+        - alignmentResult
 
     Resource:
       type: object
@@ -186,138 +213,135 @@ components:
           type: string
         source:
           type: string
-          description: Publisher/source organization
         type:
           type: string
-          description: Resource type
-        alignmentScore:
-          type: integer
-          description: Alignment score percentage (0-100)
         description:
           type: string
-        whyThis:
+        alignmentScore:
+          type: integer
+        safetyRating:
           type: string
-          description: Explanation of why this resource is a good match
+        biasFlag:
+          type: string
         localContextTags:
           type: array
           items:
             type: string
-          description: Australian local context tags
-        trustBadges:
+        outcomeIds:
           type: array
           items:
             type: string
-          description: Trust badges (verified, bias-checked, etc.)
-        url:
-          type: ["string", "null"]
-          description: External URL for resource
       required:
         - id
         - title
         - source
         - type
-        - alignmentScore
         - description
-        - whyThis
+        - alignmentScore
+        - safetyRating
+        - biasFlag
         - localContextTags
-        - trustBadges
-        - url
+        - outcomeIds
 
-    GenerateLessonPlanBody:
+    ResourcesResult:
       type: object
       properties:
-        resourceId:
-          type: string
-        resourceTitle:
+        resources:
+          type: array
+          items:
+            $ref: "#/components/schemas/Resource"
+        usedFallback:
+          type: boolean
+      required:
+        - resources
+        - usedFallback
+
+    LessonRequestBody:
+      type: object
+      properties:
+        subject:
           type: string
         yearLevel:
           type: string
-        state:
-          type: string
-        subject:
-          type: string
         topic:
           type: string
+        state:
+          type: string
+        resource:
+          $ref: "#/components/schemas/Resource"
+        alignmentResult:
+          $ref: "#/components/schemas/AlignmentResult"
         classContext:
           type: array
           items:
             type: string
       required:
-        - resourceId
-        - resourceTitle
-        - yearLevel
-        - state
         - subject
+        - yearLevel
         - topic
+        - state
+        - resource
+        - alignmentResult
+
+    LessonActivity:
+      type: object
+      properties:
+        label:
+          type: string
+        text:
+          type: string
+      required:
+        - label
+        - text
+
+    LessonQuestion:
+      type: object
+      properties:
+        q:
+          type: string
+        difficulty:
+          type: string
+      required:
+        - q
+        - difficulty
+
+    LocalExample:
+      type: object
+      properties:
+        title:
+          type: string
+        body:
+          type: string
+      required:
+        - title
+        - body
 
     LessonPlan:
       type: object
       properties:
-        resourceTitle:
-          type: string
-        yearLevel:
-          type: string
-        subject:
-          type: string
-        topic:
+        objective:
           type: string
         duration:
-          type: integer
-          description: Total lesson duration in minutes
-        overview:
           type: string
         activities:
           type: array
           items:
             $ref: "#/components/schemas/LessonActivity"
-        localContextCallout:
-          type: string
-          description: NSW/Australian local context note
+        localExample:
+          $ref: "#/components/schemas/LocalExample"
         questions:
           type: array
           items:
-            $ref: "#/components/schemas/DifferentiatedQuestion"
-        teacherNotes:
-          type: string
+            $ref: "#/components/schemas/LessonQuestion"
+        usedFallback:
+          type: boolean
       required:
-        - resourceTitle
-        - yearLevel
-        - subject
-        - topic
+        - objective
         - duration
-        - overview
         - activities
-        - localContextCallout
+        - localExample
         - questions
-        - teacherNotes
-
-    LessonActivity:
-      type: object
-      properties:
-        name:
-          type: string
-          description: Activity name (e.g. "Hook", "Explore")
-        duration:
-          type: integer
-          description: Duration in minutes
-        description:
-          type: string
-      required:
-        - name
-        - duration
-        - description
-
-    DifferentiatedQuestion:
-      type: object
-      properties:
-        level:
-          type: string
-          description: Difficulty level (Foundation, Core, Extension)
-        question:
-          type: string
-      required:
-        - level
-        - question
+        - usedFallback
 
     RecentResource:
       type: object
@@ -336,7 +360,6 @@ components:
           type: integer
         searchedAt:
           type: string
-          description: ISO date string
       required:
         - id
         - title

@@ -1,0 +1,37 @@
+{
+  "learningArea": "Technologies",
+  "version": "Australian Curriculum v9",
+  "yearLevels": [
+    {
+      "year": "Year 7",
+      "strands": [
+        {
+          "name": "Design and Technologies",
+          "contentDescriptions": [
+            { "id": "AC9TDT701", "description": "Investigate and apply design thinking processes to identify needs and opportunities, generate and evaluate design ideas, and plan and produce solutions." },
+            { "id": "AC9TDT702", "description": "Select and use appropriate materials, components and tools, and evaluate their suitability for different design challenges." }
+          ]
+        },
+        {
+          "name": "Digital Technologies",
+          "contentDescriptions": [
+            { "id": "AC9TDI701", "description": "Investigate how data is represented and structured in digital systems, and how algorithms are used to solve problems." },
+            { "id": "AC9TDI702", "description": "Apply computational thinking skills including decomposition, pattern recognition, abstraction and algorithm design to solve problems." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 9",
+      "strands": [
+        {
+          "name": "Digital Technologies",
+          "contentDescriptions": [
+            { "id": "AC9TDI901", "description": "Design and implement algorithms using programming constructs including variables, selection, iteration and modular programming." },
+            { "id": "AC9TDI902", "description": "Analyse and evaluate the security and privacy implications of digital systems and develop strategies to manage risk." }
+          ]
+        }
+      ]
+    }
+  ]
+}

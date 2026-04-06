@@ -1,0 +1,93 @@
+{
+  "learningArea": "Humanities and Social Sciences",
+  "version": "Australian Curriculum v9",
+  "yearLevels": [
+    {
+      "year": "Year 7",
+      "strands": [
+        {
+          "name": "History",
+          "contentDescriptions": [
+            { "id": "AC9HSSHY701", "description": "Investigate the ancient world and describe how the characteristics of ancient societies shaped the development of civilisations." },
+            { "id": "AC9HSSHY702", "description": "Explain the causes and effects of significant events in the ancient world and how they shaped subsequent history." }
+          ]
+        },
+        {
+          "name": "Geography",
+          "contentDescriptions": [
+            { "id": "AC9HSSGE701", "description": "Describe the characteristics of places at different scales and explain how geographic features influence where and how people live." },
+            { "id": "AC9HSSGE702", "description": "Investigate the distribution and characteristics of world biomes and explain how climate influences living conditions." }
+          ]
+        },
+        {
+          "name": "Civics and Citizenship",
+          "contentDescriptions": [
+            { "id": "AC9HSSCC701", "description": "Explain the key features of Australian democracy including the separation of powers, voting rights and the Constitution." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 8",
+      "strands": [
+        {
+          "name": "History",
+          "contentDescriptions": [
+            { "id": "AC9HSSHY801", "description": "Investigate the medieval world including the significance of the Black Death, feudalism and the role of religion." },
+            { "id": "AC9HSSHY802", "description": "Describe the impact of the Crusades on European and Middle Eastern societies." }
+          ]
+        },
+        {
+          "name": "Geography",
+          "contentDescriptions": [
+            { "id": "AC9HSSGE801", "description": "Investigate the geography of Asia and Australia's connections with Asia." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 9",
+      "strands": [
+        {
+          "name": "History",
+          "contentDescriptions": [
+            { "id": "AC9HSSHY901", "description": "Investigate the causes, course and consequences of the Industrial Revolution and its impact on Australian colonial history." },
+            { "id": "AC9HSSHY902", "description": "Analyse the experience of convicts, free settlers and Aboriginal and Torres Strait Islander peoples in colonial Australia." },
+            { "id": "AC9HSSHY903", "description": "Explain how colonial Australia developed and the factors that shaped its society, economy and culture." }
+          ]
+        },
+        {
+          "name": "Geography",
+          "contentDescriptions": [
+            { "id": "AC9HSSGE901", "description": "Investigate the geographic factors that influence the management of Australia's water resources and explain the challenges of water security." },
+            { "id": "AC9HSSGE902", "description": "Analyse data to explain spatial patterns and trends in natural hazards and evaluate their impact on communities." }
+          ]
+        },
+        {
+          "name": "Economics and Business",
+          "contentDescriptions": [
+            { "id": "AC9HSSEB901", "description": "Explain the operation of markets in Australia and evaluate the role of consumers, producers and the government." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 10",
+      "strands": [
+        {
+          "name": "History",
+          "contentDescriptions": [
+            { "id": "AC9HSSHY1001", "description": "Investigate the causes, course and consequences of the First World War and Australia's involvement." },
+            { "id": "AC9HSSHY1002", "description": "Analyse significant events in Australian history in the 20th century including federation, immigration policy and civil rights movements." }
+          ]
+        },
+        {
+          "name": "Geography",
+          "contentDescriptions": [
+            { "id": "AC9HSSGE1001", "description": "Investigate environmental change and evaluate human responses to climate change in Australia and globally." }
+          ]
+        }
+      ]
+    }
+  ]
+}

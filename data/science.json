@@ -1,0 +1,164 @@
+{
+  "learningArea": "Science",
+  "version": "Australian Curriculum v9",
+  "yearLevels": [
+    {
+      "year": "Year 7",
+      "strands": [
+        {
+          "name": "Biological Sciences",
+          "contentDescriptions": [
+            { "id": "AC9S7U01", "description": "Classify organisms into major groups based on observable and measurable physical characteristics, and compare their features." },
+            { "id": "AC9S7U02", "description": "Investigate and describe the cell as the basic structural unit of living things, and identify components that have specialised functions." },
+            { "id": "AC9S7U03", "description": "Explain how multicellular organisms are organised with specialised cells, tissues, organs and organ systems that work together to enable the organism to survive and reproduce." }
+          ]
+        },
+        {
+          "name": "Chemical Sciences",
+          "contentDescriptions": [
+            { "id": "AC9S7U04", "description": "Investigate and model the atomic structure of elements, and explain how the arrangement of atoms in the periodic table reflects the properties of elements." },
+            { "id": "AC9S7U05", "description": "Investigate and describe how substances can be classified as elements, compounds or mixtures, and describe how pure substances can be separated from mixtures." }
+          ]
+        },
+        {
+          "name": "Earth and Space Sciences",
+          "contentDescriptions": [
+            { "id": "AC9S7U06", "description": "Investigate how predictable phenomena on Earth, including the seasons and tides, are caused by the relative positions of the Sun, Earth and Moon." },
+            { "id": "AC9S7U07", "description": "Explain how rocks, minerals and soils are formed and how rock records can be used to reconstruct geological history." }
+          ]
+        },
+        {
+          "name": "Physical Sciences",
+          "contentDescriptions": [
+            { "id": "AC9S7U08", "description": "Investigate and describe how forces affect the motion of objects, and explain how balanced and unbalanced forces determine whether an object is stationary or in motion." },
+            { "id": "AC9S7U09", "description": "Investigate how energy can be transferred and transformed in electrical circuits, and describe the relationship between voltage, current and resistance." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 8",
+      "strands": [
+        {
+          "name": "Biological Sciences",
+          "contentDescriptions": [
+            { "id": "AC9S8U01", "description": "Investigate and explain how the digestive, circulatory and excretory systems work together to maintain the health of the human body." },
+            { "id": "AC9S8U02", "description": "Describe the role of ecosystems in supporting living things, and explain the impact of human activities on Australian ecosystems." }
+          ]
+        },
+        {
+          "name": "Chemical Sciences",
+          "contentDescriptions": [
+            { "id": "AC9S8U03", "description": "Investigate and describe the properties of common acids and bases and explain what happens during acid-base reactions." },
+            { "id": "AC9S8U04", "description": "Classify and describe types of chemical reactions including combustion, corrosion and neutralisation." }
+          ]
+        },
+        {
+          "name": "Earth and Space Sciences",
+          "contentDescriptions": [
+            { "id": "AC9S8U05", "description": "Explain how the movement of tectonic plates causes earthquakes, volcanoes and the creation of new landforms." },
+            { "id": "AC9S8U06", "description": "Describe the evidence that supports the theory of continental drift and plate tectonics." }
+          ]
+        },
+        {
+          "name": "Physical Sciences",
+          "contentDescriptions": [
+            { "id": "AC9S8U07", "description": "Investigate and describe how light behaves when it interacts with different materials, including reflection, refraction, transmission and absorption." },
+            { "id": "AC9S8U08", "description": "Explain how sound is produced and transmitted as a mechanical wave, and describe the factors that affect the properties of sound." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 9",
+      "strands": [
+        {
+          "name": "Biological Sciences",
+          "contentDescriptions": [
+            { "id": "AC9S9U01", "description": "Investigate and explain how the theory of evolution by natural selection explains the diversity of life on Earth, and evaluate the evidence for evolution." },
+            { "id": "AC9S9U02", "description": "Describe how DNA carries genetic information and explain how genetic information is transmitted from parents to offspring." }
+          ]
+        },
+        {
+          "name": "Chemical Sciences",
+          "contentDescriptions": [
+            { "id": "AC9S9U03", "description": "Investigate and explain how chemical reactions involve the rearrangement of atoms, and that matter is conserved in chemical reactions." },
+            { "id": "AC9S9U04", "description": "Describe the properties of metals and explain how they are used in a range of applications based on their properties." }
+          ]
+        },
+        {
+          "name": "Earth and Space Sciences",
+          "contentDescriptions": [
+            { "id": "AC9S9U05", "description": "Investigate and explain the evidence for climate change including the role of greenhouse gases, and evaluate the potential impacts on Australian and global environments." },
+            { "id": "AC9S9U06", "description": "Describe how human activities affect the distribution and availability of natural resources including water, minerals and fossil fuels in Australia." },
+            { "id": "AC9S9U07", "description": "Analyse data and information about Australia's changing climate and explain the role of human activity in driving observed changes." }
+          ]
+        },
+        {
+          "name": "Physical Sciences",
+          "contentDescriptions": [
+            { "id": "AC9S9U08", "description": "Investigate and explain the relationship between the transfer of energy and the movement of particles in thermal and electrical processes." },
+            { "id": "AC9S9U09", "description": "Explain how energy transformations occur in household electrical devices, and calculate the efficiency of energy transformations." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 10",
+      "strands": [
+        {
+          "name": "Biological Sciences",
+          "contentDescriptions": [
+            { "id": "AC9S10U01", "description": "Investigate and explain how the cell cycle and cell division underpin growth and reproduction in organisms." },
+            { "id": "AC9S10U02", "description": "Describe the applications and implications of genetic technologies, including selective breeding and genetic engineering." }
+          ]
+        },
+        {
+          "name": "Chemical Sciences",
+          "contentDescriptions": [
+            { "id": "AC9S10U03", "description": "Investigate and describe the properties of radioactive substances and explain the applications and dangers of radioactive decay." },
+            { "id": "AC9S10U04", "description": "Explain how atomic theory has developed over time, and describe current models of atomic structure." }
+          ]
+        },
+        {
+          "name": "Earth and Space Sciences",
+          "contentDescriptions": [
+            { "id": "AC9S10U05", "description": "Explain how the universe formed and describe current scientific theories about the formation of stars, solar systems and galaxies." },
+            { "id": "AC9S10U06", "description": "Evaluate the evidence for climate change and compare proposed solutions, considering the social, economic and environmental implications for Australia." }
+          ]
+        },
+        {
+          "name": "Physical Sciences",
+          "contentDescriptions": [
+            { "id": "AC9S10U07", "description": "Investigate and explain the relationship between electric fields, magnetic fields and electromagnetic radiation, including the electromagnetic spectrum." },
+            { "id": "AC9S10U08", "description": "Apply Newton's laws of motion to explain forces and motion in everyday contexts." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 11",
+      "strands": [
+        {
+          "name": "Advanced Science",
+          "contentDescriptions": [
+            { "id": "AC9S11U01", "description": "Apply advanced scientific inquiry skills to investigate complex phenomena and communicate findings using scientific conventions." },
+            { "id": "AC9S11U02", "description": "Evaluate and synthesise scientific evidence from multiple sources to construct well-reasoned explanations of scientific phenomena." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 12",
+      "strands": [
+        {
+          "name": "Advanced Science",
+          "contentDescriptions": [
+            { "id": "AC9S12U01", "description": "Conduct extended scientific investigations and present findings in a format appropriate for professional scientific communication." },
+            { "id": "AC9S12U02", "description": "Critically evaluate the role of science in addressing major challenges facing Australia, including climate change, biodiversity loss and sustainable resource use." }
+          ]
+        }
+      ]
+    }
+  ]
+}

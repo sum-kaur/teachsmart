@@ -6,8 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface DifferentiatedQuestion {
-  /** Difficulty level (Foundation, Core, Extension) */
-  level: string;
-  question: string;
+export interface LocalExample {
+  title: string;
+  body: string;
 }

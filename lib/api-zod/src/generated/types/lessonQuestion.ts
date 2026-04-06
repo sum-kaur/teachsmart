@@ -6,7 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface LessonActivity {
-  label: string;
-  text: string;
+export interface LessonQuestion {
+  q: string;
+  difficulty: string;
 }

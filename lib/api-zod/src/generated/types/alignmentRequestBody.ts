@@ -6,12 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface RecentResource {
-  id: string;
-  title: string;
+export interface AlignmentRequestBody {
   subject: string;
   yearLevel: string;
   topic: string;
-  alignmentScore: number;
-  searchedAt: string;
+  state: string;
 }

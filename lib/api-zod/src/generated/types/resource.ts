@@ -9,22 +9,12 @@
 export interface Resource {
   id: string;
   title: string;
-  /** Publisher/source organization */
   source: string;
-  /** Resource type */
   type: string;
-  /** Alignment score percentage (0-100) */
-  alignmentScore: number;
   description: string;
-  /** Explanation of why this resource is a good match */
-  whyThis: string;
-  /** Australian local context tags */
+  alignmentScore: number;
+  safetyRating: string;
+  biasFlag: string;
   localContextTags: string[];
-  /** Trust badges (verified, bias-checked, etc.) */
-  trustBadges: string[];
-  /**
-   * External URL for resource
-   * @nullable
-   */
-  url: string | null;
+  outcomeIds: string[];
 }

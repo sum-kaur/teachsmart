@@ -1,0 +1,64 @@
+{
+  "learningArea": "The Arts",
+  "version": "Australian Curriculum v9",
+  "yearLevels": [
+    {
+      "year": "Year 7",
+      "strands": [
+        {
+          "name": "Visual Arts",
+          "contentDescriptions": [
+            { "id": "AC9AVA701", "description": "Explore and apply visual arts techniques, technologies and processes to develop their own visual language." },
+            { "id": "AC9AVA702", "description": "Investigate how artists use visual conventions and visual arts elements to communicate ideas, beliefs and cultural perspectives." }
+          ]
+        },
+        {
+          "name": "Music",
+          "contentDescriptions": [
+            { "id": "AC9AMU701", "description": "Develop and refine performance and composition skills using the music elements of duration, pitch, dynamics, tone colour, texture and structure." }
+          ]
+        },
+        {
+          "name": "Drama",
+          "contentDescriptions": [
+            { "id": "AC9ADR701", "description": "Apply drama techniques and processes, including character, voice, movement and space, to make and present drama." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 8",
+      "strands": [
+        {
+          "name": "Visual Arts",
+          "contentDescriptions": [
+            { "id": "AC9AVA801", "description": "Develop skills in using and evaluating visual arts techniques and technologies to refine their visual language and artistic expression." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 9",
+      "strands": [
+        {
+          "name": "Visual Arts",
+          "contentDescriptions": [
+            { "id": "AC9AVA901", "description": "Develop sustained artistic practice, refining technical skills and visual language to communicate complex ideas and perspectives." },
+            { "id": "AC9AVA902", "description": "Analyse and interpret artworks within their social, cultural and historical contexts." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 10",
+      "strands": [
+        {
+          "name": "Visual Arts",
+          "contentDescriptions": [
+            { "id": "AC9AVA1001", "description": "Apply sophisticated visual arts techniques and refine personal artistic style to communicate a sustained artistic vision." }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "learningArea": "Mathematics",
+  "version": "Australian Curriculum v9",
+  "yearLevels": [
+    {
+      "year": "Year 7",
+      "strands": [
+        {
+          "name": "Number and Algebra",
+          "contentDescriptions": [
+            { "id": "AC9M7N01", "description": "Represent, compare and order integers and rational numbers, and apply the four operations with integers and decimals." },
+            { "id": "AC9M7N02", "description": "Solve problems involving fractions, percentages and ratios, including finding a fraction of a quantity." },
+            { "id": "AC9M7A01", "description": "Introduce and use variables to represent quantities, and construct and evaluate algebraic expressions." }
+          ]
+        },
+        {
+          "name": "Measurement and Geometry",
+          "contentDescriptions": [
+            { "id": "AC9M7M01", "description": "Solve problems involving area, surface area and volume of prisms and cylinders using appropriate units." },
+            { "id": "AC9M7G01", "description": "Classify triangles and quadrilaterals using properties including side length, angles and parallel sides." }
+          ]
+        },
+        {
+          "name": "Statistics and Probability",
+          "contentDescriptions": [
+            { "id": "AC9M7SP01", "description": "Construct, interpret and compare representations of data including histograms, dot plots and stem-and-leaf plots." },
+            { "id": "AC9M7SP02", "description": "Identify and investigate everyday situations that involve chance, and assign probabilities using fractions, decimals and percentages." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 8",
+      "strands": [
+        {
+          "name": "Number and Algebra",
+          "contentDescriptions": [
+            { "id": "AC9M8N01", "description": "Solve problems involving rates, ratios and proportional reasoning in real-world contexts." },
+            { "id": "AC9M8A01", "description": "Solve linear equations and inequalities, and represent their solutions on a number line." },
+            { "id": "AC9M8A02", "description": "Expand and factorise algebraic expressions, and apply index laws with integer exponents." }
+          ]
+        },
+        {
+          "name": "Measurement and Geometry",
+          "contentDescriptions": [
+            { "id": "AC9M8M01", "description": "Apply Pythagoras theorem to find lengths in right-angled triangles in real-world contexts." },
+            { "id": "AC9M8G01", "description": "Identify and apply geometric transformations including translations, reflections, rotations and dilations." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 9",
+      "strands": [
+        {
+          "name": "Number and Algebra",
+          "contentDescriptions": [
+            { "id": "AC9M9N01", "description": "Apply the real number system including rational and irrational numbers, and use index notation for very large and very small numbers." },
+            { "id": "AC9M9A01", "description": "Solve simultaneous linear equations using algebraic and graphical methods." },
+            { "id": "AC9M9A02", "description": "Sketch and interpret graphs of linear and non-linear functions, identifying key features including gradient and intercepts." }
+          ]
+        },
+        {
+          "name": "Measurement and Geometry",
+          "contentDescriptions": [
+            { "id": "AC9M9M01", "description": "Apply trigonometric ratios to solve right-angled triangle problems in practical contexts." },
+            { "id": "AC9M9G01", "description": "Describe the properties of similar figures and apply them to solve problems involving scale." }
+          ]
+        },
+        {
+          "name": "Statistics and Probability",
+          "contentDescriptions": [
+            { "id": "AC9M9SP01", "description": "Calculate and interpret measures of spread including range, interquartile range and standard deviation." },
+            { "id": "AC9M9SP02", "description": "Construct and compare box plots, back-to-back stem-and-leaf plots and scatter plots to analyse data." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 10",
+      "strands": [
+        {
+          "name": "Number and Algebra",
+          "contentDescriptions": [
+            { "id": "AC9M10N01", "description": "Recognise and apply the connection between simple and compound interest and exponential growth and decay." },
+            { "id": "AC9M10A01", "description": "Explore and apply quadratic equations and their graphs including parabolas." },
+            { "id": "AC9M10A02", "description": "Apply the binomial theorem and expand and factorise complex algebraic expressions." }
+          ]
+        },
+        {
+          "name": "Measurement and Geometry",
+          "contentDescriptions": [
+            { "id": "AC9M10M01", "description": "Apply the sine rule and cosine rule to solve problems involving triangles." },
+            { "id": "AC9M10G01", "description": "Apply deductive reasoning to prove geometric properties and solve complex geometry problems." }
+          ]
+        }
+      ]
+    }
+  ]
+}

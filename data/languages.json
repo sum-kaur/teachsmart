@@ -1,0 +1,24 @@
+{
+  "learningArea": "Languages",
+  "version": "Australian Curriculum v9",
+  "yearLevels": [
+    {
+      "year": "Year 7",
+      "strands": [
+        {
+          "name": "Communicating",
+          "contentDescriptions": [
+            { "id": "AC9LANG701", "description": "Interact in the target language in a range of social contexts, using language to establish and maintain relationships." },
+            { "id": "AC9LANG702", "description": "Obtain, interpret and use information from a range of texts in the target language for different purposes." }
+          ]
+        },
+        {
+          "name": "Understanding",
+          "contentDescriptions": [
+            { "id": "AC9LANG703", "description": "Describe and apply features of the linguistic and cultural systems of the target language, making connections with English." }
+          ]
+        }
+      ]
+    }
+  ]
+}

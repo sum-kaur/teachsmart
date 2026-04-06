@@ -6,14 +6,17 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export * from "./alignmentInfo";
+export * from "./alignmentOutcome";
+export * from "./alignmentRequestBody";
+export * from "./alignmentResult";
 export * from "./dashboardStats";
-export * from "./differentiatedQuestion";
-export * from "./generateLessonPlanBody";
 export * from "./healthStatus";
 export * from "./lessonActivity";
 export * from "./lessonPlan";
+export * from "./lessonQuestion";
+export * from "./lessonRequestBody";
+export * from "./localExample";
 export * from "./recentResource";
 export * from "./resource";
-export * from "./searchResourcesBody";
-export * from "./searchResourcesResponse";
+export * from "./resourcesRequestBody";
+export * from "./resourcesResult";

@@ -1,16 +1,47 @@
 import React, { useState } from "react";
 import { 
   BookOpen, Compass, Search, FileText, Download, Edit, ArrowLeft, 
-  CheckCircle, Settings, Home as HomeIcon, FileStack, BarChart3, Filter
+  CheckCircle, Settings, Home as HomeIcon, FileStack, BarChart3
 } from "lucide-react";
 import { 
   useGetDashboardStats, 
   useGetRecentResources, 
-  useSearchResources,
-  useGenerateLessonPlan
+  useGetAlignment,
+  useGetResources,
+  useGenerateLesson
 } from "@workspace/api-client-react";
 
-// Mock Data Fallbacks
+type AlignmentResult = {
+  alignmentScore: number;
+  syllabus: string;
+  strand: string;
+  outcomes: { id: string; description: string }[];
+  notes: string;
+  usedFallback: boolean;
+};
+
+type Resource = {
+  id: string;
+  title: string;
+  source: string;
+  type: string;
+  description: string;
+  alignmentScore: number;
+  safetyRating: string;
+  biasFlag: string;
+  localContextTags: string[];
+  outcomeIds: string[];
+};
+
+type LessonPlan = {
+  objective: string;
+  duration: string;
+  activities: { label: string; text: string }[];
+  localExample: { title: string; body: string };
+  questions: { q: string; difficulty: string }[];
+  usedFallback: boolean;
+};
+
 const MOCK_DASHBOARD_STATS = {
   totalSearches: 124,
   resourcesGenerated: 89,
@@ -23,78 +54,6 @@ const MOCK_RECENT_RESOURCES = [
   { id: "2", title: "Algebraic Expressions", subject: "Mathematics", yearLevel: "Year 8", topic: "Algebra", alignmentScore: 88, searchedAt: new Date(Date.now() - 86400000).toISOString() },
   { id: "3", title: "Poetry Analysis", subject: "English", yearLevel: "Year 10", topic: "Poetry", alignmentScore: 91, searchedAt: new Date(Date.now() - 172800000).toISOString() }
 ];
-
-const MOCK_SEARCH_RESULTS = {
-  alignment: {
-    score: 92,
-    syllabus: "NSW Stage 5 Science",
-    strand: "Earth and Space Sciences",
-    outcomeCodes: ["SC5-12ES", "SC5-13ES", "SC5-WS1"]
-  },
-  resources: [
-    {
-      id: "r1",
-      title: "Australia's Changing Climate",
-      source: "CSIRO",
-      type: "Lesson Plan",
-      alignmentScore: 96,
-      description: "A comprehensive guide to understanding climate change impacts in Australia with interactive data sets.",
-      whyThis: "Highly aligned with SC5-12ES. Uses real Australian data which increases student engagement.",
-      localContextTags: ["Australian Data", "Indigenous Perspectives"],
-      trustBadges: ["Verified", "Bias Checked"],
-      url: "#"
-    },
-    {
-      id: "r2",
-      title: "Climate Science in Your Backyard",
-      source: "ABC Education",
-      type: "Video & Worksheet",
-      alignmentScore: 88,
-      description: "Engaging video content explaining the greenhouse effect with corresponding worksheet.",
-      whyThis: "Great for visual learners and addresses the core concepts of SC5-13ES.",
-      localContextTags: ["Accessible Language", "Visual"],
-      trustBadges: ["Verified"],
-      url: "#"
-    },
-    {
-      id: "r3",
-      title: "Climate Data Explorer",
-      source: "BOM",
-      type: "Interactive Tool",
-      alignmentScore: 82,
-      description: "Interactive map allowing students to explore historical climate data across different Australian regions.",
-      whyThis: "Excellent for the skills outcome SC5-WS1 requiring data analysis.",
-      localContextTags: ["Data Analysis", "Interactive"],
-      trustBadges: ["Government Source"],
-      url: "#"
-    }
-  ]
-};
-
-const MOCK_LESSON_PLAN = {
-  resourceTitle: "Australia's Changing Climate",
-  yearLevel: "Year 9",
-  subject: "Science",
-  topic: "Climate Change",
-  duration: 60,
-  overview: "Students will explore the causes and impacts of climate change with a specific focus on the Australian context, utilizing data to understand long-term trends.",
-  activities: [
-    { name: "Hook", duration: 5, description: "Show a time-lapse video of rising global temperatures." },
-    { name: "Explore", duration: 20, description: "Students in pairs analyze graphs showing Australian temperature anomalies over the last century." },
-    { name: "Analyse", duration: 15, description: "Class discussion on the correlation between CO2 levels and temperature rise." },
-    { name: "Evaluate", duration: 15, description: "Students evaluate the potential impacts of a 2-degree rise on their local community." },
-    { name: "Reflect", duration: 5, description: "Exit ticket: Write one thing you learned and one question you still have." }
-  ],
-  localContextCallout: "Connect this lesson to the 2019-20 Black Summer bushfires. Discuss how changing climate conditions (longer, hotter, drier seasons) contributed to the severity of these events, making the global concept locally relevant.",
-  questions: [
-    { level: "Foundation", question: "What is the greenhouse effect?" },
-    { level: "Core", question: "How has Australia's average temperature changed over the last 50 years?" },
-    { level: "Core", question: "Identify two main greenhouse gases." },
-    { level: "Extension", question: "Explain the feedback loop involving melting ice caps and global temperatures." },
-    { level: "Extension", question: "Evaluate the effectiveness of two proposed strategies to mitigate climate change in Australia." }
-  ],
-  teacherNotes: "Ensure students understand the difference between weather and climate before starting the data analysis."
-};
 
 type Screen = 'dashboard' | 'search' | 'results' | 'lesson';
 
@@ -110,14 +69,19 @@ export default function Home() {
   });
   
   const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<typeof MOCK_SEARCH_RESULTS | null>(null);
-  const [selectedResource, setSelectedResource] = useState<any>(null);
+  const [isGeneratingLesson, setIsGeneratingLesson] = useState(false);
+  const [alignmentResult, setAlignmentResult] = useState<AlignmentResult | null>(null);
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
+  const [lessonPlan, setLessonPlan] = useState<LessonPlan | null>(null);
+  const [teacherNotes, setTeacherNotes] = useState('');
   
   const { data: dashboardStats = MOCK_DASHBOARD_STATS } = useGetDashboardStats();
   const { data: recentResources = MOCK_RECENT_RESOURCES } = useGetRecentResources();
   
-  const searchMutation = useSearchResources();
-  const lessonMutation = useGenerateLessonPlan();
+  const alignmentMutation = useGetAlignment();
+  const resourcesMutation = useGetResources();
+  const lessonMutation = useGenerateLesson();
 
   const handleSearch = async () => {
     if (!searchParams.topic) return;
@@ -126,26 +90,94 @@ export default function Home() {
     setCurrentScreen('search');
     
     try {
-      // Simulate API delay for loading animation effect
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const response = await searchMutation.mutateAsync({
-        data: searchParams
+      const alignment = await alignmentMutation.mutateAsync({
+        data: {
+          subject: searchParams.subject,
+          yearLevel: searchParams.yearLevel,
+          topic: searchParams.topic,
+          state: searchParams.state,
+        }
       });
-      setSearchResults(response);
-    } catch (error) {
-      console.error("Search failed, using mock data", error);
-      setSearchResults(MOCK_SEARCH_RESULTS);
+
+      setAlignmentResult(alignment);
+
+      const resourcesResult = await resourcesMutation.mutateAsync({
+        data: {
+          subject: searchParams.subject,
+          yearLevel: searchParams.yearLevel,
+          topic: searchParams.topic,
+          state: searchParams.state,
+          alignmentResult: alignment,
+        }
+      });
+
+      setResources(resourcesResult.resources);
+    } catch {
+      setAlignmentResult({
+        alignmentScore: 88,
+        syllabus: `${searchParams.state} ${searchParams.subject} ${searchParams.yearLevel}`,
+        strand: "Core Strand",
+        outcomes: [{ id: "AC9-FALLBACK", description: `Core ${searchParams.subject} outcome for ${searchParams.yearLevel} students studying ${searchParams.topic}.` }],
+        notes: "Fallback alignment data used.",
+        usedFallback: true,
+      });
+      setResources([]);
     } finally {
       setIsSearching(false);
       setCurrentScreen('results');
     }
   };
 
-  const handleAdaptResource = async (resource: any) => {
+  const handleAdaptResource = async (resource: Resource) => {
+    if (!alignmentResult) return;
+
     setSelectedResource(resource);
+    setIsGeneratingLesson(true);
     setCurrentScreen('lesson');
-    // We would normally call lessonMutation here, but we'll just use mock data for the UI
+
+    try {
+      const lesson = await lessonMutation.mutateAsync({
+        data: {
+          subject: searchParams.subject,
+          yearLevel: searchParams.yearLevel,
+          topic: searchParams.topic,
+          state: searchParams.state,
+          resource,
+          alignmentResult,
+          classContext: searchParams.classContext,
+        }
+      });
+
+      setLessonPlan(lesson);
+      setTeacherNotes(`Ensure students understand the key concepts of ${searchParams.topic} before the data analysis activities.`);
+    } catch {
+      setLessonPlan({
+        objective: `Students explore ${searchParams.topic} using Australian curriculum-aligned resources, developing critical thinking and analytical skills.`,
+        duration: "60 minutes",
+        activities: [
+          { label: "Hook (5 min)", text: `Engage students with a thought-provoking question or image related to ${searchParams.topic}.` },
+          { label: "Explore (20 min)", text: "Students investigate the core concepts through guided inquiry activities using provided resources." },
+          { label: "Analyse (15 min)", text: "Groups discuss and analyse findings, connecting concepts to Australian contexts." },
+          { label: "Evaluate (15 min)", text: "Class evaluates evidence and forms reasoned conclusions about the topic." },
+          { label: "Reflect (5 min)", text: "Exit ticket: Students record one key learning and one remaining question." },
+        ],
+        localExample: {
+          title: "Australian Context",
+          body: `Connect ${searchParams.topic} to local examples relevant to ${searchParams.state} students, drawing on real Australian case studies and data.`,
+        },
+        questions: [
+          { q: `Define the key concepts of ${searchParams.topic} in your own words.`, difficulty: "foundation" },
+          { q: `Explain two ways ${searchParams.topic} is relevant to Australian students.`, difficulty: "foundation" },
+          { q: `Analyse the evidence and explain how it supports or challenges our understanding of ${searchParams.topic}.`, difficulty: "core" },
+          { q: `Compare different perspectives on ${searchParams.topic} and evaluate which is best supported by evidence.`, difficulty: "core" },
+          { q: `Critically evaluate the limitations of current approaches to ${searchParams.topic} and propose evidence-based alternatives.`, difficulty: "extension" },
+        ],
+        usedFallback: true,
+      });
+      setTeacherNotes(`Ensure students understand the key concepts of ${searchParams.topic} before starting.`);
+    } finally {
+      setIsGeneratingLesson(false);
+    }
   };
 
   const renderSidebar = () => (
@@ -207,7 +239,7 @@ export default function Home() {
       </div>
       <div className="flex gap-2">
         <div className="flex items-center gap-1.5 bg-green-100 text-green-700 text-[11px] font-semibold px-2.5 py-1 rounded-full">
-          <CheckCircle className="w-3 h-3" /> NSW Aligned
+          <CheckCircle className="w-3 h-3" /> {searchParams.state} Aligned
         </div>
         <div className="flex items-center gap-1.5 bg-blue-100 text-blue-700 text-[11px] font-semibold px-2.5 py-1 rounded-full">
           <Edit className="w-3 h-3" /> Bias Checked
@@ -221,6 +253,20 @@ export default function Home() {
       {renderTopbar("Dashboard", "Good morning, Sarah")}
       
       <div className="p-8 flex-1">
+        <div className="grid grid-cols-4 gap-4 mb-7">
+          {[
+            { label: "Total Searches", value: dashboardStats.totalSearches },
+            { label: "Resources Generated", value: dashboardStats.resourcesGenerated },
+            { label: "Avg Alignment Score", value: `${dashboardStats.averageAlignmentScore}%` },
+            { label: "Top Subject", value: dashboardStats.topSubject },
+          ].map((stat) => (
+            <div key={stat.label} className="bg-white rounded-xl shadow-sm border border-border p-5" data-testid={`stat-${stat.label.replace(/\s+/g, '-').toLowerCase()}`}>
+              <div className="text-[12px] text-muted-foreground uppercase font-semibold tracking-widest mb-1.5">{stat.label}</div>
+              <div className="font-serif text-3xl text-primary">{stat.value}</div>
+            </div>
+          ))}
+        </div>
+
         <div className="grid grid-cols-2 gap-4 mb-7">
           <div 
             onClick={() => setCurrentScreen('search')}
@@ -247,7 +293,7 @@ export default function Home() {
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
-          <div className="px-6 py-4.5 border-b border-border text-sm font-semibold text-foreground">Recent Resources</div>
+          <div className="px-6 py-4 border-b border-border text-sm font-semibold text-foreground">Recent Resources</div>
           <div className="divide-y divide-border">
             {recentResources.map((resource, i) => (
               <div key={resource.id} className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] px-6 py-3.5 items-center text-sm hover:bg-slate-50 transition-colors" data-testid={`recent-resource-${i}`}>
@@ -275,13 +321,13 @@ export default function Home() {
             <div className="w-12 h-12 border-4 border-slate-200 border-t-primary rounded-full animate-spin"></div>
             <div className="text-[15px] text-muted-foreground">Scanning syllabus databases...</div>
             <div className="flex flex-col gap-2 mt-2">
-              <div className="flex items-center gap-2.5 text-[13px] text-primary animate-in fade-in slide-in-from-bottom-2">
-                <CheckCircle className="w-4 h-4" /> Analyzing topic alignment
+              <div className="flex items-center gap-2.5 text-[13px] text-primary">
+                <CheckCircle className="w-4 h-4" /> Analysing topic alignment
               </div>
-              <div className="flex items-center gap-2.5 text-[13px] text-primary animate-in fade-in slide-in-from-bottom-2 delay-150">
+              <div className="flex items-center gap-2.5 text-[13px] text-primary">
                 <CheckCircle className="w-4 h-4" /> Checking for local context
               </div>
-              <div className="flex items-center gap-2.5 text-[13px] text-slate-500 animate-in fade-in slide-in-from-bottom-2 delay-300">
+              <div className="flex items-center gap-2.5 text-[13px] text-slate-500">
                 <Search className="w-4 h-4" /> Filtering appropriate resources...
               </div>
             </div>
@@ -338,7 +384,7 @@ export default function Home() {
                   onChange={(e) => setSearchParams({...searchParams, subject: e.target.value})}
                   data-testid="select-subject"
                 >
-                  {['Science', 'Mathematics', 'English', 'History', 'Geography'].map(s => <option key={s} value={s}>{s}</option>)}
+                  {['Science', 'Mathematics', 'English', 'History', 'Geography', 'Health and Physical Education', 'Technologies', 'The Arts'].map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
             </div>
@@ -348,7 +394,7 @@ export default function Home() {
               <input 
                 type="text" 
                 className="px-3.5 py-2.5 border border-border rounded-lg text-sm bg-white outline-none focus:border-primary transition-colors"
-                placeholder="e.g. Climate change impacts, Algebraic fractions, SC5-12ES..."
+                placeholder="e.g. Climate change impacts, Algebraic fractions, Natural selection..."
                 value={searchParams.topic}
                 onChange={(e) => setSearchParams({...searchParams, topic: e.target.value})}
                 data-testid="input-topic"
@@ -368,7 +414,7 @@ export default function Home() {
               ].map(type => (
                 <div 
                   key={type.label}
-                  className={`border-1.5 rounded-lg p-4 text-center cursor-pointer transition-colors ${searchParams.resourceType === type.label ? 'border-primary bg-teal-50' : 'border-border bg-white hover:border-primary'}`}
+                  className={`border rounded-lg p-4 text-center cursor-pointer transition-colors ${searchParams.resourceType === type.label ? 'border-primary bg-teal-50' : 'border-border bg-white hover:border-primary'}`}
                   onClick={() => setSearchParams({...searchParams, resourceType: type.label})}
                   data-testid={`resource-type-${type.label.replace(/\s+/g, '-').toLowerCase()}`}
                 >
@@ -383,7 +429,7 @@ export default function Home() {
               {['Mixed Ability', 'EAL/D', 'High Achievers', 'Learning Support', 'Inquiry-Based'].map(ctx => (
                 <div 
                   key={ctx}
-                  className={`px-3.5 py-1.5 rounded-full border-1.5 text-[13px] font-medium cursor-pointer transition-colors select-none
+                  className={`px-3.5 py-1.5 rounded-full border text-[13px] font-medium cursor-pointer transition-colors select-none
                     ${searchParams.classContext.includes(ctx) ? 'border-primary bg-teal-50 text-teal-800' : 'border-border bg-white text-slate-600 hover:border-primary hover:text-primary'}`}
                   onClick={() => toggleClassContext(ctx)}
                   data-testid={`chip-${ctx.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`}
@@ -396,7 +442,7 @@ export default function Home() {
             <div className="flex justify-end gap-3">
               <button 
                 onClick={() => setCurrentScreen('dashboard')}
-                className="bg-white text-slate-600 border-1.5 border-border px-5 py-2.5 rounded-lg text-sm font-medium hover:border-primary hover:text-primary transition-colors flex items-center gap-2 cursor-pointer"
+                className="bg-white text-slate-600 border border-border px-5 py-2.5 rounded-lg text-sm font-medium hover:border-primary hover:text-primary transition-colors flex items-center gap-2 cursor-pointer"
                 data-testid="btn-cancel"
               >
                 Cancel
@@ -417,7 +463,7 @@ export default function Home() {
   };
 
   const renderResults = () => {
-    const results = searchResults || MOCK_SEARCH_RESULTS;
+    const alignment = alignmentResult;
     
     return (
       <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
@@ -433,66 +479,85 @@ export default function Home() {
               <ArrowLeft className="w-4 h-4" /> Back to search
             </button>
             <div className="font-serif text-2xl text-foreground">Discovered Resources</div>
-            <div className="w-24"></div> {/* Spacer for center alignment */}
+            <div className="w-24"></div>
           </div>
 
           <div className="grid grid-cols-[260px_1fr] gap-6 max-w-6xl mx-auto">
-            {/* Filter Sidebar */}
             <div className="bg-white rounded-xl shadow-sm border border-border p-6 h-fit sticky top-[100px]">
               <div className="text-sm font-semibold text-foreground mb-4">Refine Results</div>
               
               <div className="mb-5">
                 <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Quality</div>
-                <label className="flex items-center justify-between py-1.5 text-[13px] text-slate-600 cursor-pointer group">
+                <label className="flex items-center justify-between py-1.5 text-[13px] text-slate-600 cursor-pointer">
                   Verified Only
-                  <div className="w-8 h-[18px] bg-primary rounded-full relative transition-colors before:content-[''] before:absolute before:w-3.5 before:h-3.5 before:bg-white before:rounded-full before:top-[2px] before:left-[2px] before:transition-transform before:translate-x-[14px]"></div>
+                  <div className="w-8 h-[18px] bg-primary rounded-full relative before:content-[''] before:absolute before:w-3.5 before:h-3.5 before:bg-white before:rounded-full before:top-[2px] before:left-[2px] before:transition-transform before:translate-x-[14px]"></div>
                 </label>
-                <label className="flex items-center justify-between py-1.5 text-[13px] text-slate-600 cursor-pointer group">
+                <label className="flex items-center justify-between py-1.5 text-[13px] text-slate-600 cursor-pointer">
                   Bias Checked
-                  <div className="w-8 h-[18px] bg-slate-200 rounded-full relative transition-colors group-hover:bg-slate-300 before:content-[''] before:absolute before:w-3.5 before:h-3.5 before:bg-white before:rounded-full before:top-[2px] before:left-[2px] before:transition-transform"></div>
+                  <div className="w-8 h-[18px] bg-slate-200 rounded-full relative before:content-[''] before:absolute before:w-3.5 before:h-3.5 before:bg-white before:rounded-full before:top-[2px] before:left-[2px]"></div>
                 </label>
-                <label className="flex items-center justify-between py-1.5 text-[13px] text-slate-600 cursor-pointer group">
+                <label className="flex items-center justify-between py-1.5 text-[13px] text-slate-600 cursor-pointer">
                   High Alignment ({'>'}85%)
-                  <div className="w-8 h-[18px] bg-primary rounded-full relative transition-colors before:content-[''] before:absolute before:w-3.5 before:h-3.5 before:bg-white before:rounded-full before:top-[2px] before:left-[2px] before:transition-transform before:translate-x-[14px]"></div>
+                  <div className="w-8 h-[18px] bg-primary rounded-full relative before:content-[''] before:absolute before:w-3.5 before:h-3.5 before:bg-white before:rounded-full before:top-[2px] before:left-[2px] before:transition-transform before:translate-x-[14px]"></div>
                 </label>
               </div>
               
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Access</div>
-                <label className="flex items-center justify-between py-1.5 text-[13px] text-slate-600 cursor-pointer group">
+                <label className="flex items-center justify-between py-1.5 text-[13px] text-slate-600 cursor-pointer">
                   Free Resources
-                  <div className="w-8 h-[18px] bg-slate-200 rounded-full relative transition-colors group-hover:bg-slate-300 before:content-[''] before:absolute before:w-3.5 before:h-3.5 before:bg-white before:rounded-full before:top-[2px] before:left-[2px] before:transition-transform"></div>
+                  <div className="w-8 h-[18px] bg-slate-200 rounded-full relative before:content-[''] before:absolute before:w-3.5 before:h-3.5 before:bg-white before:rounded-full before:top-[2px] before:left-[2px]"></div>
                 </label>
               </div>
             </div>
 
-            {/* Results List */}
             <div className="flex flex-col gap-5">
-              <div className="bg-white rounded-xl shadow-sm border border-border p-5 flex items-center justify-between gap-5">
-                <div className="flex-1">
-                  <div className="text-[12px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Curriculum Alignment</div>
-                  <div className="text-[15px] font-semibold text-foreground">{results.alignment.syllabus}</div>
-                  <div className="text-[13px] text-slate-500">{results.alignment.strand}</div>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {results.alignment.outcomeCodes.map(code => (
-                      <span key={code} className="bg-teal-50 text-teal-800 text-[11px] font-semibold px-2 py-0.5 rounded">{code}</span>
-                    ))}
+              {alignment && (
+                <div className="bg-white rounded-xl shadow-sm border border-border p-5 flex items-center justify-between gap-5">
+                  <div className="flex-1">
+                    <div className="text-[12px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Curriculum Alignment</div>
+                    <div className="text-[15px] font-semibold text-foreground">{alignment.syllabus}</div>
+                    <div className="text-[13px] text-slate-500">{alignment.strand}</div>
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {alignment.outcomes.slice(0, 4).map(outcome => (
+                        <span key={outcome.id} className="bg-teal-50 text-teal-800 text-[11px] font-semibold px-2 py-0.5 rounded">{outcome.id}</span>
+                      ))}
+                    </div>
+                    {alignment.notes && (
+                      <div className="text-[13px] text-slate-500 mt-2 leading-relaxed italic">{alignment.notes}</div>
+                    )}
+                    {alignment.usedFallback && (
+                      <div className="text-[11px] text-amber-600 mt-1 font-medium">Using estimated alignment data</div>
+                    )}
+                  </div>
+                  <div className="text-center px-4">
+                    <div className="font-serif text-5xl text-primary leading-none">{alignment.alignmentScore}%</div>
+                    <div className="text-[11px] font-medium text-slate-500 mt-1">Overall Match</div>
                   </div>
                 </div>
-                <div className="text-center px-4">
-                  <div className="font-serif text-5xl text-primary leading-none">{results.alignment.score}%</div>
-                  <div className="text-[11px] font-medium text-slate-500 mt-1">Overall Match</div>
+              )}
+
+              {resources.length === 0 && (
+                <div className="bg-white rounded-xl shadow-sm border border-border p-8 text-center">
+                  <div className="text-slate-400 text-[15px]">No resources found. Try a different topic or subject.</div>
                 </div>
-              </div>
+              )}
 
               <div className="flex flex-col gap-4">
-                {results.resources.map((resource, i) => (
+                {resources.map((resource, i) => (
                   <div key={resource.id} className="bg-white rounded-xl shadow-sm border border-transparent hover:border-teal-300 hover:shadow-md transition-all overflow-hidden" data-testid={`resource-card-${i}`}>
                     <div className="p-5 pb-0">
                       <div className="flex flex-wrap gap-1.5 mb-3">
-                        {resource.trustBadges.includes('Verified') && <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-[11px] font-semibold px-2.5 py-1 rounded-full"><CheckCircle className="w-3 h-3" /> Verified</span>}
-                        {resource.trustBadges.includes('Bias Checked') && <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-[11px] font-semibold px-2.5 py-1 rounded-full"><Edit className="w-3 h-3" /> Bias Checked</span>}
-                        {resource.trustBadges.includes('Government Source') && <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-[11px] font-semibold px-2.5 py-1 rounded-full"><BookOpen className="w-3 h-3" /> Gov Source</span>}
+                        {resource.safetyRating === 'verified' && (
+                          <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-[11px] font-semibold px-2.5 py-1 rounded-full">
+                            <CheckCircle className="w-3 h-3" /> Verified
+                          </span>
+                        )}
+                        {resource.biasFlag === 'low' && (
+                          <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-[11px] font-semibold px-2.5 py-1 rounded-full">
+                            <Edit className="w-3 h-3" /> Bias Checked
+                          </span>
+                        )}
                       </div>
                       
                       <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-1">{resource.type}</div>
@@ -502,11 +567,6 @@ export default function Home() {
                       <div className="text-[14px] text-slate-600 leading-relaxed mt-3 mb-3">
                         {resource.description}
                       </div>
-                    </div>
-
-                    <div className="mx-6 mb-3 bg-teal-50 rounded-lg p-2.5 text-[13px] text-teal-800 flex items-start gap-2">
-                      <Search className="w-4 h-4 shrink-0 mt-0.5" />
-                      <div><strong className="font-semibold">Why this?</strong> {resource.whyThis}</div>
                     </div>
 
                     <div className="px-6 pb-3 flex flex-wrap gap-1.5">
@@ -536,12 +596,46 @@ export default function Home() {
   };
 
   const renderLessonPlan = () => {
-    const plan = MOCK_LESSON_PLAN;
-    const resource = selectedResource || MOCK_SEARCH_RESULTS.resources[0];
+    if (isGeneratingLesson || !lessonPlan) {
+      return (
+        <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
+          {renderTopbar("Generating Lesson Plan", "Building your differentiated lesson...")}
+          <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] gap-5">
+            <div className="w-12 h-12 border-4 border-slate-200 border-t-primary rounded-full animate-spin"></div>
+            <div className="text-[15px] text-muted-foreground">Generating your lesson plan...</div>
+            <div className="flex flex-col gap-2 mt-2">
+              <div className="flex items-center gap-2.5 text-[13px] text-primary">
+                <CheckCircle className="w-4 h-4" /> Matching curriculum outcomes
+              </div>
+              <div className="flex items-center gap-2.5 text-[13px] text-primary">
+                <CheckCircle className="w-4 h-4" /> Sourcing local Australian examples
+              </div>
+              <div className="flex items-center gap-2.5 text-[13px] text-slate-500">
+                <FileText className="w-4 h-4" /> Writing differentiated questions...
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const resource = selectedResource;
+
+    const getDifficultyColor = (difficulty: string) => {
+      if (difficulty === 'foundation') return 'bg-green-100 text-green-700';
+      if (difficulty === 'core') return 'bg-blue-100 text-blue-700';
+      return 'bg-purple-100 text-purple-700';
+    };
+
+    const getDifficultyLabel = (difficulty: string) => {
+      if (difficulty === 'foundation') return 'Foundation';
+      if (difficulty === 'core') return 'Core';
+      return 'Extension';
+    };
 
     return (
       <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
-        {renderTopbar("Lesson Plan Editor", "Review and customize your generated plan")}
+        {renderTopbar("Lesson Plan Editor", "Review and customise your generated plan")}
         
         <div className="p-8 flex-1">
           <div className="max-w-3xl mx-auto">
@@ -557,11 +651,12 @@ export default function Home() {
 
             <div className="bg-white rounded-xl shadow-sm border border-border p-6 mb-5 flex items-center justify-between">
               <div>
-                <div className="text-lg font-bold text-foreground">{plan.resourceTitle}</div>
-                <div className="text-[13px] text-slate-500 mt-1">{resource.source} · {plan.yearLevel} {plan.subject}</div>
-                <div className="flex gap-1.5 mt-2.5">
-                  <span className="bg-teal-50 text-teal-800 text-[11px] font-semibold px-2 py-0.5 rounded">SC5-12ES</span>
-                  <span className="bg-teal-50 text-teal-800 text-[11px] font-semibold px-2 py-0.5 rounded">SC5-13ES</span>
+                <div className="text-lg font-bold text-foreground">{resource?.title ?? searchParams.topic}</div>
+                <div className="text-[13px] text-slate-500 mt-1">{resource?.source} · {searchParams.yearLevel} {searchParams.subject}</div>
+                <div className="flex gap-1.5 mt-2.5 flex-wrap">
+                  {alignmentResult?.outcomes.slice(0, 3).map(o => (
+                    <span key={o.id} className="bg-teal-50 text-teal-800 text-[11px] font-semibold px-2 py-0.5 rounded">{o.id}</span>
+                  ))}
                 </div>
               </div>
               <div className="flex gap-2.5">
@@ -576,24 +671,29 @@ export default function Home() {
 
             <div className="bg-white rounded-xl shadow-sm border border-border p-7 mb-5">
               <div className="flex items-center gap-4 mb-5 pb-5 border-b border-border">
-                <span className="bg-slate-100 text-slate-700 text-[13px] font-semibold px-3.5 py-1.5 rounded-full">{plan.duration} mins</span>
-                <span className="bg-slate-100 text-slate-700 text-[13px] font-semibold px-3.5 py-1.5 rounded-full">{searchParams.classContext.length > 0 ? searchParams.classContext.join(', ') : 'Standard Class'}</span>
+                <span className="bg-slate-100 text-slate-700 text-[13px] font-semibold px-3.5 py-1.5 rounded-full">{lessonPlan.duration}</span>
+                <span className="bg-slate-100 text-slate-700 text-[13px] font-semibold px-3.5 py-1.5 rounded-full">
+                  {searchParams.classContext.length > 0 ? searchParams.classContext.join(', ') : 'Standard Class'}
+                </span>
+                {lessonPlan.usedFallback && (
+                  <span className="bg-amber-100 text-amber-700 text-[11px] font-semibold px-3 py-1 rounded-full">Estimated plan</span>
+                )}
               </div>
               
-              <div className="text-[15px] text-slate-700 line-relaxed mb-6">
-                {plan.overview}
+              <div className="text-[15px] text-slate-700 leading-relaxed mb-6">
+                {lessonPlan.objective}
               </div>
 
               <div className="flex flex-col gap-3.5">
-                {plan.activities.map((activity, i) => (
+                {lessonPlan.activities.map((activity, i) => (
                   <div key={i} className="flex gap-3.5 items-start">
                     <div className="w-2 h-2 rounded-full bg-primary mt-[7px] shrink-0"></div>
                     <div>
                       <div className="text-[14px] font-semibold text-foreground mb-0.5">
-                        {activity.name} <span className="text-slate-400 font-normal ml-1">({activity.duration}m)</span>
+                        {activity.label}
                       </div>
                       <div className="text-[14px] text-slate-600 leading-relaxed">
-                        {activity.description}
+                        {activity.text}
                       </div>
                     </div>
                   </div>
@@ -603,34 +703,26 @@ export default function Home() {
 
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-5 shadow-sm">
               <div className="text-[14px] font-bold text-blue-700 mb-2 flex items-center gap-2">
-                <Compass className="w-4 h-4" /> Local Australian Context
+                <Compass className="w-4 h-4" /> Local Australian Context: {lessonPlan.localExample.title}
               </div>
               <div className="text-[14px] text-slate-700 leading-relaxed">
-                {plan.localContextCallout}
+                {lessonPlan.localExample.body}
               </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-border p-7 mb-5">
               <div className="font-serif text-[20px] text-foreground mb-4">Differentiated Questions</div>
               <div className="flex flex-col gap-3">
-                {plan.questions.map((q, i) => {
-                  const getLevelColor = (level: string) => {
-                    if (level === 'Foundation') return 'bg-green-100 text-green-700';
-                    if (level === 'Core') return 'bg-blue-100 text-blue-700';
-                    return 'bg-purple-100 text-purple-700';
-                  };
-                  
-                  return (
-                    <div key={i} className="p-3.5 border border-border rounded-lg flex items-start gap-3">
-                      <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0 mt-0.5 ${getLevelColor(q.level)}`}>
-                        {q.level}
-                      </span>
-                      <div className="text-[14px] text-slate-700 leading-relaxed pt-0.5">
-                        {q.question}
-                      </div>
+                {lessonPlan.questions.map((q, i) => (
+                  <div key={i} className="p-3.5 border border-border rounded-lg flex items-start gap-3">
+                    <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0 mt-0.5 ${getDifficultyColor(q.difficulty)}`}>
+                      {getDifficultyLabel(q.difficulty)}
+                    </span>
+                    <div className="text-[14px] text-slate-700 leading-relaxed pt-0.5">
+                      {q.q}
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -638,7 +730,8 @@ export default function Home() {
               <div className="font-serif text-[20px] text-foreground mb-3">Teacher Notes</div>
               <textarea 
                 className="w-full min-h-[100px] border border-border rounded-lg p-3.5 text-[14px] text-slate-700 resize-y outline-none focus:border-primary transition-colors leading-relaxed"
-                defaultValue={plan.teacherNotes}
+                value={teacherNotes}
+                onChange={(e) => setTeacherNotes(e.target.value)}
                 data-testid="textarea-teacher-notes"
               />
             </div>

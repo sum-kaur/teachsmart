@@ -5,13 +5,12 @@
  * TeachSmart API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { AlignmentResult } from "./alignmentResult";
 
-export interface GenerateLessonPlanBody {
-  resourceId: string;
-  resourceTitle: string;
-  yearLevel: string;
-  state: string;
+export interface ResourcesRequestBody {
   subject: string;
+  yearLevel: string;
   topic: string;
-  classContext?: string[];
+  state: string;
+  alignmentResult: AlignmentResult;
 }

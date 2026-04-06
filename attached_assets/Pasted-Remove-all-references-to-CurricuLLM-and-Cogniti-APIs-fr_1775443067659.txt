@@ -1,0 +1,70 @@
+Remove all references to CurricuLLM and Cogniti APIs from this project. Replace them with the following architecture:
+1. Download and add curriculum data files
+Create a data/ folder in the project root. Add all 8 Australian Curriculum v9 JSON-LD files from the Machine Readable Australian Curriculum (MRAC), one per learning area: Science, English, Mathematics, Humanities and Social Sciences, The Arts, Health and Physical Education, Technologies, and Languages. Name them science.json, english.json, mathematics.json, humanities.json, arts.json, hpe.json, technologies.json, languages.json.
+2. Replace all API calls with two things only: local curriculum JSON + Anthropic Claude API
+In server.js:
+
+Load all 8 curriculum JSON files at startup into a curriculumData object keyed by subject name
+Add a /api/alignment POST route that accepts { subject, yearLevel, topic, state }, filters the matching curriculum JSON for the relevant year level content descriptions and outcomes, then calls the Anthropic Claude API with this prompt:
+
+You are an Australian curriculum expert. Given these real ACARA v9 curriculum outcomes for Year {yearLevel} {subject}: {filteredOutcomes}
+
+Score how well the topic "{topic}" aligns with these outcomes. Return ONLY valid JSON in this exact shape, no markdown:
+{
+  "alignmentScore": number between 0-100,
+  "syllabus": "{state} {subject} Year {yearLevel}",
+  "strand": string,
+  "outcomes": [{ "id": string, "description": string }],
+  "notes": string
+}
+
+Add a /api/resources POST route that accepts { subject, yearLevel, topic, state, alignmentResult } and calls Claude with this prompt:
+
+You are an Australian curriculum resource expert. Find 3 real, existing, publicly accessible Australian educational resources for Year {yearLevel} {subject} students studying {topic} in {state}.
+
+Only suggest resources from trusted Australian sources like CSIRO, ABC Education, Bureau of Meteorology, Khan Academy Australia, Scootle, state education departments, or universities.
+
+Return ONLY valid JSON, no markdown:
+{
+  "resources": [{
+    "id": string,
+    "title": string,
+    "source": string,
+    "type": string,
+    "description": string,
+    "alignmentScore": number,
+    "safetyRating": "verified" or "unverified",
+    "biasFlag": "low" or "flagged",
+    "localContextTags": string[],
+    "outcomeIds": string[]
+  }]
+}
+
+Add a /api/lesson POST route that accepts { subject, yearLevel, topic, state, resource, alignmentResult, classContext } and calls Claude with this prompt:
+
+You are an expert Australian curriculum designer. Create a complete Year {yearLevel} {subject} lesson plan for {state} students studying {topic}, adapted from the resource "{resource.title}" by {resource.source}.
+
+Curriculum outcomes: {alignmentResult.outcomes mapped to ids and descriptions}
+Class context: {classContext joined as comma separated list}
+
+Always include a localExample field with a specific real example relevant to {state} students.
+
+Return ONLY valid JSON, no markdown:
+{
+  "objective": string,
+  "duration": string,
+  "activities": [{ "label": string, "text": string }],
+  "localExample": { "title": string, "body": string },
+  "questions": [{ "q": string, "difficulty": "foundation" or "core" or "extension" }]
+}
+3. Environment variables needed
+Only one API key is required now: ANTHROPIC_API_KEY. Remove any references to CURRICULLM_API_KEY and COGNITI_API_KEY from the codebase and .env.example.
+4. Keep all mock fallback data
+Every route must still fall back to the existing hardcoded mock responses if the Claude API call fails or times out (8 second timeout). Show a toast saying "Using cached response" when fallback is triggered.
+5. Update the frontend
+In public/index.html, update all fetch calls to point to the new routes:
+
+Search button fires /api/alignment and /api/resources in parallel with Promise.all()
+Adapt button fires /api/lesson
+
+Everything else in the UI stays exactly the same.

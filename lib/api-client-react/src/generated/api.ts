@@ -17,13 +17,15 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AlignmentRequestBody,
+  AlignmentResult,
   DashboardStats,
-  GenerateLessonPlanBody,
   HealthStatus,
   LessonPlan,
+  LessonRequestBody,
   RecentResource,
-  SearchResourcesBody,
-  SearchResourcesResponse,
+  ResourcesRequestBody,
+  ResourcesResult,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -112,43 +114,43 @@ export function useHealthCheck<
 }
 
 /**
- * Search for resources based on curriculum parameters, proxied to CurriculLM API with fallback
- * @summary Search for curriculum-aligned resources
+ * Filters matching curriculum outcomes and uses Claude to score alignment
+ * @summary Score curriculum alignment for a topic
  */
-export const getSearchResourcesUrl = () => {
-  return `/api/resources/search`;
+export const getGetAlignmentUrl = () => {
+  return `/api/alignment`;
 };
 
-export const searchResources = async (
-  searchResourcesBody: SearchResourcesBody,
+export const getAlignment = async (
+  alignmentRequestBody: AlignmentRequestBody,
   options?: RequestInit,
-): Promise<SearchResourcesResponse> => {
-  return customFetch<SearchResourcesResponse>(getSearchResourcesUrl(), {
+): Promise<AlignmentResult> => {
+  return customFetch<AlignmentResult>(getGetAlignmentUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(searchResourcesBody),
+    body: JSON.stringify(alignmentRequestBody),
   });
 };
 
-export const getSearchResourcesMutationOptions = <
+export const getGetAlignmentMutationOptions = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof searchResources>>,
+    Awaited<ReturnType<typeof getAlignment>>,
     TError,
-    { data: BodyType<SearchResourcesBody> },
+    { data: BodyType<AlignmentRequestBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof searchResources>>,
+  Awaited<ReturnType<typeof getAlignment>>,
   TError,
-  { data: BodyType<SearchResourcesBody> },
+  { data: BodyType<AlignmentRequestBody> },
   TContext
 > => {
-  const mutationKey = ["searchResources"];
+  const mutationKey = ["getAlignment"];
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       "mutationKey" in options.mutation &&
@@ -158,44 +160,218 @@ export const getSearchResourcesMutationOptions = <
     : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof searchResources>>,
-    { data: BodyType<SearchResourcesBody> }
+    Awaited<ReturnType<typeof getAlignment>>,
+    { data: BodyType<AlignmentRequestBody> }
   > = (props) => {
     const { data } = props ?? {};
 
-    return searchResources(data, requestOptions);
+    return getAlignment(data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type SearchResourcesMutationResult = NonNullable<
-  Awaited<ReturnType<typeof searchResources>>
+export type GetAlignmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof getAlignment>>
 >;
-export type SearchResourcesMutationBody = BodyType<SearchResourcesBody>;
-export type SearchResourcesMutationError = ErrorType<unknown>;
+export type GetAlignmentMutationBody = BodyType<AlignmentRequestBody>;
+export type GetAlignmentMutationError = ErrorType<unknown>;
 
 /**
- * @summary Search for curriculum-aligned resources
+ * @summary Score curriculum alignment for a topic
  */
-export const useSearchResources = <
+export const useGetAlignment = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof searchResources>>,
+    Awaited<ReturnType<typeof getAlignment>>,
     TError,
-    { data: BodyType<SearchResourcesBody> },
+    { data: BodyType<AlignmentRequestBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
-  Awaited<ReturnType<typeof searchResources>>,
+  Awaited<ReturnType<typeof getAlignment>>,
   TError,
-  { data: BodyType<SearchResourcesBody> },
+  { data: BodyType<AlignmentRequestBody> },
   TContext
 > => {
-  return useMutation(getSearchResourcesMutationOptions(options));
+  return useMutation(getGetAlignmentMutationOptions(options));
+};
+
+/**
+ * Uses Claude to find trusted Australian educational resources for the topic
+ * @summary Find curriculum-aligned resources
+ */
+export const getGetResourcesUrl = () => {
+  return `/api/resources`;
+};
+
+export const getResources = async (
+  resourcesRequestBody: ResourcesRequestBody,
+  options?: RequestInit,
+): Promise<ResourcesResult> => {
+  return customFetch<ResourcesResult>(getGetResourcesUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(resourcesRequestBody),
+  });
+};
+
+export const getGetResourcesMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof getResources>>,
+    TError,
+    { data: BodyType<ResourcesRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof getResources>>,
+  TError,
+  { data: BodyType<ResourcesRequestBody> },
+  TContext
+> => {
+  const mutationKey = ["getResources"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof getResources>>,
+    { data: BodyType<ResourcesRequestBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return getResources(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GetResourcesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof getResources>>
+>;
+export type GetResourcesMutationBody = BodyType<ResourcesRequestBody>;
+export type GetResourcesMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Find curriculum-aligned resources
+ */
+export const useGetResources = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof getResources>>,
+    TError,
+    { data: BodyType<ResourcesRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof getResources>>,
+  TError,
+  { data: BodyType<ResourcesRequestBody> },
+  TContext
+> => {
+  return useMutation(getGetResourcesMutationOptions(options));
+};
+
+/**
+ * Uses Claude to generate a complete, differentiated lesson plan
+ * @summary Generate a lesson plan
+ */
+export const getGenerateLessonUrl = () => {
+  return `/api/lesson`;
+};
+
+export const generateLesson = async (
+  lessonRequestBody: LessonRequestBody,
+  options?: RequestInit,
+): Promise<LessonPlan> => {
+  return customFetch<LessonPlan>(getGenerateLessonUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(lessonRequestBody),
+  });
+};
+
+export const getGenerateLessonMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateLesson>>,
+    TError,
+    { data: BodyType<LessonRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateLesson>>,
+  TError,
+  { data: BodyType<LessonRequestBody> },
+  TContext
+> => {
+  const mutationKey = ["generateLesson"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateLesson>>,
+    { data: BodyType<LessonRequestBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateLesson(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateLessonMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateLesson>>
+>;
+export type GenerateLessonMutationBody = BodyType<LessonRequestBody>;
+export type GenerateLessonMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate a lesson plan
+ */
+export const useGenerateLesson = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateLesson>>,
+    TError,
+    { data: BodyType<LessonRequestBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateLesson>>,
+  TError,
+  { data: BodyType<LessonRequestBody> },
+  TContext
+> => {
+  return useMutation(getGenerateLessonMutationOptions(options));
 };
 
 /**
@@ -273,93 +449,6 @@ export function useGetRecentResources<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
-
-/**
- * Generate a detailed lesson plan for a selected resource, proxied to Cogniti API with fallback
- * @summary Generate a lesson plan
- */
-export const getGenerateLessonPlanUrl = () => {
-  return `/api/lessons/generate`;
-};
-
-export const generateLessonPlan = async (
-  generateLessonPlanBody: GenerateLessonPlanBody,
-  options?: RequestInit,
-): Promise<LessonPlan> => {
-  return customFetch<LessonPlan>(getGenerateLessonPlanUrl(), {
-    ...options,
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(generateLessonPlanBody),
-  });
-};
-
-export const getGenerateLessonPlanMutationOptions = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof generateLessonPlan>>,
-    TError,
-    { data: BodyType<GenerateLessonPlanBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof generateLessonPlan>>,
-  TError,
-  { data: BodyType<GenerateLessonPlanBody> },
-  TContext
-> => {
-  const mutationKey = ["generateLessonPlan"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof generateLessonPlan>>,
-    { data: BodyType<GenerateLessonPlanBody> }
-  > = (props) => {
-    const { data } = props ?? {};
-
-    return generateLessonPlan(data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type GenerateLessonPlanMutationResult = NonNullable<
-  Awaited<ReturnType<typeof generateLessonPlan>>
->;
-export type GenerateLessonPlanMutationBody = BodyType<GenerateLessonPlanBody>;
-export type GenerateLessonPlanMutationError = ErrorType<unknown>;
-
-/**
- * @summary Generate a lesson plan
- */
-export const useGenerateLessonPlan = <
-  TError = ErrorType<unknown>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof generateLessonPlan>>,
-    TError,
-    { data: BodyType<GenerateLessonPlanBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof generateLessonPlan>>,
-  TError,
-  { data: BodyType<GenerateLessonPlanBody> },
-  TContext
-> => {
-  return useMutation(getGenerateLessonPlanMutationOptions(options));
-};
 
 /**
  * Returns summary statistics for the teacher dashboard

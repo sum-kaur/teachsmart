@@ -1,0 +1,110 @@
+{
+  "learningArea": "English",
+  "version": "Australian Curriculum v9",
+  "yearLevels": [
+    {
+      "year": "Year 7",
+      "strands": [
+        {
+          "name": "Language",
+          "contentDescriptions": [
+            { "id": "AC9E7L01", "description": "Understand how language is used to create tone, mood and atmosphere in a range of literary and informational texts." },
+            { "id": "AC9E7L02", "description": "Identify and explain how vocabulary and grammatical choices are used to express shades of meaning, feeling and nuance." }
+          ]
+        },
+        {
+          "name": "Literature",
+          "contentDescriptions": [
+            { "id": "AC9E7LT01", "description": "Analyse how authors create and develop characters, settings and themes in literary texts from a range of cultural contexts." },
+            { "id": "AC9E7LT02", "description": "Compare texts from different cultural contexts, discussing how context influences meaning and interpretation." }
+          ]
+        },
+        {
+          "name": "Literacy",
+          "contentDescriptions": [
+            { "id": "AC9E7LY01", "description": "Plan, draft, revise, edit and publish imaginative, informative and persuasive texts for a range of purposes and audiences." },
+            { "id": "AC9E7LY02", "description": "Analyse and evaluate information and ideas, developing arguments supported by evidence." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 8",
+      "strands": [
+        {
+          "name": "Language",
+          "contentDescriptions": [
+            { "id": "AC9E8L01", "description": "Analyse how the structure and features of texts reflect the purpose, audience and context of the text." },
+            { "id": "AC9E8L02", "description": "Explain how rhetorical devices, including irony, hyperbole and allusion, are used to influence readers and viewers." }
+          ]
+        },
+        {
+          "name": "Literature",
+          "contentDescriptions": [
+            { "id": "AC9E8LT01", "description": "Identify and explain how authors use narrative techniques and literary devices to engage readers and develop meaning." },
+            { "id": "AC9E8LT02", "description": "Compare texts within and across cultures, identifying how different perspectives influence the representation of events and people." }
+          ]
+        },
+        {
+          "name": "Literacy",
+          "contentDescriptions": [
+            { "id": "AC9E8LY01", "description": "Compose and edit persuasive, analytical and creative texts using appropriate language structures for different purposes." },
+            { "id": "AC9E8LY02", "description": "Select and use different strategies for reading, viewing and listening, adjusting them to suit the purpose and complexity of the text." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 9",
+      "strands": [
+        {
+          "name": "Language",
+          "contentDescriptions": [
+            { "id": "AC9E9L01", "description": "Explain how language choices, including vocabulary, tone and structural features, construct different representations of individuals, groups and events." },
+            { "id": "AC9E9L02", "description": "Analyse the use of rhetorical and language devices in persuasive texts and explain their intended effects on specific audiences." }
+          ]
+        },
+        {
+          "name": "Literature",
+          "contentDescriptions": [
+            { "id": "AC9E9LT01", "description": "Interpret and evaluate representations of people, places, events and ideas in literary texts." },
+            { "id": "AC9E9LT02", "description": "Analyse and explain the ways that authors have developed compelling and complex characters and settings." }
+          ]
+        },
+        {
+          "name": "Literacy",
+          "contentDescriptions": [
+            { "id": "AC9E9LY01", "description": "Create sustained, complex analytical and persuasive responses with evidence from texts to support arguments." },
+            { "id": "AC9E9LY02", "description": "Compose, edit and refine texts that effectively communicate ideas and arguments for particular audiences using appropriate conventions." }
+          ]
+        }
+      ]
+    },
+    {
+      "year": "Year 10",
+      "strands": [
+        {
+          "name": "Language",
+          "contentDescriptions": [
+            { "id": "AC9E10L01", "description": "Analyse how language and structural choices shape meaning and influence the interpretation of texts." },
+            { "id": "AC9E10L02", "description": "Explain how vocabulary, grammatical patterns and text structures are used to express sophisticated ideas and arguments." }
+          ]
+        },
+        {
+          "name": "Literature",
+          "contentDescriptions": [
+            { "id": "AC9E10LT01", "description": "Evaluate the ways that language and text structures are used to represent the concerns of particular cultural groups and time periods." },
+            { "id": "AC9E10LT02", "description": "Interpret and synthesise information and ideas from a range of complex texts, and discuss the ways they relate to real-world contexts." }
+          ]
+        },
+        {
+          "name": "Literacy",
+          "contentDescriptions": [
+            { "id": "AC9E10LY01", "description": "Create, compose and edit sustained analytical, persuasive and creative texts that demonstrate sophisticated understanding of language and literary devices." },
+            { "id": "AC9E10LY02", "description": "Engage with challenging and complex ideas across a range of texts and contexts, evaluating arguments and forming considered positions." }
+          ]
+        }
+      ]
+    }
+  ]
+}
