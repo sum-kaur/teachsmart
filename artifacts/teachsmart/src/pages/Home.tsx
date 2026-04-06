@@ -3,13 +3,14 @@ import {
   BookOpen, Compass, Search, FileText, Download, Edit, ArrowLeft,
   CheckCircle, Home as HomeIcon, FileStack, BarChart3, MapPin,
   CalendarDays, Settings2, Globe, ChevronDown, ChevronUp,
-  Presentation, Library as LibraryIcon, Bookmark, BookmarkCheck, Loader2, Sparkles
+  Presentation, Library as LibraryIcon, Bookmark, BookmarkCheck, Loader2, Sparkles, Users
 } from "lucide-react";
 import { useGetDashboardStats, useGetRecentResources, useGetFeed } from "@workspace/api-client-react";
 import VoiceMic from "../components/VoiceMic";
 import Slideshow, { type SlidedeckData } from "../components/Slideshow";
 import UnitPlanner, { type UnitContext } from "../components/UnitPlanner";
 import Library from "../components/Library";
+import MyClasses from "../components/MyClasses";
 import SemesterPlanner from "../components/SemesterPlanner";
 import SettingsPanel from "../components/Settings";
 import { LANGUAGES, type LangCode } from "../lib/translations";
@@ -50,7 +51,7 @@ const MOCK_RECENT = [
   { id: "3", title: "Poetry Analysis", subject: "English", yearLevel: "Year 10", topic: "Poetry", alignmentScore: 91, searchedAt: new Date(Date.now() - 172800000).toISOString() },
 ];
 
-type Screen = 'dashboard' | 'unit-planner' | 'search' | 'results' | 'lesson' | 'slideshow' | 'library' | 'semester' | 'settings';
+type Screen = 'dashboard' | 'unit-planner' | 'search' | 'results' | 'lesson' | 'slideshow' | 'library' | 'semester' | 'settings' | 'my-classes';
 
 const EMPTY_UNIT: UnitContext = { unitTitle: '', textbook: '', totalLessons: '', currentLesson: '', prevSummary: '', learningIntention: '', successCriteria: '', assessmentType: 'exam' };
 
@@ -261,6 +262,10 @@ export default function Home() {
 
       <button onClick={() => setCurrentScreen('library')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'library' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-library">
         <FileStack className="w-4 h-4" /> My Library
+      </button>
+
+      <button onClick={() => setCurrentScreen('my-classes')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'my-classes' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-my-classes">
+        <Users className="w-4 h-4" /> My Classes
       </button>
 
       <button onClick={() => setCurrentScreen('semester')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'semester' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-semester">
@@ -760,6 +765,20 @@ export default function Home() {
             setTeacherNotes('Loaded from library.');
             setSearchParams(prev => ({ ...prev, subject: l.subject, yearLevel: l.yearLevel, topic: l.topic }));
             setCurrentScreen('lesson');
+          }}
+        />
+      )}
+      {currentScreen === 'my-classes' && (
+        <MyClasses 
+          onSelectClass={() => {}} 
+          onGenerateResource={(classData) => {
+            setSearchParams(prev => ({
+              ...prev,
+              subject: classData.subject,
+              yearLevel: classData.yearLevel,
+              state: classData.state,
+            }));
+            setCurrentScreen('search');
           }}
         />
       )}
