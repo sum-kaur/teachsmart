@@ -251,6 +251,8 @@ components:
           type: array
           items:
             type: string
+        whyThisResource:
+          type: string
       required:
         - id
         - title
@@ -262,6 +264,7 @@ components:
         - biasFlag
         - localContextTags
         - outcomeIds
+        - whyThisResource
 
     ResourcesResult:
       type: object

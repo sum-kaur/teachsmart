@@ -77,6 +77,7 @@ export const GetResourcesResponse = zod.object({
       biasFlag: zod.string(),
       localContextTags: zod.array(zod.string()),
       outcomeIds: zod.array(zod.string()),
+      whyThisResource: zod.string(),
     }),
   ),
   usedFallback: zod.boolean(),
@@ -102,6 +103,7 @@ export const GenerateLessonBody = zod.object({
     biasFlag: zod.string(),
     localContextTags: zod.array(zod.string()),
     outcomeIds: zod.array(zod.string()),
+    whyThisResource: zod.string(),
   }),
   alignmentResult: zod.object({
     alignmentScore: zod.number(),

@@ -17,4 +17,5 @@ export interface Resource {
   biasFlag: string;
   localContextTags: string[];
   outcomeIds: string[];
+  whyThisResource: string;
 }

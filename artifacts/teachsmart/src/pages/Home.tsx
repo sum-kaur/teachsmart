@@ -32,6 +32,7 @@ type Resource = {
   biasFlag: string;
   localContextTags: string[];
   outcomeIds: string[];
+  whyThisResource: string;
 };
 
 type LessonPlan = {
@@ -79,7 +80,7 @@ export default function Home() {
     yearLevel: 'Year 9',
     state: 'NSW',
     subject: 'Science',
-    topic: '',
+    topic: 'Climate Change',
     resourceType: 'Lesson Plan',
     classContext: [] as string[],
     postcode: '2150',
@@ -587,13 +588,40 @@ export default function Home() {
 
   const renderResults = () => {
     const alignment = alignmentResult;
+    const scoreColor = alignment
+      ? alignment.alignmentScore >= 90 ? 'bg-emerald-500' : alignment.alignmentScore >= 75 ? 'bg-teal-500' : 'bg-amber-500'
+      : 'bg-slate-400';
     
     return (
       <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
         {renderTopbar(`Results for "${searchParams.topic}"`, `${searchParams.yearLevel} ${searchParams.subject} · ${searchParams.state}`)}
+
+        {alignment && (
+          <div className="ml-0 bg-white border-b border-border shadow-sm px-8 py-0 flex items-center gap-5 min-h-[72px]">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[13px] font-semibold text-foreground truncate">{alignment.syllabus}</span>
+                <span className="text-slate-300">·</span>
+                <span className="text-[13px] text-slate-500 truncate">{alignment.strand}</span>
+                {alignment.usedFallback && (
+                  <span className="text-[11px] text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded-full">estimated</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {alignment.outcomes.slice(0, 5).map(outcome => (
+                  <span key={outcome.id} className="bg-teal-50 text-teal-700 text-[11px] font-semibold px-2 py-0.5 rounded border border-teal-100">{outcome.id}</span>
+                ))}
+              </div>
+            </div>
+            <div className={`flex items-center gap-2.5 shrink-0 ${scoreColor} text-white px-4 py-2 rounded-xl`}>
+              <div className="text-[28px] font-bold leading-none">{alignment.alignmentScore}%</div>
+              <div className="text-[11px] font-semibold leading-tight opacity-90">Curriculum<br/>Match</div>
+            </div>
+          </div>
+        )}
         
         <div className="p-8 flex-1">
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between mb-6">
             <button 
               onClick={() => setCurrentScreen('search')}
               className="text-[13px] font-medium text-slate-500 hover:text-primary flex items-center gap-1.5 bg-transparent border-none cursor-pointer"
@@ -601,117 +629,78 @@ export default function Home() {
             >
               <ArrowLeft className="w-4 h-4" /> Back to search
             </button>
-            <div className="font-serif text-2xl text-foreground">Discovered Resources</div>
-            <div className="w-24"></div>
+            <div className="font-serif text-xl text-foreground">
+              {resources.length > 0 ? `${resources.length} Resources Found` : 'Discovered Resources'}
+            </div>
+            <div className="w-32"></div>
           </div>
 
-          <div className="grid grid-cols-[260px_1fr] gap-6 max-w-6xl mx-auto">
-            <div className="bg-white rounded-xl shadow-sm border border-border p-6 h-fit sticky top-[100px]">
-              <div className="text-sm font-semibold text-foreground mb-4">Refine Results</div>
-              
-              <div className="mb-5">
-                <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Quality</div>
-                <label className="flex items-center justify-between py-1.5 text-[13px] text-slate-600 cursor-pointer">
-                  Verified Only
-                  <div className="w-8 h-[18px] bg-primary rounded-full relative before:content-[''] before:absolute before:w-3.5 before:h-3.5 before:bg-white before:rounded-full before:top-[2px] before:left-[2px] before:transition-transform before:translate-x-[14px]"></div>
-                </label>
-                <label className="flex items-center justify-between py-1.5 text-[13px] text-slate-600 cursor-pointer">
-                  Bias Checked
-                  <div className="w-8 h-[18px] bg-slate-200 rounded-full relative before:content-[''] before:absolute before:w-3.5 before:h-3.5 before:bg-white before:rounded-full before:top-[2px] before:left-[2px]"></div>
-                </label>
-                <label className="flex items-center justify-between py-1.5 text-[13px] text-slate-600 cursor-pointer">
-                  High Alignment ({'>'}85%)
-                  <div className="w-8 h-[18px] bg-primary rounded-full relative before:content-[''] before:absolute before:w-3.5 before:h-3.5 before:bg-white before:rounded-full before:top-[2px] before:left-[2px] before:transition-transform before:translate-x-[14px]"></div>
-                </label>
-              </div>
-              
-              <div>
-                <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Access</div>
-                <label className="flex items-center justify-between py-1.5 text-[13px] text-slate-600 cursor-pointer">
-                  Free Resources
-                  <div className="w-8 h-[18px] bg-slate-200 rounded-full relative before:content-[''] before:absolute before:w-3.5 before:h-3.5 before:bg-white before:rounded-full before:top-[2px] before:left-[2px]"></div>
-                </label>
-              </div>
+          {resources.length === 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-border p-8 text-center max-w-3xl mx-auto">
+              <div className="text-slate-400 text-[15px]">No resources found. Try a different topic or subject.</div>
             </div>
+          )}
 
-            <div className="flex flex-col gap-5">
-              {alignment && (
-                <div className="bg-white rounded-xl shadow-sm border border-border p-5 flex items-center justify-between gap-5">
-                  <div className="flex-1">
-                    <div className="text-[12px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Curriculum Alignment</div>
-                    <div className="text-[15px] font-semibold text-foreground">{alignment.syllabus}</div>
-                    <div className="text-[13px] text-slate-500">{alignment.strand}</div>
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {alignment.outcomes.slice(0, 4).map(outcome => (
-                        <span key={outcome.id} className="bg-teal-50 text-teal-800 text-[11px] font-semibold px-2 py-0.5 rounded">{outcome.id}</span>
-                      ))}
-                    </div>
-                    {alignment.notes && (
-                      <div className="text-[13px] text-slate-500 mt-2 leading-relaxed italic">{alignment.notes}</div>
-                    )}
-                    {alignment.usedFallback && (
-                      <div className="text-[11px] text-amber-600 mt-1 font-medium">Using estimated alignment data</div>
-                    )}
-                  </div>
-                  <div className="text-center px-4">
-                    <div className="font-serif text-5xl text-primary leading-none">{alignment.alignmentScore}%</div>
-                    <div className="text-[11px] font-medium text-slate-500 mt-1">Overall Match</div>
-                  </div>
-                </div>
-              )}
-
-              {resources.length === 0 && (
-                <div className="bg-white rounded-xl shadow-sm border border-border p-8 text-center">
-                  <div className="text-slate-400 text-[15px]">No resources found. Try a different topic or subject.</div>
-                </div>
-              )}
-
-              <div className="flex flex-col gap-4">
-                {resources.map((resource, i) => (
-                  <div key={resource.id} className="bg-white rounded-xl shadow-sm border border-transparent hover:border-teal-300 hover:shadow-md transition-all overflow-hidden" data-testid={`resource-card-${i}`}>
-                    <div className="p-5 pb-0">
-                      <div className="flex flex-wrap gap-1.5 mb-3">
+          <div className="flex flex-col gap-5 max-w-4xl mx-auto">
+            {resources.map((resource, i) => (
+              <div key={resource.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 hover:border-teal-200 hover:shadow-md transition-all overflow-hidden" data-testid={`resource-card-${i}`}>
+                <div className="p-6">
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{resource.type}</span>
                         {resource.safetyRating === 'verified' && (
-                          <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-[11px] font-semibold px-2.5 py-1 rounded-full">
+                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border border-emerald-100">
                             <CheckCircle className="w-3 h-3" /> Verified
                           </span>
                         )}
                         {resource.biasFlag === 'low' && (
-                          <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-[11px] font-semibold px-2.5 py-1 rounded-full">
+                          <span className="inline-flex items-center gap-1 bg-sky-50 text-sky-700 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border border-sky-100">
                             <Edit className="w-3 h-3" /> Bias Checked
                           </span>
                         )}
                       </div>
-                      
-                      <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 mb-1">{resource.type}</div>
-                      <div className="text-[17px] font-semibold text-foreground mb-0.5">{resource.title}</div>
-                      <div className="text-[13px] text-slate-500">{resource.source}</div>
-                      
-                      <div className="text-[14px] text-slate-600 leading-relaxed mt-3 mb-3">
-                        {resource.description}
-                      </div>
+                      <div className="text-[19px] font-bold text-foreground leading-snug mb-1">{resource.title}</div>
+                      <div className="text-[13px] text-slate-400 font-medium">{resource.source}</div>
                     </div>
-
-                    <div className="px-6 pb-3 flex flex-wrap gap-1.5">
-                      {resource.localContextTags.map(tag => (
-                        <span key={tag} className="text-[12px] text-blue-700 bg-blue-50 px-2.5 py-1 rounded font-medium">{tag}</span>
-                      ))}
-                    </div>
-
-                    <div className="p-3.5 px-6 border-t border-border flex items-center justify-between bg-slate-50/50">
-                      <div className="text-[13px] text-slate-500">Alignment: <strong className="text-primary">{resource.alignmentScore}%</strong></div>
-                      <button 
-                        onClick={() => handleAdaptResource(resource)}
-                        className="bg-primary text-white border-none px-4 py-2 rounded-md text-[14px] font-semibold hover:bg-teal-700 transition-all cursor-pointer"
-                        data-testid={`btn-adapt-${i}`}
-                      >
-                        Adapt for {searchParams.yearLevel}
-                      </button>
+                    <div className="shrink-0 text-center bg-slate-50 rounded-xl px-3 py-2 border border-slate-100">
+                      <div className="text-[22px] font-bold text-primary leading-none">{resource.alignmentScore}%</div>
+                      <div className="text-[10px] text-slate-400 font-semibold mt-0.5">MATCH</div>
                     </div>
                   </div>
-                ))}
+
+                  <p className="text-[14px] text-slate-600 leading-relaxed mb-4">{resource.description}</p>
+
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    {resource.localContextTags.map(tag => (
+                      <span key={tag} className="text-[12px] text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full font-medium border border-indigo-100">📍 {tag}</span>
+                    ))}
+                  </div>
+
+                  {resource.whyThisResource && (
+                    <div className="bg-teal-50 border border-teal-100 rounded-xl px-4 py-3 mb-4">
+                      <div className="text-[12px] font-bold text-teal-700 uppercase tracking-wider mb-1">Why this resource?</div>
+                      <div className="text-[13px] text-teal-900 leading-relaxed">{resource.whyThisResource}</div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-50 mt-1">
+                    <div className="flex flex-wrap gap-1.5">
+                      {resource.outcomeIds.slice(0, 3).map(id => (
+                        <span key={id} className="text-[11px] font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-100">{id}</span>
+                      ))}
+                    </div>
+                    <button 
+                      onClick={() => handleAdaptResource(resource)}
+                      className="bg-primary text-white border-none px-5 py-2.5 rounded-xl text-[14px] font-bold hover:bg-teal-700 transition-all cursor-pointer shadow-sm hover:shadow-md shrink-0"
+                      data-testid={`btn-adapt-${i}`}
+                    >
+                      Adapt for {searchParams.yearLevel} →
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>

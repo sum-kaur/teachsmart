@@ -18,6 +18,7 @@ const MOCK_RESOURCES = {
       biasFlag: "low",
       localContextTags: ["Australian Data", "CSIRO Research", "Bureau of Meteorology"],
       outcomeIds: ["AC9S9U05", "AC9S9U06", "AC9S9U07"],
+      whyThisResource: "CSIRO's peer-reviewed datasets give students access to the same data used by Australian climate scientists, directly supporting AC9S9U05's requirement to evaluate evidence about Earth's changing systems.",
     },
     {
       id: "abc-climate-2",
@@ -30,6 +31,7 @@ const MOCK_RESOURCES = {
       biasFlag: "low",
       localContextTags: ["Local Context", "ABC Education", "Community Science"],
       outcomeIds: ["AC9S9U05", "AC9S9U07"],
+      whyThisResource: "ABC Education contextualises climate change using familiar Australian landscapes and communities, making abstract scientific concepts tangible and personally relevant for Year 9 students.",
     },
     {
       id: "bom-explorer-3",
@@ -42,6 +44,7 @@ const MOCK_RESOURCES = {
       biasFlag: "low",
       localContextTags: ["Official Government Data", "Real-time Data", "Scientific Inquiry"],
       outcomeIds: ["AC9S9U06", "AC9S9U07"],
+      whyThisResource: "Using live BOM data turns this into an authentic scientific inquiry task — students practise the same data analysis skills used by professional meteorologists, satisfying AC9S9U06 and AC9S9U07.",
     },
   ],
   usedFallback: true,
@@ -109,7 +112,8 @@ Return ONLY valid JSON, no markdown:
     "safetyRating": "verified" or "unverified",
     "biasFlag": "low" or "flagged",
     "localContextTags": string[] (2-4 Australian context tags),
-    "outcomeIds": string[] (relevant outcome IDs from above)
+    "outcomeIds": string[] (relevant outcome IDs from above),
+    "whyThisResource": string (1-2 sentences explaining specifically why this resource is ideal for this class, referencing the curriculum outcomes and Australian context)
   }]
 }`;
 
