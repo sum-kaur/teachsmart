@@ -1,3 +1,4 @@
+[README.md](https://github.com/user-attachments/files/26486657/README.md)
 # TeachSmart
 
 A curriculum-aligned resource finder for Australian teachers (Years 7–12). TeachSmart helps teachers quickly discover high-quality, syllabus-matched teaching resources and generate differentiated lesson plans tailored to their classroom context.
