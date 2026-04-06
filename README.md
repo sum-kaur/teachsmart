@@ -59,7 +59,7 @@ SESSION_SECRET=any-random-string-here
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `GROQ_API_KEY` | Yes | Powers all AI features. Get a free key at [console.groq.com](https://console.groq.com) |
-| `SESSION_SECRET` | Yes | Signs session cookies. Any random string works (e.g. `openssl rand -hex 32`) |
+| `SESSION_SECRET` | Yes | Signs session cookies. Any random string works. Generate one with: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 
 > **No API key?** The app still works — it returns built-in mock data for every request. The 5 demo scenarios always work without any API key.
 
@@ -130,15 +130,17 @@ teachsmart/
 │   ├── api-spec/                # OpenAPI 3.1 spec
 │   ├── api-client-react/        # Generated React Query hooks
 │   └── api-zod/                 # Generated Zod schemas
-└── data/                        # Australian Curriculum v9 JSON files
-    ├── science.json
-    ├── english.json
-    ├── mathematics.json
-    ├── humanities.json
-    ├── arts.json
-    ├── hpe.json
-    ├── technologies.json
-    └── languages.json
+├── data/                        # Australian Curriculum v9 JSON files
+│   ├── science.json
+│   ├── english.json
+│   ├── mathematics.json
+│   ├── humanities.json
+│   ├── arts.json
+│   ├── hpe.json
+│   ├── technologies.json
+│   └── languages.json
+├── .env.example                 # Template for required environment variables
+└── README.md
 ```
 
 ---
