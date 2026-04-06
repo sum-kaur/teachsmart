@@ -399,7 +399,7 @@ export default function Home() {
         <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
           <div className="px-6 py-4 border-b border-border text-sm font-semibold text-foreground">Recent Resources</div>
           <div className="divide-y divide-border">
-            {recentResources.map((resource, i) => (
+            {(recentResources || []).map((resource, i) => (
               <div key={resource.id} className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] px-6 py-3.5 items-center text-sm hover:bg-slate-50 transition-colors" data-testid={`recent-resource-${i}`}>
                 <div className="font-medium text-foreground">{resource.title}</div>
                 <div className="text-muted-foreground">{resource.subject}</div>
