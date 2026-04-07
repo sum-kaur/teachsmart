@@ -6,6 +6,7 @@ import lessonsRouter from "./lessons";
 import feedRouter from "./feed";
 import slidesRouter from "./slides";
 import semesterPlanRouter from "./semesterPlan";
+import compareRouter from "./compare";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(lessonsRouter);
 router.use(feedRouter);
 router.use(slidesRouter);
 router.use(semesterPlanRouter);
+router.use(compareRouter);
 
 export default router;

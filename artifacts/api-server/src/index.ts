@@ -1,19 +1,14 @@
+import { config as loadEnv } from "dotenv";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+// Load .env from workspace root (3 levels up from dist/)
+const __dirname = dirname(fileURLToPath(import.meta.url));
+loadEnv({ path: join(__dirname, "../../../.env") });
 import app from "./app";
 import { logger } from "./lib/logger";
 
-const rawPort = process.env["PORT"];
-
-if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
-}
-
-const port = Number(rawPort);
-
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
-}
+const port = Number(process.env["PORT"] ?? "8080");
 
 app.listen(port, (err) => {
   if (err) {

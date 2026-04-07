@@ -235,6 +235,75 @@ const DEMO_SCENARIOS: DemoScenario[] = [
     },
   },
   {
+    key: "year9-nsw-history-rights",
+    alignment: {
+      alignmentScore: 95, syllabus: "NSW History Year 9",
+      strand: "Rights and Freedoms (1945–present)",
+      outcomes: [
+        { id: "AC9HS9K04", description: "Explain the significance of the Universal Declaration of Human Rights (1948) and its influence on the rights movements in Australia and internationally." },
+        { id: "AC9HS9K05", description: "Analyse the causes and effects of significant rights and freedoms movements, including the Aboriginal and Torres Strait Islander rights movement in Australia." },
+        { id: "AC9HS9S04", description: "Evaluate the perspectives of individuals and groups involved in rights movements and assess the effectiveness of strategies used to achieve change." },
+      ],
+      notes: "Rights and Freedoms is a mandatory depth study for NSW Year 9 History. Highly relevant to Western Sydney students through the 1965 Freedom Ride and the 1967 Referendum — both deeply connected to communities near Parramatta.",
+      usedFallback: false,
+    },
+    resources: {
+      resources: [
+        {
+          id: "aiatsis-rights-nsw", title: "Road to Reconciliation — 1967 Referendum and the NSW Freedom Rides",
+          source: "AIATSIS — Australian Institute of Aboriginal and Torres Strait Islander Studies", type: "Lesson Plan", alignmentScore: 97,
+          safetyRating: "verified", biasFlag: "low",
+          description: "Primary source collection examining the 1967 Referendum, the 1965 NSW Freedom Rides led by Charles Perkins, and the ongoing struggle for Aboriginal and Torres Strait Islander rights. Includes oral history recordings from Darug and Wiradjuri Elders and archival photographs from the Parramatta and Western Sydney region.",
+          localContextTags: ["AIATSIS", "1967 Referendum", "NSW Freedom Rides", "Darug Country", "Primary Sources"],
+          outcomeIds: ["AC9HS9K04", "AC9HS9K05"],
+          whyThisResource: "The AIATSIS collection centres First Nations voices from Western Sydney — including Darug Elders whose Country encompasses Parramatta. The 1965 Freedom Ride departed from Sydney University and passed through Western NSW, making this history directly local for your students.",
+        },
+        {
+          id: "national-museum-rights-nsw", title: "Defining Moments — Rights and Freedoms Digital Classroom",
+          source: "National Museum of Australia", type: "Interactive", alignmentScore: 90,
+          safetyRating: "verified", biasFlag: "low",
+          description: "Interactive digital exhibition covering the 1967 Referendum, the Mabo decision, the Stolen Generations, and the National Apology — with primary sources, student inquiry tasks, and connections to the NSW Stage 5 History syllabus.",
+          localContextTags: ["National Museum", "Defining Moments", "1967 Referendum", "Stolen Generations"],
+          outcomeIds: ["AC9HS9K04", "AC9HS9S04"],
+          whyThisResource: "The 'Defining Moments' framework directly supports AC9HS9S04's requirement to evaluate the significance of historical events. The Stolen Generations content connects powerfully to Western Sydney communities, many of whom were directly affected by policies administered through Parramatta institutions.",
+        },
+        {
+          id: "amnesty-udhr-nsw", title: "Human Rights Education Resources — UDHR and Australian Context",
+          source: "Amnesty International Australia", type: "Assessment", alignmentScore: 85,
+          safetyRating: "verified", biasFlag: "low",
+          description: "Case-study resources connecting the 1948 Universal Declaration of Human Rights to contemporary Australian contexts — including Indigenous land rights, asylum seeker policy, and LGBTIQ+ equality. Includes structured essay scaffold for HSC-style extended response.",
+          localContextTags: ["UDHR 1948", "Contemporary Issues", "Australian Human Rights", "Essay Scaffold"],
+          outcomeIds: ["AC9HS9K04", "AC9HS9S04"],
+          whyThisResource: "Amnesty's UDHR resources bridge Year 9 historical study to today's debates — essential for AC9HS9K04's focus on the UDHR's lasting influence. The essay scaffold supports the extended response assessment typical of NSW Year 9 History.",
+        },
+      ],
+      usedFallback: false,
+    },
+    lesson: {
+      objective: "Students analyse the origins and significance of the rights and freedoms movement in Australia, examining the role of the 1967 Referendum and NSW Freedom Rides in achieving social change, addressing AC9HS9K04, AC9HS9K05, and AC9HS9S04.",
+      duration: "60 minutes",
+      activities: [
+        { label: "Hook (5 min)", text: "Show two photographs side-by-side: the 1965 Freedom Ride bus departing Sydney University, and the 1967 Referendum campaign poster 'Vote Yes for Aborigines'. Ask: 'What connection do you see? Why did Australian students in 1965 get on a bus to drive through rural NSW?'" },
+        { label: "Explore (20 min)", text: "Students use the AIATSIS primary source collection to investigate the 1967 Referendum and the NSW Freedom Rides. In groups, they analyse three sources: a campaign poster, an oral history recording from a Darug Elder in Western Sydney, and a newspaper report from the Parramatta region. They record: Who created this source? What perspective does it represent? What does it leave out?" },
+        { label: "Analyse (15 min)", text: "Groups build a comparison table: American Civil Rights Movement (1955–65) vs. Australian Rights Movements (1960s). Categories: key events, key leaders, strategies used (protests, legal challenges, campaigns), obstacles faced, outcomes achieved. Identify specific ways the US movement inspired Australian activists including Charles Perkins and the students who joined him." },
+        { label: "Evaluate (15 min)", text: "Fishbowl discussion: 'Were the strategies used by rights activists in the 1960s effective? What evidence supports your view?' Students must reference specific historical evidence. Connect to Parramatta: the Parramatta Girls Home and other institutions in your local area were directly involved in Stolen Generations policies — how does this make this history personal for your community?" },
+        { label: "Reflect (5 min)", text: "Exit ticket: 'Which strategy (legal challenge, peaceful protest, media campaign, political pressure) do you think was most effective in advancing Aboriginal rights in NSW? Justify with one specific historical example from today's sources.'" },
+      ],
+      localExample: {
+        title: "Darug Country, Parramatta, and the Fight for Rights",
+        body: "Parramatta — on Darug Country, the land of the Burramattagal people — was one of the first places where colonisation's impact on Aboriginal rights was felt most acutely. The Parramatta Native Institution (1814) was one of Australia's earliest assimilation programs, separating Aboriginal children from their families in policies that preceded the Stolen Generations era by over a century. The Darug Custodian Aboriginal Corporation, based near Parramatta today, continues the work of Cultural preservation and rights advocacy that connects directly to the 1967 Referendum your students are studying. Walking distance from your school, this history is not just national — it is local.",
+      },
+      questions: [
+        { q: "What was the 1967 Referendum about? Describe two specific changes it made to the Australian Constitution.", difficulty: "foundation" },
+        { q: "Who was Charles Perkins and what was the significance of the 1965 Freedom Ride? Where did it start and which NSW communities did it visit?", difficulty: "foundation" },
+        { q: "Explain how the Universal Declaration of Human Rights (1948) influenced the Aboriginal rights movement in Australia during the 1960s. Use two pieces of evidence.", difficulty: "core" },
+        { q: "Analyse the source: [Darug Elder oral history excerpt from AIATSIS]. What perspective does this source provide? What are its strengths and limitations for a historian investigating the 1967 Referendum?", difficulty: "core" },
+        { q: "Evaluate the following claim: 'The 1967 Referendum was the most significant moment in Australian rights history.' To what extent do you agree? Consider other events — the Mabo decision (1992), the National Apology (2008), and the current campaign for a First Nations Voice — in your response.", difficulty: "extension" },
+      ],
+      usedFallback: false,
+    },
+  },
+  {
     key: "year10-qld-history-rights",
     alignment: {
       alignmentScore: 93, syllabus: "QLD History Year 10",
@@ -380,6 +449,7 @@ const TOPIC_KEYWORDS: Record<string, string[]> = {
   "year9-nsw-science-climate": ["climate change", "climate", "greenhouse", "global warming"],
   "year9-nsw-maths-algebra": ["algebra", "algebraic", "equations", "factori"],
   "year8-vic-english-romeo": ["romeo", "juliet", "shakespeare"],
+  "year9-nsw-history-rights": ["rights and freedoms", "rights", "freedoms", "civil rights", "referendum", "darug"],
   "year10-qld-history-rights": ["rights and freedoms", "rights", "freedoms", "civil rights", "referendum"],
   "year7-nsw-geography-ecosystems": ["ecosystem", "biome", "food web", "biodiversity"],
 };
@@ -388,6 +458,7 @@ const YEAR_MAP: Record<string, string[]> = {
   "year9-nsw-science-climate": ["year 9", "year9"],
   "year9-nsw-maths-algebra": ["year 9", "year9"],
   "year8-vic-english-romeo": ["year 8", "year8"],
+  "year9-nsw-history-rights": ["year 9", "year9", "year 10", "year10"],
   "year10-qld-history-rights": ["year 10", "year10"],
   "year7-nsw-geography-ecosystems": ["year 7", "year7"],
 };
@@ -396,6 +467,7 @@ const STATE_MAP: Record<string, string[]> = {
   "year9-nsw-science-climate": ["nsw"],
   "year9-nsw-maths-algebra": ["nsw"],
   "year8-vic-english-romeo": ["vic"],
+  "year9-nsw-history-rights": ["nsw"],
   "year10-qld-history-rights": ["qld"],
   "year7-nsw-geography-ecosystems": ["nsw"],
 };
@@ -404,6 +476,7 @@ const SUBJECT_MAP: Record<string, string[]> = {
   "year9-nsw-science-climate": ["science"],
   "year9-nsw-maths-algebra": ["mathematics", "maths", "math"],
   "year8-vic-english-romeo": ["english"],
+  "year9-nsw-history-rights": ["history", "humanities", "hsie"],
   "year10-qld-history-rights": ["history", "humanities"],
   "year7-nsw-geography-ecosystems": ["geography", "humanities"],
 };

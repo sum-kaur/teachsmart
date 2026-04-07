@@ -6,29 +6,32 @@ import { getDemoScenario } from "../lib/demoScenarios";
 const router: IRouter = Router();
 const TIMEOUT_MS = 10000;
 
-const MOCK_LESSON = {
-  objective: "Students investigate climate change evidence using Australian data, developing scientific inquiry skills aligned with Earth and Space Sciences outcomes.",
-  duration: "60 minutes",
-  activities: [
-    { label: "Hook (5 min)", text: "Show striking before-and-after images of Australian climate events (Great Barrier Reef bleaching, bushfire satellite images). Ask: 'What story do these images tell?'" },
-    { label: "Explore (20 min)", text: "Students explore CSIRO's interactive climate data portal, recording temperature trends for their local region over the past 100 years. Complete the data collection worksheet." },
-    { label: "Analyse (15 min)", text: "Groups analyse their data and create graphs showing trends. Compare local data with national averages. Identify patterns and anomalies in the dataset." },
-    { label: "Evaluate (15 min)", text: "Class discussion: What evidence supports climate change in Australia? Students evaluate the reliability of different data sources and consider limitations of the data." },
-    { label: "Reflect (5 min)", text: "Exit ticket: Students write one piece of evidence they found most convincing and one question they still have about Australian climate science." },
-  ],
-  localExample: {
-    title: "The 2019–20 Black Summer Bushfires",
-    body: "The 2019-20 Black Summer bushfire season burned approximately 18.6 million hectares across Australia. Scientists have linked the unprecedented scale to long-term climate trends, including increased temperatures and prolonged drought across southeastern Australia.",
-  },
-  questions: [
-    { q: "Using the CSIRO data, describe two ways Australia's average temperature has changed over the past 50 years.", difficulty: "foundation" },
-    { q: "What is the difference between weather and climate? Give one example of each related to Australia.", difficulty: "foundation" },
-    { q: "Explain how the data you collected supports or challenges the claim that Australia is experiencing climate change. Use at least two pieces of evidence.", difficulty: "core" },
-    { q: "Compare the climate trends in your local region with the national average. What factors might explain any differences?", difficulty: "core" },
-    { q: "Critically evaluate the limitations of using historical temperature records as evidence for climate change. What other data types would strengthen or weaken this argument?", difficulty: "extension" },
-  ],
-  usedFallback: true,
-};
+function buildFallbackLesson(topic: string, subject: string, yearLevel: string, state: string, outcomes: { id: string; description: string }[]) {
+  const outcomeIds = outcomes.slice(0, 3).map(o => o.id).join(", ");
+  return {
+    objective: `Students investigate ${topic} through inquiry-based learning, developing critical thinking and analytical skills aligned with ${state} ${subject} ${yearLevel} outcomes (${outcomeIds}).`,
+    duration: "60 minutes",
+    activities: [
+      { label: "Hook (5 min)", text: `Present students with a real Australian case study or news story related to ${topic}. Ask: 'What do you already know about this? What questions does it raise?'` },
+      { label: "Explore (20 min)", text: `Students investigate the key concepts of ${topic} using the provided resource. Complete a guided note-taking worksheet identifying main ideas, key evidence, and Australian examples.` },
+      { label: "Analyse (15 min)", text: `In groups, students examine different perspectives on ${topic}. Build a concept map connecting key ideas to the ${state} curriculum outcomes. Discuss: 'What evidence is strongest? What is missing?'` },
+      { label: "Evaluate (15 min)", text: `Class discussion: Students evaluate the significance of ${topic} for Australian students today. Each group presents one key finding and one remaining question to the class.` },
+      { label: "Reflect (5 min)", text: `Exit ticket: Students write one key thing they learned about ${topic}, one connection to Australian society, and one question they still have.` },
+    ],
+    localExample: {
+      title: `${topic} in the Australian Context`,
+      body: `Australia has a unique relationship with ${topic} shaped by its history, geography, and diverse communities. ${state} students have direct connections to this topic through local institutions, communities, and current events that make this curriculum content personally relevant and meaningful.`,
+    },
+    questions: [
+      { q: `Define the key concepts related to ${topic} in your own words.`, difficulty: "foundation" },
+      { q: `Identify two ways ${topic} has shaped Australian society or history. Give one specific example of each.`, difficulty: "foundation" },
+      { q: `Analyse the evidence from today's resource. How does it support our understanding of ${topic}? Use at least two pieces of evidence in your answer.`, difficulty: "core" },
+      { q: `Compare different perspectives on ${topic}. Whose voices are represented in this resource, and whose might be missing? How does this affect our understanding?`, difficulty: "core" },
+      { q: `Critically evaluate the significance of ${topic} for contemporary Australia. To what extent have the issues raised been resolved, and what challenges remain?`, difficulty: "extension" },
+    ],
+    usedFallback: true,
+  };
+}
 
 router.post("/lesson", async (req, res): Promise<void> => {
   const parsed = GenerateLessonBody.safeParse(req.body);
@@ -98,7 +101,7 @@ Include 5 questions: 2 foundation, 2 core, 1 extension.`;
   } catch (err) {
     clearTimeout(timeout);
     req.log.warn({ err }, "AI lesson plan call failed, using fallback");
-    res.json(MOCK_LESSON);
+    res.json(buildFallbackLesson(topic, subject, yearLevel, state, alignmentResult.outcomes));
   }
 });
 

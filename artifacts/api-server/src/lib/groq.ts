@@ -1,6 +1,8 @@
 import Groq from "groq-sdk";
 
-export const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+// Use a placeholder key if not set — Groq will fail at call time (not startup)
+// Demo scenarios work without any API key
+export const groq = new Groq({ apiKey: process.env.GROQ_API_KEY ?? "missing-key" });
 
 export const GROQ_MODEL = "llama3-70b-8192";
 

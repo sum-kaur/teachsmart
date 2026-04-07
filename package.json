@@ -4,13 +4,16 @@
   "license": "MIT",
   "scripts": {
     "preinstall": "node -e \"const fs=require('fs'),ua=process.env.npm_config_user_agent||'';['package-lock.json','yarn.lock'].forEach(f=>{try{fs.unlinkSync(f)}catch(e){}});if(!ua.startsWith('pnpm/')){process.stderr.write('Use pnpm instead\\n');process.exit(1)}\"",
+    "dev": "concurrently --names \"API,UI\" --prefix-colors \"blue,green\" \"pnpm --filter @workspace/api-server run dev\" \"cross-env PORT=5173 pnpm --filter @workspace/teachsmart run dev\"",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },
   "private": true,
   "devDependencies": {
-    "typescript": "~5.9.2",
-    "prettier": "^3.8.1"
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "prettier": "^3.8.1",
+    "typescript": "~5.9.2"
   }
 }

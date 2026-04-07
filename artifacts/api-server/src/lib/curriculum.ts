@@ -1,6 +1,10 @@
 import { readFileSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import { logger } from "./logger";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 interface ContentDescription {
   id: string;
@@ -23,7 +27,9 @@ interface CurriculumData {
   yearLevels: YearLevel[];
 }
 
-const DATA_DIR = join(process.cwd(), "../../data");
+// dist/index.mjs lives at artifacts/api-server/dist/
+// data/ lives at teachsmart/data/ — 3 levels up
+const DATA_DIR = join(__dirname, "../../../data");
 
 const CURRICULUM_FILES: Record<string, string> = {
   science: "science.json",

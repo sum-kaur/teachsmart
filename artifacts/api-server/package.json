@@ -15,9 +15,11 @@
     "@workspace/integrations-anthropic-ai": "workspace:*",
     "cookie-parser": "^1.4.7",
     "cors": "^2",
+    "dotenv": "^17.4.1",
     "drizzle-orm": "catalog:",
     "express": "^5",
     "groq-sdk": "^1.1.2",
+    "openai": "^6.33.0",
     "pino": "^9",
     "pino-http": "^10"
   },
