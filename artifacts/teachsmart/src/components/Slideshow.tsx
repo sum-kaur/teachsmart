@@ -309,6 +309,10 @@ export default function Slideshow({ data, onClose, subject, yearLevel, topic }: 
   const next = useCallback(() => setCurrent(c => Math.min(total - 1, c + 1)), [total]);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, []);
+
+  useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight" || e.key === "ArrowDown") next();
       if (e.key === "ArrowLeft" || e.key === "ArrowUp") prev();
