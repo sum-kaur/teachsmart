@@ -227,7 +227,34 @@ Return ONLY valid JSON, no markdown:
     const text = completion.choices[0]?.message?.content ?? "";
     const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const aiResult = JSON.parse(cleaned);
-    res.json({ resources: enrichWithTrust(aiResult.resources), usedFallback: false, usedWebSearch: false });
+
+    // Replace AI-generated URLs with verified Scootle search URLs to prevent
+    // homepage redirects. Scootle is Australia's curated edu resource catalogue.
+    const isLikelyHomepage = (url: string) => {
+      try {
+        const u = new URL(url);
+        return u.pathname === '/' || u.pathname === '' || u.pathname.split('/').filter(Boolean).length <= 1;
+      } catch { return true; }
+    };
+
+    const reliableResources = aiResult.resources.map((r: Record<string, unknown>) => {
+      const title = typeof r.title === 'string' ? r.title : topic;
+      const scootleQuery = encodeURIComponent(`${topic} ${subject} ${yearLevel}`);
+      const scootleUrl = `https://www.scootle.edu.au/ec/search?q=${scootleQuery}&subject=${encodeURIComponent(subject)}`;
+      const originalUrl = typeof r.url === 'string' ? r.url : '';
+      const useScootle = !originalUrl || isLikelyHomepage(originalUrl);
+      return {
+        ...r,
+        url: useScootle ? scootleUrl : originalUrl,
+        directUrl: !useScootle ? originalUrl : undefined,
+        urlType: useScootle ? 'search' : 'direct',
+        _scootleSearchUrl: scootleUrl,
+        // Keep title-specific search as alternative
+        titleSearchUrl: `https://www.scootle.edu.au/ec/search?q=${encodeURIComponent(title)}`,
+      };
+    });
+
+    res.json({ resources: enrichWithTrust(reliableResources), usedFallback: false, usedWebSearch: false });
 
   } catch (err) {
     clearTimeout(overallTimeout);

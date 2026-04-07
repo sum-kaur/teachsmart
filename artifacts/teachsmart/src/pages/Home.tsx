@@ -89,7 +89,7 @@ const MOCK_RECENT = [
   { id: "3", title: "Poetry Analysis", subject: "English", yearLevel: "Year 10", topic: "Poetry", alignmentScore: 91, searchedAt: new Date(Date.now() - 172800000).toISOString() },
 ];
 
-type Screen = 'dashboard' | 'unit-planner' | 'search' | 'results' | 'lesson' | 'slideshow' | 'library' | 'semester' | 'settings';
+type Screen = 'dashboard' | 'unit-planner' | 'classes' | 'search' | 'results' | 'lesson' | 'slideshow' | 'library' | 'semester' | 'settings';
 
 const EMPTY_UNIT: UnitContext = { unitTitle: '', textbook: '', totalLessons: '', currentLesson: '', prevSummary: '', learningIntention: '', successCriteria: '', assessmentType: 'exam' };
 
@@ -355,7 +355,7 @@ export default function Home() {
         <HomeIcon className="w-4 h-4" /> Dashboard
       </button>
 
-      <button onClick={() => setCurrentScreen('dashboard')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left text-slate-400 border-transparent hover:text-white hover:bg-white/5`} data-testid="nav-my-classes">
+      <button onClick={() => setCurrentScreen('classes')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'classes' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-my-classes">
         <Users className="w-4 h-4" /> My Classes
         {myClasses.length > 0 && <span className="ml-auto bg-primary/20 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">{myClasses.length}</span>}
       </button>
@@ -872,10 +872,12 @@ export default function Home() {
                       href={resource.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-colors no-underline"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors no-underline ${(resource as Record<string,unknown>).urlType === 'search' ? 'bg-teal-50 text-teal-700 hover:bg-teal-100' : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700'}`}
                       aria-label={`Open ${resource.title} in new tab`}
+                      title={(resource as Record<string,unknown>).urlType === 'search' ? 'Opens a Scootle search for this topic' : 'Opens the resource directly'}
                     >
-                      <ExternalLink className="w-3.5 h-3.5" /> Open resource
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      {(resource as Record<string,unknown>).urlType === 'search' ? 'Search on Scootle' : 'Open resource'}
                     </a>
                   )}
                   <button
@@ -1199,10 +1201,108 @@ export default function Home() {
     );
   };
 
+  const renderMyClasses = () => (
+    <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
+      {renderTopbar("My Classes", "")}
+      <div className="p-8 max-w-3xl w-full">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="font-serif text-[24px] text-foreground font-semibold">My Classes</h2>
+            <p className="text-[13px] text-slate-500 mt-0.5">Add and manage your classes. Select a class to pre-fill search filters.</p>
+          </div>
+          <button
+            onClick={() => setShowAddClassForm(true)}
+            className="flex items-center gap-2 bg-primary text-white border-none px-4 py-2.5 rounded-xl text-[13px] font-semibold cursor-pointer hover:bg-teal-700 transition-colors shadow-sm"
+            data-testid="btn-add-class-page"
+          >
+            <Plus className="w-4 h-4" /> Add class
+          </button>
+        </div>
+
+        {showAddClassForm && (
+          <div className="bg-white border border-primary rounded-2xl p-5 mb-5 shadow-sm">
+            <div className="text-[13px] font-bold text-foreground mb-3">New Class</div>
+            <div className="flex flex-col gap-3">
+              <input
+                autoFocus
+                value={newClassName}
+                onChange={e => setNewClassName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAddClass()}
+                placeholder="Class name (e.g. 9S History, 10A Science)"
+                className="text-[13px] border border-border rounded-xl px-3 py-2.5 outline-none focus:border-primary w-full"
+              />
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="text-[11px] font-bold uppercase tracking-wide text-slate-400 mb-1 block">Year Level</label>
+                  <select value={newClassYearLevel} onChange={e => setNewClassYearLevel(e.target.value)} className="w-full text-[13px] border border-border rounded-xl px-3 py-2 outline-none focus:border-primary bg-white">
+                    {['Year 7','Year 8','Year 9','Year 10','Year 11','Year 12'].map(y => <option key={y}>{y}</option>)}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="text-[11px] font-bold uppercase tracking-wide text-slate-400 mb-1 block">Subject</label>
+                  <select value={newClassSubject} onChange={e => setNewClassSubject(e.target.value)} className="w-full text-[13px] border border-border rounded-xl px-3 py-2 outline-none focus:border-primary bg-white">
+                    {['History','English','Mathematics','Science','Geography','Economics','Business','Legal Studies','Drama','Visual Arts','Music','PDHPE'].map(s => <option key={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={handleAddClass} className="bg-primary text-white text-[13px] font-semibold px-5 py-2 rounded-xl border-none cursor-pointer hover:bg-teal-700">Save class</button>
+                <button onClick={() => { setShowAddClassForm(false); setNewClassName(''); }} className="bg-slate-100 text-slate-600 text-[13px] font-semibold px-5 py-2 rounded-xl border-none cursor-pointer hover:bg-slate-200">Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {myClasses.length === 0 && !showAddClassForm && (
+          <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-12 text-center">
+            <Users className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+            <div className="text-[15px] font-semibold text-slate-500 mb-1">No classes yet</div>
+            <div className="text-[13px] text-slate-400 mb-4">Add your classes to quickly pre-fill year level and subject when searching for resources.</div>
+            <button onClick={() => setShowAddClassForm(true)} className="bg-primary text-white border-none px-5 py-2.5 rounded-xl text-[13px] font-semibold cursor-pointer hover:bg-teal-700">
+              Add your first class
+            </button>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-3">
+          {myClasses.map(cls => (
+            <div key={cls.id} className={`bg-white rounded-2xl border p-5 flex items-center gap-5 transition-all ${selectedClassId === cls.id ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-slate-300'}`}>
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-[15px] font-bold shrink-0 ${selectedClassId === cls.id ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-700'}`}>
+                {cls.code}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[15px] font-bold text-foreground">{cls.name}</div>
+                <div className="text-[12px] text-slate-500 mt-0.5">{cls.yearLevel} · {cls.subject} · {cls.state}</div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => { handleSelectClass(cls); setCurrentScreen('dashboard'); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border-none cursor-pointer transition-colors ${selectedClassId === cls.id ? 'bg-teal-600 text-white hover:bg-teal-700' : 'bg-teal-50 text-teal-700 hover:bg-teal-100'}`}
+                  aria-label={`Search resources for ${cls.name}`}
+                >
+                  <Compass className="w-3.5 h-3.5" />
+                  {selectedClassId === cls.id ? 'Selected' : 'Use for search'}
+                </button>
+                <button
+                  onClick={() => handleRemoveClass(cls.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-red-50 text-red-600 hover:bg-red-100 border-none cursor-pointer transition-colors"
+                  aria-label={`Remove ${cls.name}`}
+                >
+                  <X className="w-3.5 h-3.5" /> Remove
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans">
       {renderSidebar()}
       {currentScreen === 'dashboard' && renderDashboard()}
+      {currentScreen === 'classes' && renderMyClasses()}
       {currentScreen === 'unit-planner' && (
         <UnitPlanner
           unitContext={unitContext}
