@@ -29,13 +29,47 @@ type Resource = {
   trustScorecard?: import("../components/TrustScorecard").TrustScorecardData;
 };
 
-type LessonPlan = {
+type OutcomeHeader = {
+  outcomeCode: string;
+  outcomeDescription: string;
+  successCriteria: string[];
+  usedFallback?: boolean;
+};
+
+type LessonPlan = OutcomeHeader & {
+  resourceType: 'Lesson Plan';
   objective: string; duration: string;
   activities: { label: string; text: string }[];
   localExample: { title: string; body: string };
   questions: { q: string; difficulty: string }[];
-  usedFallback: boolean;
 };
+
+type WorksheetOutput = OutcomeHeader & {
+  resourceType: 'Worksheet';
+  sections: { title: string; instructions: string; questions: { q: string; lines: number; marks: number }[] }[];
+  extensionTask: string;
+  wordBank: string[];
+};
+
+type DiscussionOutput = OutcomeHeader & {
+  resourceType: 'Discussion';
+  discussionPrompt: string;
+  backgroundContext: string;
+  perspectives: { viewpoint: string; keyArguments: string[] }[];
+  sentenceStarters: string[];
+  reflectionQuestions: string[];
+  teacherFacilitationNotes: string;
+};
+
+type AssessmentOutput = OutcomeHeader & {
+  resourceType: 'Assessment';
+  taskDescription: string; taskType: string; duration: string;
+  markingCriteria: { criterion: string; excellent: string; satisfactory: string; developing: string; marks: number }[];
+  totalMarks: number;
+  teacherMarkingGuide: string;
+};
+
+type GeneratedOutput = LessonPlan | WorksheetOutput | DiscussionOutput | AssessmentOutput;
 
 type FeedItem = { type: string; headline: string; teachingAngle: string; curriculumLink: string; icon: string };
 type FeedResult = {
@@ -66,7 +100,7 @@ export default function Home() {
   const [searchStep, setSearchStep] = useState<string | null>(null);
   const [resources, setResources] = useState<Resource[]>([]);
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
-  const [lessonPlan, setLessonPlan] = useState<LessonPlan | null>(null);
+  const [lessonPlan, setLessonPlan] = useState<GeneratedOutput | null>(null);
   const [teacherNotes, setTeacherNotes] = useState('');
   const [feedResult, setFeedResult] = useState<FeedResult | null>(null);
   const [isFeedLoading, setIsFeedLoading] = useState(false);
@@ -177,35 +211,41 @@ export default function Home() {
     setLessonSaved(false);
 
     try {
-      const lesson: LessonPlan = await apiFetch('/lesson', {
+      const output: GeneratedOutput = await apiFetch('/lesson', {
         subject: searchParams.subject, yearLevel: searchParams.yearLevel,
         topic: searchParams.topic, state: searchParams.state,
         resource, alignmentResult, classContext: searchParams.classContext,
-        unitContext, preferredLanguage,
+        unitContext, preferredLanguage, resourceType: searchParams.resourceType,
       });
-      setLessonPlan(lesson);
-      setTeacherNotes(`Ensure students have the background knowledge needed for ${searchParams.topic} before beginning the activities. Check for prior understanding using a brief entry task.`);
+      setLessonPlan(output);
+      setTeacherNotes(`Ensure students have the background knowledge needed for ${searchParams.topic} before beginning. Check for prior understanding using a brief entry task.`);
     } catch {
+      const o = alignmentResult.outcomes[0] ?? { id: "AC9-UNKNOWN", description: `Core ${searchParams.subject} outcome` };
       setLessonPlan({
-        objective: `Students explore ${searchParams.topic} using Australian curriculum-aligned resources, developing critical thinking and analytical skills.`,
+        resourceType: 'Lesson Plan',
+        outcomeCode: o.id,
+        outcomeDescription: o.description,
+        successCriteria: [
+          `Identify and explain the key concepts of ${searchParams.topic}`,
+          `Apply knowledge to an Australian context`,
+          `Evaluate evidence and form a reasoned conclusion`,
+        ],
+        objective: `Students explore ${searchParams.topic} using Australian curriculum-aligned resources.`,
         duration: "60 minutes",
         activities: [
-          { label: "Hook (5 min)", text: `Engage students with a thought-provoking question related to ${searchParams.topic}.` },
-          { label: "Explore (20 min)", text: "Students investigate the core concepts through guided inquiry activities." },
+          { label: "Hook (5 min)", text: `Engage students with a thought-provoking question about ${searchParams.topic}.` },
+          { label: "Explore (20 min)", text: "Students investigate core concepts through guided inquiry." },
           { label: "Analyse (15 min)", text: "Groups discuss findings, connecting concepts to Australian contexts." },
-          { label: "Evaluate (15 min)", text: "Class discussion evaluates evidence and forms reasoned conclusions." },
-          { label: "Reflect (5 min)", text: "Exit ticket: Students record one key learning and one remaining question." },
+          { label: "Evaluate (15 min)", text: "Class discussion evaluates evidence and forms conclusions." },
+          { label: "Reflect (5 min)", text: "Exit ticket: one key learning and one remaining question." },
         ],
-        localExample: {
-          title: "Australian Context",
-          body: `Connect ${searchParams.topic} to local examples relevant to ${searchParams.state} students, drawing on real Australian case studies and data.`,
-        },
+        localExample: { title: "Australian Context", body: `Connect ${searchParams.topic} to examples relevant to ${searchParams.state} students.` },
         questions: [
-          { q: `Define the key concepts of ${searchParams.topic} in your own words.`, difficulty: "foundation" },
-          { q: `Explain two ways ${searchParams.topic} is relevant to Australian students.`, difficulty: "foundation" },
-          { q: `Analyse the evidence and explain how it supports our understanding of ${searchParams.topic}.`, difficulty: "core" },
-          { q: `Compare different perspectives on ${searchParams.topic} and evaluate which is best supported by evidence.`, difficulty: "core" },
-          { q: `Critically evaluate the limitations of current approaches to ${searchParams.topic} and propose evidence-based alternatives.`, difficulty: "extension" },
+          { q: `Define the key concepts of ${searchParams.topic}.`, difficulty: "foundation" },
+          { q: `Explain two ways ${searchParams.topic} is relevant to Australians.`, difficulty: "foundation" },
+          { q: `Analyse the evidence and explain how it supports understanding of ${searchParams.topic}.`, difficulty: "core" },
+          { q: `Compare different perspectives on ${searchParams.topic}.`, difficulty: "core" },
+          { q: `Critically evaluate the significance of ${searchParams.topic} for contemporary Australia.`, difficulty: "extension" },
         ],
         usedFallback: true,
       });
@@ -736,18 +776,256 @@ export default function Home() {
     </div>
   );
 
+  const renderOutputHeader = (output: GeneratedOutput) => (
+    <div className="bg-gradient-to-r from-teal-700 to-teal-600 rounded-xl p-6 mb-5 shadow-sm text-white">
+      <div className="flex items-center gap-2.5 mb-2">
+        <span className="bg-white/20 text-white text-[12px] font-bold px-3 py-1 rounded-full tracking-wide">{output.outcomeCode}</span>
+        {output.usedFallback && <span className="bg-amber-400/30 text-amber-100 text-[11px] font-semibold px-2.5 py-1 rounded-full">Estimated</span>}
+      </div>
+      <p className="text-[14px] text-teal-100 leading-relaxed mb-4">{output.outcomeDescription}</p>
+      <div className="border-t border-white/20 pt-4">
+        <div className="text-[12px] font-bold text-white/70 uppercase tracking-wider mb-2.5">By the end of this {output.resourceType.toLowerCase()}, students will be able to:</div>
+        <ul className="flex flex-col gap-1.5">
+          {(output.successCriteria ?? []).map((sc, i) => (
+            <li key={i} className="flex items-start gap-2 text-[13px] text-white leading-relaxed">
+              <CheckCircle className="w-3.5 h-3.5 text-teal-200 mt-0.5 shrink-0" />
+              {sc.replace(/^Students will be able to /i, '')}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+
+  const renderOutputActions = () => (
+    <div className="flex items-center justify-between mb-5">
+      <button onClick={() => setCurrentScreen('results')} className="text-[13px] font-medium text-slate-500 hover:text-primary flex items-center gap-1.5 bg-transparent border-none cursor-pointer" data-testid="btn-back-to-results">
+        <ArrowLeft className="w-4 h-4" /> Back to results
+      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={handleSaveLesson}
+          disabled={lessonSaved}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold border cursor-pointer transition-colors ${lessonSaved ? 'bg-teal-50 text-teal-700 border-teal-200 cursor-default' : 'bg-white text-slate-600 border-border hover:border-primary hover:text-primary'}`}
+          aria-label={lessonSaved ? "Lesson saved" : "Save lesson to library"}
+        >
+          {lessonSaved ? <><BookmarkCheck className="w-4 h-4" /> Saved</> : <><Bookmark className="w-4 h-4" /> Save</>}
+        </button>
+        <button
+          onClick={handleGenerateSlides}
+          disabled={isGeneratingSlides}
+          className="flex items-center gap-1.5 bg-primary text-white border-none px-4 py-2 rounded-lg text-[13px] font-semibold cursor-pointer hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-60"
+          aria-label="Generate slide deck"
+        >
+          {isGeneratingSlides ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</> : <><Presentation className="w-4 h-4" /> Slides →</>}
+        </button>
+        <button className="bg-primary text-white border-none px-4 py-2 rounded-md text-[13px] font-semibold hover:bg-teal-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm" onClick={() => window.print()}>
+          <Download className="w-4 h-4" /> PDF
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderLessonPlanContent = (plan: LessonPlan) => {
+    const getDifficultyColor = (d: string) => d === 'foundation' ? 'bg-green-100 text-green-700' : d === 'core' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
+    const getDifficultyLabel = (d: string) => d === 'foundation' ? 'Foundation' : d === 'core' ? 'Core' : 'Extension';
+    return (
+      <>
+        <div className="bg-white rounded-xl shadow-sm border border-border p-7 mb-5">
+          <div className="flex items-center gap-3 mb-5 pb-5 border-b border-border">
+            <span className="bg-slate-100 text-slate-700 text-[13px] font-semibold px-3.5 py-1.5 rounded-full">{plan.duration}</span>
+            <span className="bg-slate-100 text-slate-700 text-[13px] font-semibold px-3.5 py-1.5 rounded-full">{searchParams.classContext.length > 0 ? searchParams.classContext.join(', ') : 'Standard Class'}</span>
+          </div>
+          <div className="text-[15px] text-slate-700 leading-relaxed mb-6">{plan.objective}</div>
+          <div className="flex flex-col gap-3.5">
+            {plan.activities.map((activity, i) => (
+              <div key={i} className="flex gap-3.5 items-start">
+                <div className="w-2 h-2 rounded-full bg-primary mt-[7px] shrink-0"></div>
+                <div>
+                  <div className="text-[14px] font-semibold text-foreground mb-0.5">{activity.label}</div>
+                  <div className="text-[14px] text-slate-600 leading-relaxed">{activity.text}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-5 shadow-sm">
+          <div className="text-[14px] font-bold text-blue-700 mb-2 flex items-center gap-2"><Compass className="w-4 h-4" /> Local Australian Context: {plan.localExample.title}</div>
+          <div className="text-[14px] text-slate-700 leading-relaxed">{plan.localExample.body}</div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-border p-7 mb-5">
+          <div className="font-serif text-[20px] text-foreground mb-4">Differentiated Questions</div>
+          <div className="flex flex-col gap-3">
+            {plan.questions.map((q, i) => (
+              <div key={i} className="p-3.5 border border-border rounded-lg flex items-start gap-3">
+                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0 mt-0.5 ${getDifficultyColor(q.difficulty)}`}>{getDifficultyLabel(q.difficulty)}</span>
+                <div className="text-[14px] text-slate-700 leading-relaxed pt-0.5">{q.q}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </>
+    );
+  };
+
+  const renderWorksheetContent = (ws: WorksheetOutput) => (
+    <>
+      {ws.wordBank && ws.wordBank.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-5">
+          <div className="text-[13px] font-bold text-amber-700 mb-2.5">Word Bank</div>
+          <div className="flex flex-wrap gap-2">
+            {ws.wordBank.map((w, i) => <span key={i} className="bg-white border border-amber-200 text-amber-800 text-[12px] font-medium px-2.5 py-1 rounded-lg">{w}</span>)}
+          </div>
+        </div>
+      )}
+      {ws.sections.map((section, si) => {
+        const totalSectionMarks = section.questions.reduce((s, q) => s + (q.marks ?? 0), 0);
+        return (
+          <div key={si} className="bg-white rounded-xl shadow-sm border border-border p-7 mb-5">
+            <div className="flex items-center justify-between mb-4 pb-4 border-b border-border">
+              <div className="font-serif text-[18px] text-foreground">{section.title}</div>
+              <span className="bg-slate-100 text-slate-600 text-[12px] font-semibold px-3 py-1 rounded-full">{totalSectionMarks} marks</span>
+            </div>
+            <p className="text-[13px] text-slate-500 italic mb-5">{section.instructions}</p>
+            <div className="flex flex-col gap-6">
+              {section.questions.map((q, qi) => (
+                <div key={qi} className="border-b border-border pb-5 last:border-0 last:pb-0">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="text-[14px] text-slate-800 leading-relaxed font-medium">{qi + 1}. {q.q}</div>
+                    <span className="text-[11px] font-bold text-slate-400 shrink-0 mt-0.5">{q.marks} mark{q.marks !== 1 ? 's' : ''}</span>
+                  </div>
+                  {Array.from({ length: q.lines ?? 3 }).map((_, li) => (
+                    <div key={li} className="border-b border-dashed border-slate-200 h-7 mb-0.5"></div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+      {ws.extensionTask && (
+        <div className="bg-purple-50 border border-purple-200 rounded-xl p-5 mb-5">
+          <div className="text-[13px] font-bold text-purple-700 mb-2 flex items-center gap-2"><Sparkles className="w-4 h-4" /> Extension Task</div>
+          <div className="text-[14px] text-slate-700 leading-relaxed">{ws.extensionTask}</div>
+        </div>
+      )}
+    </>
+  );
+
+  const renderDiscussionContent = (disc: DiscussionOutput) => (
+    <>
+      <div className="bg-white rounded-xl shadow-sm border border-border p-7 mb-5">
+        <div className="font-serif text-[20px] text-foreground mb-3">Discussion Question</div>
+        <div className="text-[16px] text-slate-800 font-medium leading-relaxed bg-slate-50 border border-border rounded-lg p-4 mb-4">"{disc.discussionPrompt}"</div>
+        <div className="text-[14px] text-slate-600 leading-relaxed">{disc.backgroundContext}</div>
+      </div>
+      <div className="bg-white rounded-xl shadow-sm border border-border p-7 mb-5">
+        <div className="font-serif text-[20px] text-foreground mb-4">Perspectives to Explore</div>
+        <div className="flex flex-col gap-4">
+          {disc.perspectives.map((p, i) => (
+            <div key={i} className="border border-border rounded-lg p-4">
+              <div className="text-[14px] font-bold text-foreground mb-2.5">{p.viewpoint}</div>
+              <ul className="flex flex-col gap-1.5">
+                {p.keyArguments.map((arg, j) => (
+                  <li key={j} className="flex items-start gap-2 text-[13px] text-slate-600">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0"></div>
+                    {arg}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4 mb-5">
+        <div className="bg-teal-50 border border-teal-200 rounded-xl p-5">
+          <div className="text-[13px] font-bold text-teal-700 mb-3">Sentence Starters</div>
+          <ul className="flex flex-col gap-2">
+            {disc.sentenceStarters.map((s, i) => (
+              <li key={i} className="text-[13px] text-slate-700 italic border-b border-teal-100 pb-1.5 last:border-0 last:pb-0">{s}</li>
+            ))}
+          </ul>
+        </div>
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
+          <div className="text-[13px] font-bold text-blue-700 mb-3">Reflection Questions</div>
+          <ul className="flex flex-col gap-2.5">
+            {disc.reflectionQuestions.map((q, i) => (
+              <li key={i} className="flex items-start gap-2 text-[13px] text-slate-700">
+                <span className="text-blue-400 font-bold shrink-0">{i + 1}.</span>{q}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      {disc.teacherFacilitationNotes && (
+        <div className="bg-slate-800 rounded-xl p-5 mb-5 text-white">
+          <div className="text-[12px] font-bold text-slate-400 uppercase tracking-wider mb-2">Teacher Facilitation Notes</div>
+          <div className="text-[14px] text-slate-200 leading-relaxed">{disc.teacherFacilitationNotes}</div>
+        </div>
+      )}
+    </>
+  );
+
+  const renderAssessmentContent = (assess: AssessmentOutput) => (
+    <>
+      <div className="bg-white rounded-xl shadow-sm border border-border p-7 mb-5">
+        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
+          <span className="bg-slate-100 text-slate-700 text-[13px] font-semibold px-3.5 py-1.5 rounded-full">{assess.taskType}</span>
+          <span className="bg-slate-100 text-slate-700 text-[13px] font-semibold px-3.5 py-1.5 rounded-full">{assess.duration}</span>
+          <span className="bg-teal-50 text-teal-700 text-[13px] font-semibold px-3.5 py-1.5 rounded-full">{assess.totalMarks} marks total</span>
+        </div>
+        <div className="font-serif text-[16px] text-foreground mb-2">Task Instructions</div>
+        <div className="text-[14px] text-slate-700 leading-relaxed">{assess.taskDescription}</div>
+      </div>
+      <div className="bg-white rounded-xl shadow-sm border border-border p-7 mb-5">
+        <div className="font-serif text-[20px] text-foreground mb-4">Marking Criteria</div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left py-2.5 pr-4 text-slate-500 font-semibold w-36">Criterion</th>
+                <th className="text-left py-2.5 pr-4 text-green-700 font-semibold">Excellent (A)</th>
+                <th className="text-left py-2.5 pr-4 text-blue-700 font-semibold">Satisfactory (C)</th>
+                <th className="text-left py-2.5 pr-4 text-orange-700 font-semibold">Developing (D/E)</th>
+                <th className="text-right py-2.5 text-slate-500 font-semibold">Marks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {assess.markingCriteria.map((c, i) => (
+                <tr key={i} className="border-b border-border last:border-0">
+                  <td className="py-3 pr-4 font-semibold text-foreground align-top">{c.criterion}</td>
+                  <td className="py-3 pr-4 text-slate-600 leading-relaxed align-top">{c.excellent}</td>
+                  <td className="py-3 pr-4 text-slate-600 leading-relaxed align-top">{c.satisfactory}</td>
+                  <td className="py-3 pr-4 text-slate-600 leading-relaxed align-top">{c.developing}</td>
+                  <td className="py-3 text-right font-bold text-foreground align-top">{c.marks}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {assess.teacherMarkingGuide && (
+        <div className="bg-slate-800 rounded-xl p-5 mb-5 text-white">
+          <div className="text-[12px] font-bold text-slate-400 uppercase tracking-wider mb-2">Marking Guide</div>
+          <div className="text-[14px] text-slate-200 leading-relaxed">{assess.teacherMarkingGuide}</div>
+        </div>
+      )}
+    </>
+  );
+
   const renderLessonPlan = () => {
     if (isGeneratingLesson) {
+      const typeLabel = searchParams.resourceType;
       return (
         <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
-          {renderTopbar("Generating Lesson Plan", "AI is writing your lesson...")}
+          {renderTopbar(`Generating ${typeLabel}`, "AI is writing your content...")}
           <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] gap-5">
             <div className="w-12 h-12 border-4 border-slate-200 border-t-primary rounded-full animate-spin"></div>
-            <div className="text-[15px] text-muted-foreground">Designing your lesson plan...</div>
+            <div className="text-[15px] text-muted-foreground">Designing your {typeLabel.toLowerCase()}...</div>
             <div className="flex flex-col gap-2 mt-2">
               <div className="flex items-center gap-2.5 text-[13px] text-primary"><CheckCircle className="w-4 h-4" /> Matching curriculum outcomes</div>
               <div className="flex items-center gap-2.5 text-[13px] text-primary"><CheckCircle className="w-4 h-4" /> Sourcing local Australian examples</div>
-              <div className="flex items-center gap-2.5 text-[13px] text-slate-500"><FileText className="w-4 h-4" /> Writing differentiated questions...</div>
+              <div className="flex items-center gap-2.5 text-[13px] text-slate-500"><FileText className="w-4 h-4" /> Writing {typeLabel.toLowerCase()} content...</div>
             </div>
           </div>
         </div>
@@ -756,107 +1034,33 @@ export default function Home() {
 
     if (!lessonPlan) return null;
     const resource = selectedResource;
-
-    const getDifficultyColor = (d: string) => d === 'foundation' ? 'bg-green-100 text-green-700' : d === 'core' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
-    const getDifficultyLabel = (d: string) => d === 'foundation' ? 'Foundation' : d === 'core' ? 'Core' : 'Extension';
+    const topbarLabel = lessonPlan.resourceType === 'Lesson Plan' ? 'Lesson Plan Editor' : lessonPlan.resourceType === 'Worksheet' ? 'Worksheet' : lessonPlan.resourceType === 'Discussion' ? 'Discussion Guide' : 'Assessment Task';
 
     return (
       <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
-        {renderTopbar("Lesson Plan Editor", "Review and customise your generated plan")}
+        {renderTopbar(topbarLabel, `${searchParams.yearLevel} ${searchParams.subject} · ${resource?.source ?? ''}`)}
         <div className="p-8 flex-1">
           <div className="max-w-3xl mx-auto">
-            <div className="flex items-center justify-between mb-5">
-              <button onClick={() => setCurrentScreen('results')} className="text-[13px] font-medium text-slate-500 hover:text-primary flex items-center gap-1.5 bg-transparent border-none cursor-pointer" data-testid="btn-back-to-results">
-                <ArrowLeft className="w-4 h-4" /> Back to results
-              </button>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleSaveLesson}
-                  disabled={lessonSaved}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold border cursor-pointer transition-colors ${lessonSaved ? 'bg-teal-50 text-teal-700 border-teal-200 cursor-default' : 'bg-white text-slate-600 border-border hover:border-primary hover:text-primary'}`}
-                  aria-label={lessonSaved ? "Lesson saved" : "Save lesson to library"}
-                >
-                  {lessonSaved ? <><BookmarkCheck className="w-4 h-4" /> Saved to Library</> : <><Bookmark className="w-4 h-4" /> Save to Library</>}
-                </button>
-                <button
-                  onClick={handleGenerateSlides}
-                  disabled={isGeneratingSlides}
-                  className="flex items-center gap-1.5 bg-primary text-white border-none px-4 py-2 rounded-lg text-[13px] font-semibold cursor-pointer hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-60"
-                  aria-label="Generate slide deck"
-                >
-                  {isGeneratingSlides ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</> : <><Presentation className="w-4 h-4" /> Generate Slides →</>}
-                </button>
-              </div>
-            </div>
+            {renderOutputActions()}
+            {renderOutputHeader(lessonPlan)}
 
-            <div className="bg-white rounded-xl shadow-sm border border-border p-6 mb-5 flex items-center justify-between">
-              <div>
-                <div className="text-lg font-bold text-foreground">{resource?.title ?? searchParams.topic}</div>
-                <div className="text-[13px] text-slate-500 mt-1">{resource?.source} · {searchParams.yearLevel} {searchParams.subject}</div>
-                {unitContext.unitTitle && (
-                  <div className="text-[12px] text-primary mt-1">📋 {unitContext.unitTitle} — Lesson {unitContext.currentLesson || '?'} of {unitContext.totalLessons || '?'}</div>
-                )}
-                <div className="flex gap-1.5 mt-2.5 flex-wrap">
-                  {alignmentResult?.outcomes.slice(0, 3).map(o => <span key={o.id} className="bg-teal-50 text-teal-800 text-[11px] font-semibold px-2 py-0.5 rounded">{o.id}</span>)}
-                </div>
-              </div>
-              <div className="flex gap-2.5">
-                <button className="bg-white text-slate-600 border border-border px-4 py-2 rounded-md text-sm font-medium hover:border-primary hover:text-primary transition-colors flex items-center gap-2 cursor-pointer">
-                  <FileText className="w-4 h-4" /> Google Classroom
-                </button>
-                <button className="bg-primary text-white border-none px-4 py-2 rounded-md text-sm font-medium hover:bg-teal-700 transition-colors flex items-center gap-2 cursor-pointer shadow-sm" onClick={() => window.print()}>
-                  <Download className="w-4 h-4" /> Export PDF
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-border p-7 mb-5">
-              <div className="flex items-center gap-4 mb-5 pb-5 border-b border-border">
-                <span className="bg-slate-100 text-slate-700 text-[13px] font-semibold px-3.5 py-1.5 rounded-full">{lessonPlan.duration}</span>
-                <span className="bg-slate-100 text-slate-700 text-[13px] font-semibold px-3.5 py-1.5 rounded-full">{searchParams.classContext.length > 0 ? searchParams.classContext.join(', ') : 'Standard Class'}</span>
-                {lessonPlan.usedFallback && <span className="bg-amber-100 text-amber-700 text-[11px] font-semibold px-3 py-1 rounded-full">Estimated plan</span>}
-              </div>
-              <div className="text-[15px] text-slate-700 leading-relaxed mb-6">{lessonPlan.objective}</div>
-              <div className="flex flex-col gap-3.5">
-                {lessonPlan.activities.map((activity, i) => (
-                  <div key={i} className="flex gap-3.5 items-start">
-                    <div className="w-2 h-2 rounded-full bg-primary mt-[7px] shrink-0"></div>
-                    <div>
-                      <div className="text-[14px] font-semibold text-foreground mb-0.5">{activity.label}</div>
-                      <div className="text-[14px] text-slate-600 leading-relaxed">{activity.text}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-5 shadow-sm">
-              <div className="text-[14px] font-bold text-blue-700 mb-2 flex items-center gap-2"><Compass className="w-4 h-4" /> Local Australian Context: {lessonPlan.localExample.title}</div>
-              <div className="text-[14px] text-slate-700 leading-relaxed">{lessonPlan.localExample.body}</div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-border p-7 mb-5">
-              <div className="font-serif text-[20px] text-foreground mb-4">Differentiated Questions</div>
-              <div className="flex flex-col gap-3">
-                {lessonPlan.questions.map((q, i) => (
-                  <div key={i} className="p-3.5 border border-border rounded-lg flex items-start gap-3">
-                    <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0 mt-0.5 ${getDifficultyColor(q.difficulty)}`}>{getDifficultyLabel(q.difficulty)}</span>
-                    <div className="text-[14px] text-slate-700 leading-relaxed pt-0.5">{q.q}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {lessonPlan.resourceType === 'Lesson Plan' && renderLessonPlanContent(lessonPlan)}
+            {lessonPlan.resourceType === 'Worksheet' && renderWorksheetContent(lessonPlan)}
+            {lessonPlan.resourceType === 'Discussion' && renderDiscussionContent(lessonPlan)}
+            {lessonPlan.resourceType === 'Assessment' && renderAssessmentContent(lessonPlan)}
 
             <div className="bg-white rounded-xl shadow-sm border border-border p-7 mb-8">
               <div className="font-serif text-[20px] text-foreground mb-3">Teacher Notes</div>
               <textarea className="w-full min-h-[100px] border border-border rounded-lg p-3.5 text-[14px] text-slate-700 resize-y outline-none focus:border-primary transition-colors leading-relaxed" value={teacherNotes} onChange={(e) => setTeacherNotes(e.target.value)} data-testid="textarea-teacher-notes" aria-label="Teacher notes" />
             </div>
 
-            <div className="flex justify-center">
-              <button onClick={handleGenerateSlides} disabled={isGeneratingSlides} className="flex items-center gap-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white border-none px-8 py-3.5 rounded-xl text-[15px] font-bold cursor-pointer hover:from-teal-700 hover:to-teal-800 transition-all shadow-md disabled:opacity-60" aria-label="Generate full slide deck">
-                {isGeneratingSlides ? <><Loader2 className="w-5 h-5 animate-spin" /> Generating Slide Deck...</> : <><Presentation className="w-5 h-5" /> Generate Slide Deck for this Lesson</>}
-              </button>
-            </div>
+            {lessonPlan.resourceType === 'Lesson Plan' && (
+              <div className="flex justify-center">
+                <button onClick={handleGenerateSlides} disabled={isGeneratingSlides} className="flex items-center gap-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white border-none px-8 py-3.5 rounded-xl text-[15px] font-bold cursor-pointer hover:from-teal-700 hover:to-teal-800 transition-all shadow-md disabled:opacity-60" aria-label="Generate full slide deck">
+                  {isGeneratingSlides ? <><Loader2 className="w-5 h-5 animate-spin" /> Generating Slide Deck...</> : <><Presentation className="w-5 h-5" /> Generate Slide Deck for this Lesson</>}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

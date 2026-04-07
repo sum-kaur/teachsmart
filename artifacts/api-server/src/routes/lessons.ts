@@ -4,34 +4,271 @@ import { groq, GROQ_MODEL } from "../lib/groq";
 import { getDemoScenario } from "../lib/demoScenarios";
 
 const router: IRouter = Router();
-const TIMEOUT_MS = 10000;
+const TIMEOUT_MS = 14000;
+
+// ── Fallbacks ────────────────────────────────────────────────────────────────
 
 function buildFallbackLesson(topic: string, subject: string, yearLevel: string, state: string, outcomes: { id: string; description: string }[]) {
-  const outcomeIds = outcomes.slice(0, 3).map(o => o.id).join(", ");
+  const o = outcomes[0] ?? { id: "AC9-UNKNOWN", description: `Core ${subject} outcome for ${yearLevel}` };
   return {
-    objective: `Students investigate ${topic} through inquiry-based learning, developing critical thinking and analytical skills aligned with ${state} ${subject} ${yearLevel} outcomes (${outcomeIds}).`,
+    resourceType: "Lesson Plan",
+    outcomeCode: o.id,
+    outcomeDescription: o.description,
+    successCriteria: [
+      `Identify and explain the key concepts of ${topic}`,
+      `Apply knowledge of ${topic} to an Australian context`,
+      `Evaluate evidence and form a reasoned conclusion about ${topic}`,
+    ],
+    objective: `Students investigate ${topic} through inquiry-based learning, developing critical thinking and analytical skills aligned with ${state} ${subject} ${yearLevel} outcomes.`,
     duration: "60 minutes",
     activities: [
-      { label: "Hook (5 min)", text: `Present students with a real Australian case study or news story related to ${topic}. Ask: 'What do you already know about this? What questions does it raise?'` },
-      { label: "Explore (20 min)", text: `Students investigate the key concepts of ${topic} using the provided resource. Complete a guided note-taking worksheet identifying main ideas, key evidence, and Australian examples.` },
-      { label: "Analyse (15 min)", text: `In groups, students examine different perspectives on ${topic}. Build a concept map connecting key ideas to the ${state} curriculum outcomes. Discuss: 'What evidence is strongest? What is missing?'` },
-      { label: "Evaluate (15 min)", text: `Class discussion: Students evaluate the significance of ${topic} for Australian students today. Each group presents one key finding and one remaining question to the class.` },
-      { label: "Reflect (5 min)", text: `Exit ticket: Students write one key thing they learned about ${topic}, one connection to Australian society, and one question they still have.` },
+      { label: "Hook (5 min)", text: `Present students with a real Australian case study related to ${topic}. Ask: 'What do you already know? What questions does it raise?'` },
+      { label: "Explore (20 min)", text: `Students investigate the key concepts of ${topic} using the provided resource. Complete guided note-taking identifying main ideas and Australian examples.` },
+      { label: "Analyse (15 min)", text: `In groups, students examine different perspectives on ${topic}. Build a concept map connecting key ideas to outcomes.` },
+      { label: "Evaluate (15 min)", text: `Class discussion: students evaluate the significance of ${topic} for Australians today.` },
+      { label: "Reflect (5 min)", text: `Exit ticket: one key learning, one Australian connection, one remaining question.` },
     ],
     localExample: {
       title: `${topic} in the Australian Context`,
-      body: `Australia has a unique relationship with ${topic} shaped by its history, geography, and diverse communities. ${state} students have direct connections to this topic through local institutions, communities, and current events that make this curriculum content personally relevant and meaningful.`,
+      body: `Australia has a unique relationship with ${topic} shaped by its history, geography, and diverse communities.`,
     },
     questions: [
-      { q: `Define the key concepts related to ${topic} in your own words.`, difficulty: "foundation" },
-      { q: `Identify two ways ${topic} has shaped Australian society or history. Give one specific example of each.`, difficulty: "foundation" },
-      { q: `Analyse the evidence from today's resource. How does it support our understanding of ${topic}? Use at least two pieces of evidence in your answer.`, difficulty: "core" },
-      { q: `Compare different perspectives on ${topic}. Whose voices are represented in this resource, and whose might be missing? How does this affect our understanding?`, difficulty: "core" },
-      { q: `Critically evaluate the significance of ${topic} for contemporary Australia. To what extent have the issues raised been resolved, and what challenges remain?`, difficulty: "extension" },
+      { q: `Define the key concepts of ${topic} in your own words.`, difficulty: "foundation" },
+      { q: `Identify two ways ${topic} has shaped Australian society. Give one specific example.`, difficulty: "foundation" },
+      { q: `Analyse evidence from today's resource. How does it support our understanding of ${topic}?`, difficulty: "core" },
+      { q: `Compare different perspectives on ${topic}. Whose voices might be missing?`, difficulty: "core" },
+      { q: `Critically evaluate the significance of ${topic} for contemporary Australia.`, difficulty: "extension" },
     ],
     usedFallback: true,
   };
 }
+
+function buildFallbackWorksheet(topic: string, subject: string, yearLevel: string, outcomes: { id: string; description: string }[]) {
+  const o = outcomes[0] ?? { id: "AC9-UNKNOWN", description: `Core ${subject} outcome for ${yearLevel}` };
+  return {
+    resourceType: "Worksheet",
+    outcomeCode: o.id,
+    outcomeDescription: o.description,
+    successCriteria: [
+      `Recall and define the key terms related to ${topic}`,
+      `Apply understanding of ${topic} to structured questions`,
+      `Evaluate and justify a position on ${topic}`,
+    ],
+    sections: [
+      {
+        title: "Knowledge and Understanding",
+        instructions: "Answer each question using full sentences.",
+        questions: [
+          { q: `Define the term '${topic}' in your own words.`, lines: 3, marks: 2 },
+          { q: `List two key facts about ${topic}.`, lines: 4, marks: 4 },
+        ],
+      },
+      {
+        title: "Application",
+        instructions: "Use your knowledge to answer the following questions.",
+        questions: [
+          { q: `Describe how ${topic} is relevant to Australian students today.`, lines: 5, marks: 5 },
+          { q: `Give one real-world example of ${topic} from Australia.`, lines: 4, marks: 3 },
+        ],
+      },
+      {
+        title: "Analysis and Evaluation",
+        instructions: "Think critically and justify your answers with evidence.",
+        questions: [
+          { q: `Analyse two different perspectives on ${topic}. Which do you find more convincing, and why?`, lines: 8, marks: 8 },
+        ],
+      },
+    ],
+    extensionTask: `Research a recent Australian news story related to ${topic}. Write a 150-word response explaining how it connects to what you have learned.`,
+    wordBank: [topic, subject, "evidence", "analysis", "perspective", "outcome"],
+    usedFallback: true,
+  };
+}
+
+function buildFallbackDiscussion(topic: string, subject: string, yearLevel: string, outcomes: { id: string; description: string }[]) {
+  const o = outcomes[0] ?? { id: "AC9-UNKNOWN", description: `Core ${subject} outcome for ${yearLevel}` };
+  return {
+    resourceType: "Discussion",
+    outcomeCode: o.id,
+    outcomeDescription: o.description,
+    successCriteria: [
+      `Articulate a clear position on ${topic} using evidence`,
+      `Respectfully engage with multiple perspectives on ${topic}`,
+      `Reflect on how ${topic} connects to Australian society`,
+    ],
+    discussionPrompt: `To what extent has ${topic} shaped modern Australia, and what challenges remain?`,
+    backgroundContext: `${topic} is a significant issue in Australian society, connecting to history, culture, and contemporary debates.`,
+    perspectives: [
+      { viewpoint: "Supporter", keyArguments: [`${topic} has brought positive change`, "Evidence supports its value", "It connects to Australian values"] },
+      { viewpoint: "Critic", keyArguments: [`${topic} has unresolved challenges`, "Not all Australians benefit equally", "Change is still needed"] },
+    ],
+    sentenceStarters: ["I believe...", "The evidence suggests...", "A counterargument might be...", "From an Australian perspective..."],
+    reflectionQuestions: [`What surprised you most about ${topic}?`, `Whose voice is most important in this debate?`, `What would you want changed?`],
+    teacherFacilitationNotes: `Ensure all students have a chance to speak. Monitor for respectful disagreement. Connect discussion to the ${subject} outcomes.`,
+    usedFallback: true,
+  };
+}
+
+function buildFallbackAssessment(topic: string, subject: string, yearLevel: string, outcomes: { id: string; description: string }[]) {
+  const o = outcomes[0] ?? { id: "AC9-UNKNOWN", description: `Core ${subject} outcome for ${yearLevel}` };
+  return {
+    resourceType: "Assessment",
+    outcomeCode: o.id,
+    outcomeDescription: o.description,
+    successCriteria: [
+      `Demonstrate knowledge of ${topic} concepts and terminology`,
+      `Apply understanding to structured tasks at the appropriate level`,
+      `Evaluate and synthesise information about ${topic}`,
+    ],
+    taskDescription: `Students will demonstrate their understanding of ${topic} through a structured ${yearLevel} ${subject} assessment task.`,
+    taskType: "Extended Response",
+    duration: "50 minutes",
+    markingCriteria: [
+      { criterion: "Knowledge and Understanding", excellent: "Demonstrates thorough, accurate knowledge with specific detail", satisfactory: "Shows adequate knowledge with some accuracy", developing: "Shows limited knowledge with some inaccuracy", marks: 8 },
+      { criterion: "Analysis and Evaluation", excellent: "Insightful analysis with well-reasoned evaluation", satisfactory: "Some analysis present but reasoning could be stronger", developing: "Limited analysis; mostly descriptive", marks: 8 },
+      { criterion: "Use of Evidence", excellent: "Consistently uses specific evidence to support all claims", satisfactory: "Uses evidence at times but not consistently", developing: "Little evidence used; claims mostly unsupported", marks: 6 },
+      { criterion: "Communication", excellent: "Clear, fluent, well-structured response throughout", satisfactory: "Generally clear with some structure", developing: "Unclear or poorly structured", marks: 3 },
+    ],
+    totalMarks: 25,
+    teacherMarkingGuide: `Reward students who use specific evidence from Australian contexts. Accept any well-reasoned position as long as it is supported by evidence.`,
+    usedFallback: true,
+  };
+}
+
+// ── Prompt builders ──────────────────────────────────────────────────────────
+
+function buildLessonPrompt(topic: string, subject: string, yearLevel: string, state: string, outcomesText: string, contextText: string, unitNote: string, langNote: string, resourceTitle: string, resourceSource: string) {
+  return `You are an expert Australian curriculum designer. Create a complete ${yearLevel} ${subject} lesson plan for ${state} students studying "${topic}", adapted from "${resourceTitle}" by ${resourceSource}.
+
+Curriculum outcomes:
+${outcomesText}
+
+Class context: ${contextText}
+${unitNote}${langNote}
+
+Return ONLY valid JSON, no markdown:
+{
+  "resourceType": "Lesson Plan",
+  "outcomeCode": string (first outcome code, e.g. "AC9S9U05"),
+  "outcomeDescription": string (full description of that outcome),
+  "successCriteria": string[] (exactly 3 items starting with "Students will be able to..."),
+  "objective": string,
+  "duration": "60 minutes",
+  "activities": [
+    { "label": string (e.g. "Hook (5 min)"), "text": string }
+  ],
+  "localExample": { "title": string, "body": string (real Australian example, 2-3 sentences) },
+  "questions": [
+    { "q": string, "difficulty": "foundation" | "core" | "extension" }
+  ]
+}
+
+Include 5 activities: Hook (5 min), Explore (20 min), Analyse (15 min), Evaluate (15 min), Reflect (5 min).
+Include 5 questions: 2 foundation, 2 core, 1 extension.`;
+}
+
+function buildWorksheetPrompt(topic: string, subject: string, yearLevel: string, state: string, outcomesText: string, contextText: string, langNote: string, resourceTitle: string) {
+  return `You are an expert Australian curriculum designer. Create a student worksheet for ${yearLevel} ${subject} students in ${state} studying "${topic}", based on "${resourceTitle}".
+
+Curriculum outcomes:
+${outcomesText}
+
+Class context: ${contextText}
+${langNote}
+
+Return ONLY valid JSON, no markdown:
+{
+  "resourceType": "Worksheet",
+  "outcomeCode": string (first outcome code),
+  "outcomeDescription": string (full description),
+  "successCriteria": string[] (exactly 3, starting with "Students will be able to..."),
+  "sections": [
+    {
+      "title": "Knowledge and Understanding",
+      "instructions": string,
+      "questions": [{ "q": string, "lines": number (2-8), "marks": number (1-5) }]
+    },
+    {
+      "title": "Application",
+      "instructions": string,
+      "questions": [{ "q": string, "lines": number, "marks": number }]
+    },
+    {
+      "title": "Analysis and Evaluation",
+      "instructions": string,
+      "questions": [{ "q": string, "lines": number, "marks": number }]
+    }
+  ],
+  "extensionTask": string (one paragraph challenge task),
+  "wordBank": string[] (6-10 key terms students may use)
+}
+
+Make questions specifically about "${topic}" in an Australian context. Total marks across all sections should be 20-25.`;
+}
+
+function buildDiscussionPrompt(topic: string, subject: string, yearLevel: string, state: string, outcomesText: string, contextText: string, langNote: string, resourceTitle: string) {
+  return `You are an expert Australian curriculum designer. Create a discussion guide for ${yearLevel} ${subject} students in ${state} studying "${topic}", based on "${resourceTitle}".
+
+Curriculum outcomes:
+${outcomesText}
+
+Class context: ${contextText}
+${langNote}
+
+Return ONLY valid JSON, no markdown:
+{
+  "resourceType": "Discussion",
+  "outcomeCode": string (first outcome code),
+  "outcomeDescription": string (full description),
+  "successCriteria": string[] (exactly 3, starting with "Students will be able to..."),
+  "discussionPrompt": string (one compelling question that drives the whole discussion),
+  "backgroundContext": string (2-3 sentences giving students the context they need),
+  "perspectives": [
+    { "viewpoint": string (label for this perspective), "keyArguments": string[] (3 bullet points) }
+  ],
+  "sentenceStarters": string[] (6-8 sentence starters for different discussion moves),
+  "reflectionQuestions": string[] (3-4 questions for after the discussion),
+  "teacherFacilitationNotes": string (2-3 sentences of practical tips for the teacher)
+}
+
+Include 3-4 perspectives representing a genuine range of views on "${topic}" in the Australian context. Sentence starters should model both agreeing and respectfully disagreeing.`;
+}
+
+function buildAssessmentPrompt(topic: string, subject: string, yearLevel: string, state: string, outcomesText: string, contextText: string, langNote: string, resourceTitle: string) {
+  return `You are an expert Australian curriculum designer. Create a formal assessment task for ${yearLevel} ${subject} students in ${state} studying "${topic}", based on "${resourceTitle}".
+
+Curriculum outcomes:
+${outcomesText}
+
+Class context: ${contextText}
+${langNote}
+
+Return ONLY valid JSON, no markdown:
+{
+  "resourceType": "Assessment",
+  "outcomeCode": string (first outcome code),
+  "outcomeDescription": string (full description),
+  "successCriteria": string[] (exactly 3, starting with "Students will be able to..."),
+  "taskDescription": string (clear, specific task instructions for students, 3-4 sentences),
+  "taskType": string (e.g. "Extended Response", "Source Analysis", "Data Investigation"),
+  "duration": string (e.g. "50 minutes"),
+  "markingCriteria": [
+    {
+      "criterion": string,
+      "excellent": string (what A-level work looks like),
+      "satisfactory": string (what C-level work looks like),
+      "developing": string (what D/E-level work looks like),
+      "marks": number
+    }
+  ],
+  "totalMarks": number,
+  "teacherMarkingGuide": string (1-2 sentences of guidance for marking consistency)
+}
+
+Include 4 marking criteria. Total marks should be 20-30. Criteria must be specific to "${topic}" and directly linked to the curriculum outcomes.`;
+}
+
+// ── Route ────────────────────────────────────────────────────────────────────
 
 router.post("/lesson", async (req, res): Promise<void> => {
   const parsed = GenerateLessonBody.safeParse(req.body);
@@ -40,11 +277,23 @@ router.post("/lesson", async (req, res): Promise<void> => {
   const { subject, yearLevel, topic, state, resource, alignmentResult, classContext } = parsed.data;
   const unitContext = (req.body as Record<string, unknown>).unitContext as Record<string, string> | undefined;
   const preferredLanguage = (req.body as Record<string, unknown>).preferredLanguage as string | undefined;
+  const resourceType = ((req.body as Record<string, unknown>).resourceType as string | undefined) ?? "Lesson Plan";
 
   const demo = getDemoScenario({ yearLevel, state, subject, topic });
-  if (demo) {
+  if (demo && resourceType === "Lesson Plan") {
     await new Promise(r => setTimeout(r, 600));
-    res.json(demo.lesson);
+    const o = demo.alignment.outcomes[0] ?? { id: "AC9-UNKNOWN", description: "Core outcome" };
+    res.json({
+      ...demo.lesson,
+      resourceType: "Lesson Plan",
+      outcomeCode: o.id,
+      outcomeDescription: o.description,
+      successCriteria: [
+        `Identify and explain the key concepts of ${topic}`,
+        `Apply knowledge of ${topic} to interpret evidence and sources`,
+        `Evaluate the significance of ${topic} for Australian society`,
+      ],
+    });
     return;
   }
 
@@ -52,37 +301,26 @@ router.post("/lesson", async (req, res): Promise<void> => {
   const contextText = classContext && classContext.length > 0 ? classContext.join(", ") : "Mixed Ability";
 
   const unitNote = unitContext?.unitTitle
-    ? `\nUnit: "${unitContext.unitTitle}" — This is Lesson ${unitContext.currentLesson || "?"} of ${unitContext.totalLessons || "?"}. Previous lesson: ${unitContext.prevSummary || "not specified"}. Today's learning intention: ${unitContext.learningIntention || "not specified"}. Success criteria: ${unitContext.successCriteria || "not specified"}. Assessment type at end of unit: ${unitContext.assessmentType || "exam"}. Ensure today's lesson explicitly builds on the previous lesson and positions students for the upcoming ${unitContext.assessmentType || "assessment"}.`
+    ? `\nUnit: "${unitContext.unitTitle}" — Lesson ${unitContext.currentLesson || "?"} of ${unitContext.totalLessons || "?"}. Previous: ${unitContext.prevSummary || "not specified"}. Intention: ${unitContext.learningIntention || "not specified"}. Success criteria: ${unitContext.successCriteria || "not specified"}.`
     : "";
   const langNote = preferredLanguage && preferredLanguage !== "en-AU"
-    ? `\nGenerate all lesson content, questions, and activities in language code: ${preferredLanguage}.`
+    ? `\nGenerate all content in language code: ${preferredLanguage}.`
     : "";
 
-  const prompt = `You are an expert Australian curriculum designer. Create a complete ${yearLevel} ${subject} lesson plan for ${state} students studying "${topic}", adapted from the resource "${resource.title}" by ${resource.source}.
-
-Curriculum outcomes:
-${outcomesText}
-
-Class context: ${contextText}
-${unitNote}${langNote}
-
-Always include a localExample field with a specific real Australian example relevant to ${state} students.
-
-Return ONLY valid JSON, no markdown:
-{
-  "objective": string (1-2 sentences describing what students will achieve),
-  "duration": string (e.g. "60 minutes"),
-  "activities": [
-    { "label": string (e.g. "Hook (5 min)"), "text": string (detailed activity description) }
-  ],
-  "localExample": { "title": string, "body": string (2-3 sentences about a real Australian example) },
-  "questions": [
-    { "q": string, "difficulty": "foundation" or "core" or "extension" }
-  ]
-}
-
-Include 5 activities: Hook (5 min), Explore (20 min), Analyse (15 min), Evaluate (15 min), Reflect (5 min).
-Include 5 questions: 2 foundation, 2 core, 1 extension.`;
+  let prompt: string;
+  switch (resourceType) {
+    case "Worksheet":
+      prompt = buildWorksheetPrompt(topic, subject, yearLevel, state, outcomesText, contextText, langNote, resource.title);
+      break;
+    case "Discussion":
+      prompt = buildDiscussionPrompt(topic, subject, yearLevel, state, outcomesText, contextText, langNote, resource.title);
+      break;
+    case "Assessment":
+      prompt = buildAssessmentPrompt(topic, subject, yearLevel, state, outcomesText, contextText, langNote, resource.title);
+      break;
+    default:
+      prompt = buildLessonPrompt(topic, subject, yearLevel, state, outcomesText, contextText, unitNote, langNote, resource.title, resource.source);
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -91,7 +329,7 @@ Include 5 questions: 2 foundation, 2 core, 1 extension.`;
     const completion = await groq.chat.completions.create({
       model: GROQ_MODEL,
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 4000,
+      max_tokens: 4500,
       temperature: 0.7,
     });
     clearTimeout(timeout);
@@ -100,8 +338,20 @@ Include 5 questions: 2 foundation, 2 core, 1 extension.`;
     res.json({ ...JSON.parse(cleaned), usedFallback: false });
   } catch (err) {
     clearTimeout(timeout);
-    req.log.warn({ err }, "AI lesson plan call failed, using fallback");
-    res.json(buildFallbackLesson(topic, subject, yearLevel, state, alignmentResult.outcomes));
+    req.log.warn({ err }, "AI lesson call failed, using fallback");
+    switch (resourceType) {
+      case "Worksheet":
+        res.json(buildFallbackWorksheet(topic, subject, yearLevel, alignmentResult.outcomes));
+        break;
+      case "Discussion":
+        res.json(buildFallbackDiscussion(topic, subject, yearLevel, alignmentResult.outcomes));
+        break;
+      case "Assessment":
+        res.json(buildFallbackAssessment(topic, subject, yearLevel, alignmentResult.outcomes));
+        break;
+      default:
+        res.json(buildFallbackLesson(topic, subject, yearLevel, state, alignmentResult.outcomes));
+    }
   }
 });
 

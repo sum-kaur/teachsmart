@@ -1,0 +1,68 @@
+Make the following changes to bring TeachSmart to startup production quality. Do all of these in one pass.
+CRITICAL — 1. Fix font to Inter + Sora
+Replace DM Sans with Inter for all body text and DM Serif Display with Sora for all headings. Import both from Google Fonts. Sora should be used at weights 600 and 700 for headings. Inter at 400 and 500 for body. This makes the product feel significantly more professional and product-ready.
+CRITICAL — 2. Fix the four output types to generate genuinely different content
+When a teacher selects Worksheet, Discussion, or Assessment, the AI prompt and JSON response shape must be completely different from Lesson Plan. Use these shapes:
+Worksheet prompt returns:
+json
+{
+  "outcomeCode": string,
+  "outcomeDescription": string,
+  "successCriteria": string[],
+  "sections": [
+    {
+      "title": "Knowledge and Understanding",
+      "instructions": string,
+      "questions": [{ "q": string, "lines": number, "marks": number }]
+    },
+    {
+      "title": "Application",
+      "instructions": string,
+      "questions": [{ "q": string, "lines": number, "marks": number }]
+    },
+    {
+      "title": "Analysis and Evaluation",
+      "instructions": string,
+      "questions": [{ "q": string, "lines": number, "marks": number }]
+    }
+  ],
+  "extensionTask": string,
+  "wordBank": string[]
+}
+Discussion prompt returns:
+json
+{
+  "outcomeCode": string,
+  "discussionPrompt": string,
+  "backgroundContext": string,
+  "perspectives": [{ "viewpoint": string, "keyArguments": string[] }],
+  "sentenceStarters": string[],
+  "reflectionQuestions": string[],
+  "teacherFacilitationNotes": string
+}
+Assessment prompt returns:
+json
+{
+  "outcomeCode": string,
+  "taskDescription": string,
+  "taskType": string,
+  "duration": string,
+  "markingCriteria": [
+    {
+      "criterion": string,
+      "excellent": string,
+      "satisfactory": string,
+      "developing": string,
+      "marks": number
+    }
+  ],
+  "totalMarks": number,
+  "teacherMarkingGuide": string
+}
+Render each output type with its own purpose-built UI component, not the lesson plan layout.
+CRITICAL — 3. Add learning outcome header to every output
+Every generated output — lesson plan, worksheet, discussion, assessment — must begin with a teal header block showing:
+•	Outcome code (e.g. AC9S9U03) in bold
+•	Full outcome description in regular weight
+•	3 success criteria bullet points ("By the end of this lesson, students will be able to...")
+This must appear before any other content on every output screen.
