@@ -63,8 +63,6 @@ export default function Home() {
   const [isGeneratingLesson, setIsGeneratingLesson] = useState(false);
   const [isGeneratingSlides, setIsGeneratingSlides] = useState(false);
   const [alignmentResult, setAlignmentResult] = useState<AlignmentResult | null>(null);
-  const [genericAIResult, setGenericAIResult] = useState<{ outcomes: { id: string; note: string }[]; alignmentScore: number; notes: string; warning?: string } | null>(null);
-  const [showAIComparison, setShowAIComparison] = useState(true);
   const [searchStep, setSearchStep] = useState<string | null>(null);
   const [resources, setResources] = useState<Resource[]>([]);
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
@@ -132,7 +130,6 @@ export default function Home() {
     if (!searchParams.topic) return;
     setIsSearching(true);
     setSearchStep(null);
-    setShowAIComparison(true);
     setCurrentScreen('search');
 
     try {
@@ -145,20 +142,14 @@ export default function Home() {
       });
       setAlignmentResult(alignment);
 
-      // Step 2: Trusted sources + resources (parallel with compare)
+      // Step 2: Trusted sources + resources
       setSearchStep('sources');
-      const [resourcesResult] = await Promise.all([
-        apiFetch('/resources', {
-          subject: searchParams.subject, yearLevel: searchParams.yearLevel,
-          topic: searchParams.topic, state: searchParams.state,
-          alignmentResult: alignment, unitContext, preferredLanguage,
-          studentInterests,
-        }),
-        // Fire compare in parallel
-        apiFetch('/compare', { subject: searchParams.subject, yearLevel: searchParams.yearLevel, topic: searchParams.topic, state: searchParams.state })
-          .then((r: any) => setGenericAIResult(r?.genericAI ?? null))
-          .catch(() => {}),
-      ]);
+      const resourcesResult = await apiFetch('/resources', {
+        subject: searchParams.subject, yearLevel: searchParams.yearLevel,
+        topic: searchParams.topic, state: searchParams.state,
+        alignmentResult: alignment, unitContext, preferredLanguage,
+        studentInterests,
+      });
 
       setSearchStep('merging');
       await new Promise(r => setTimeout(r, 300)); // brief pause to show "Merging results"
@@ -592,73 +583,6 @@ export default function Home() {
     );
   };
 
-  const renderAIComparison = () => {
-    if (!alignmentResult || !genericAIResult) return null;
-    return (
-      <div className="bg-white rounded-xl border border-border mb-5 overflow-hidden shadow-sm">
-        <button
-          type="button"
-          onClick={() => setShowAIComparison(!showAIComparison)}
-          className="w-full flex items-center justify-between px-5 py-3 bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer border-none text-left"
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-base">⚡</span>
-            <span className="text-[13px] font-bold text-foreground">Why CurricuLLM vs Generic AI?</span>
-            <span className="text-[11px] text-muted-foreground ml-1">See the difference in curriculum accuracy</span>
-          </div>
-          {showAIComparison ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-        </button>
-
-        {showAIComparison && (
-          <div className="grid grid-cols-2 divide-x divide-border">
-            {/* CurricuLLM column */}
-            <div className="p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-                <div className="text-[13px] font-bold text-emerald-700">TeachSmart — CurricuLLM-AU</div>
-                <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full ml-auto">89% accuracy</span>
-              </div>
-              <div className="text-[11px] text-muted-foreground mb-2">AC v9 outcomes identified:</div>
-              <div className="flex flex-col gap-1.5 mb-3">
-                {alignmentResult.outcomes.slice(0, 3).map(o => (
-                  <div key={o.id} className="flex items-start gap-2 text-[12px]">
-                    <span className="bg-teal-50 text-teal-800 font-bold px-2 py-0.5 rounded text-[11px] shrink-0">{o.id}</span>
-                    <span className="text-slate-600 leading-snug">{o.description.slice(0, 80)}...</span>
-                  </div>
-                ))}
-              </div>
-              <div className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-100">
-                ✓ Current AC v9 outcome codes · Verified against curriculum data
-              </div>
-            </div>
-
-            {/* Generic AI column */}
-            <div className="p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="w-2 h-2 rounded-full bg-red-400 shrink-0"></span>
-                <div className="text-[13px] font-bold text-slate-600">Generic AI (no curriculum training)</div>
-                <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full ml-auto">41% accuracy</span>
-              </div>
-              <div className="text-[11px] text-muted-foreground mb-2">Outcomes it would suggest:</div>
-              <div className="flex flex-col gap-1.5 mb-3">
-                {genericAIResult.outcomes.slice(0, 3).map((o, i) => (
-                  <div key={i} className="flex items-start gap-2 text-[12px]">
-                    <span className="bg-red-50 text-red-700 font-bold px-2 py-0.5 rounded text-[11px] shrink-0 border border-red-100">{o.id}</span>
-                    <span className="text-slate-500 leading-snug italic">{o.note}</span>
-                  </div>
-                ))}
-              </div>
-              {genericAIResult.warning && (
-                <div className="text-[11px] font-semibold text-red-700 bg-red-50 px-3 py-2 rounded-lg border border-red-100">
-                  ⚠ {genericAIResult.warning}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
 
   const renderFirstNationsBanner = () => {
     const country = feedResult?.localContext?.country;
@@ -739,7 +663,6 @@ export default function Home() {
         {renderFirstNationsBanner()}
         {renderLocalLensTip()}
         {renderAlignmentBar()}
-        {renderAIComparison()}
         <div className="flex flex-col gap-4">
           {resources.length === 0 && (
             <div className="bg-white rounded-xl border border-border p-12 text-center">

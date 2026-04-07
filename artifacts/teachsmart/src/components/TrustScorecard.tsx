@@ -112,11 +112,6 @@ export default function TrustScorecard({ scorecard, resourceTitle }: Props) {
               {medFlags} advisory note{medFlags > 1 ? "s" : ""}
             </span>
           )}
-          {highFlags === 0 && medFlags === 0 && (
-            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
-              No flags raised
-            </span>
-          )}
         </div>
 
         <button
