@@ -13,7 +13,7 @@ import UnitPlanner, { type UnitContext } from "../components/UnitPlanner";
 import Library from "../components/Library";
 import SemesterPlanner from "../components/SemesterPlanner";
 import SettingsPanel from "../components/Settings";
-import { LANGUAGES, type LangCode } from "../lib/translations";
+import { LANGUAGES, type LangCode, useTranslation } from "../lib/translations";
 import { saveResource, saveLesson, getSavedResources, type SavedResource, type SavedLesson } from "../lib/library";
 import TrustScorecard from "../components/TrustScorecard";
 
@@ -108,7 +108,10 @@ export default function Home() {
   const [feedResult, setFeedResult] = useState<FeedResult | null>(null);
   const [isFeedLoading, setIsFeedLoading] = useState(false);
   const [unitContext, setUnitContext] = useState<UnitContext>(EMPTY_UNIT);
-  const [uiLanguage, setUiLanguage] = useState<LangCode>('en');
+  const [uiLanguage, setUiLanguage] = useState<LangCode>(() => {
+    const saved = localStorage.getItem('teachsmart_language') as LangCode | null;
+    return saved && LANGUAGES.some(l => l.code === saved) ? saved : 'en';
+  });
   const [slidedeckData, setSlidedeckData] = useState<SlidedeckData | null>(null);
   const [studentInterests, setStudentInterests] = useState<string[]>([]);
   const [showInterests, setShowInterests] = useState(false);
@@ -129,6 +132,18 @@ export default function Home() {
 
   const voiceLang = LANGUAGES.find(l => l.code === uiLanguage)?.voiceCode ?? 'en-AU';
   const preferredLanguage = voiceLang;
+  const t = useTranslation(uiLanguage);
+
+  useEffect(() => {
+    localStorage.setItem('teachsmart_language', uiLanguage);
+  }, [uiLanguage]);
+
+  const handleShareToClassroom = (url?: string, title?: string) => {
+    const shareUrl = url ?? window.location.href;
+    const shareTitle = title ?? 'TeachSmart Resource';
+    const classroomUrl = `https://classroom.google.com/share?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareTitle)}`;
+    window.open(classroomUrl, '_blank', 'noopener,noreferrer');
+  };
 
   const { data: dashboardStats = MOCK_DASHBOARD_STATS } = useGetDashboardStats();
   const { data: recentResourcesRaw } = useGetRecentResources();
@@ -414,28 +429,28 @@ export default function Home() {
       </div>
 
       <button onClick={() => setCurrentScreen('dashboard')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'dashboard' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-dashboard">
-        <HomeIcon className="w-4 h-4" /> Dashboard
+        <HomeIcon className="w-4 h-4" /> {t('dashboard')}
       </button>
 
       <button onClick={() => setCurrentScreen('classes')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'classes' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-my-classes">
-        <Users className="w-4 h-4" /> My Classes
+        <Users className="w-4 h-4" /> {t('myClasses')}
         {myClasses.length > 0 && <span className="ml-auto bg-primary/20 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">{myClasses.length}</span>}
       </button>
 
       <button onClick={() => setCurrentScreen('search')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${['search', 'results', 'lesson'].includes(currentScreen) ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-new-resource">
-        <Compass className="w-4 h-4" /> New Resource
+        <Compass className="w-4 h-4" /> {t('newResource')}
       </button>
 
       <button onClick={() => setCurrentScreen('library')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'library' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-library">
-        <FileStack className="w-4 h-4" /> My Library
+        <FileStack className="w-4 h-4" /> {t('myLibrary')}
       </button>
 
       <button onClick={() => setCurrentScreen('semester')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'semester' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-semester">
-        <CalendarDays className="w-4 h-4" /> Semester Plan
+        <CalendarDays className="w-4 h-4" /> {t('semesterPlan')}
       </button>
 
       <button onClick={() => setCurrentScreen('settings')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'settings' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-settings">
-        <Settings2 className="w-4 h-4" /> Settings
+        <Settings2 className="w-4 h-4" /> {t('settings')}
       </button>
 
       <div className="mt-auto px-5 pt-5 border-t border-white/10">
@@ -450,30 +465,45 @@ export default function Home() {
     </nav>
   );
 
-  const renderTopbar = (title: string, subtitle: string) => (
+  const renderTopbar = (title: string, subtitle: string, classroomUrl?: string, classroomTitle?: string) => (
     <div className="bg-white px-8 py-4 flex items-center justify-between border-b border-border sticky top-0 z-40">
       <div>
         <div className="font-serif text-[22px] text-foreground tracking-tight">{title}</div>
-        <div className="text-[13px] text-muted-foreground mt-0.5">{subtitle}</div>
+        {subtitle && <div className="text-[13px] text-muted-foreground mt-0.5">{subtitle}</div>}
       </div>
       <div className="flex gap-2 items-center">
-        <div className="flex items-center gap-1.5 bg-green-100 text-green-700 text-[11px] font-semibold px-2.5 py-1 rounded-full">
-          <CheckCircle className="w-3 h-3" /> {searchParams.state} Aligned
-        </div>
-        <div className="flex items-center gap-1.5 bg-blue-100 text-blue-700 text-[11px] font-semibold px-2.5 py-1 rounded-full">
-          <Edit className="w-3 h-3" /> Bias Checked
-        </div>
+        {/* Google Classroom button */}
+        <button
+          onClick={() => handleShareToClassroom(classroomUrl, classroomTitle ?? title)}
+          className="flex items-center gap-1.5 bg-[#1a73e8] hover:bg-[#1557b0] text-white text-[11px] font-semibold px-3 py-1.5 rounded-full cursor-pointer border-none transition-colors shadow-sm"
+          title={t('googleClassroom')}
+          aria-label={t('googleClassroom')}
+        >
+          <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-white" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 3h18a1 1 0 011 1v16a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1zm9 7a2 2 0 100 4 2 2 0 000-4zm-4 6c0-1.333 2.667-2 4-2s4 .667 4 2v1H8v-1z"/>
+          </svg>
+          {t('classroom')}
+        </button>
+
+        {/* Language switcher */}
         <div className="relative">
           <button onClick={() => setShowLangMenu(v => !v)} className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-semibold px-2.5 py-1.5 rounded-full cursor-pointer border-none transition-colors" aria-label="Switch language">
             <Globe className="w-3.5 h-3.5" />
             <span>{LANGUAGES.find(l => l.code === uiLanguage)?.flag}</span>
+            <span className="hidden sm:inline">{LANGUAGES.find(l => l.code === uiLanguage)?.label.split(' ')[0]}</span>
           </button>
           {showLangMenu && (
-            <div className="absolute right-0 top-8 bg-white border border-border rounded-xl shadow-lg py-1 min-w-[170px] z-50">
+            <div className="absolute right-0 top-9 bg-white border border-border rounded-xl shadow-lg py-1 min-w-[180px] z-50">
               {LANGUAGES.map(lang => (
-                <button key={lang.code} onClick={() => { setUiLanguage(lang.code); setShowLangMenu(false); }} className={`flex items-center gap-2.5 w-full text-left px-3.5 py-2 text-[13px] font-medium cursor-pointer border-none transition-colors ${uiLanguage === lang.code ? 'bg-teal-50 text-primary' : 'bg-transparent text-foreground hover:bg-slate-50'}`}>
-                  <span className="text-base">{lang.flag}</span> {lang.label}
-                  {uiLanguage === lang.code && <CheckCircle className="w-3.5 h-3.5 text-primary ml-auto" />}
+                <button
+                  key={lang.code}
+                  onClick={() => { setUiLanguage(lang.code); setShowLangMenu(false); }}
+                  className={`flex items-center gap-2.5 w-full text-left px-3.5 py-2.5 text-[13px] font-medium cursor-pointer border-none transition-colors ${uiLanguage === lang.code ? 'bg-teal-50 text-primary' : 'bg-transparent text-foreground hover:bg-slate-50'}`}
+                >
+                  <span className="text-base">{lang.flag}</span>
+                  <span className="flex-1">{lang.label}</span>
+                  <span className="text-[10px] text-slate-400 font-mono">{lang.voiceCode}</span>
+                  {uiLanguage === lang.code && <CheckCircle className="w-3.5 h-3.5 text-primary ml-1" />}
                 </button>
               ))}
             </div>
@@ -511,8 +541,8 @@ export default function Home() {
 
           {/* ── Hero search ─────────────────────────────────────── */}
           <div className="mb-8">
-            <p className="text-[13px] text-slate-400 mb-1">Good morning, Sarah</p>
-            <h1 className="font-serif text-[28px] text-foreground font-semibold mb-5 leading-snug">What are you teaching today?</h1>
+            <p className="text-[13px] text-slate-400 mb-1">{t('goodMorning')}, Sarah</p>
+            <h1 className="font-serif text-[28px] text-foreground font-semibold mb-5 leading-snug">{t('whatAreYouTeaching')}</h1>
             <div className="bg-white rounded-xl border border-border shadow-sm flex items-center gap-0 overflow-hidden focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
               <Search className="w-4.5 h-4.5 text-slate-400 ml-4 shrink-0" />
               <input
@@ -520,19 +550,19 @@ export default function Home() {
                 value={searchParams.topic}
                 onChange={e => setSearchParams(prev => ({...prev, topic: e.target.value}))}
                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                placeholder="e.g. Year 9 Climate Change, Year 8 Shakespeare, Year 10 Algebra..."
+                placeholder={t('searchPlaceholder')}
                 className="flex-1 px-3 py-3.5 text-[14px] text-foreground placeholder:text-slate-400 outline-none border-none bg-transparent"
                 aria-label="Search topic"
                 data-testid="dashboard-search-input"
               />
-              <VoiceMic onTranscript={t => setSearchParams(prev => ({...prev, topic: t}))} voiceLang={voiceLang} className="mr-1" />
+              <VoiceMic onTranscript={transcript => setSearchParams(prev => ({...prev, topic: transcript}))} voiceLang={voiceLang} className="mr-1" />
               <button
                 onClick={handleSearch}
                 disabled={isSearching || !searchParams.topic.trim()}
                 className="m-1.5 bg-primary text-white px-5 py-2.5 rounded-lg text-[13px] font-semibold cursor-pointer border-none hover:bg-teal-700 transition-colors disabled:opacity-50 shrink-0"
                 data-testid="dashboard-search-btn"
               >
-                {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Search'}
+                {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : t('search')}
               </button>
             </div>
             {selectedClass && (
@@ -950,8 +980,19 @@ export default function Home() {
                   >
                     {savedResourceIds.has(resource.id) ? <><BookmarkCheck className="w-3.5 h-3.5" /> Saved</> : <><Bookmark className="w-3.5 h-3.5" /> Save</>}
                   </button>
+                  <button
+                    onClick={() => handleShareToClassroom(resource.url, resource.title)}
+                    className="flex items-center gap-1.5 bg-[#1a73e8] hover:bg-[#1557b0] text-white border-none px-3 py-1.5 rounded-lg text-[12px] font-semibold cursor-pointer transition-colors whitespace-nowrap"
+                    title={t('googleClassroom')}
+                    aria-label={`Share ${resource.title} to Google Classroom`}
+                  >
+                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-white" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 3h18a1 1 0 011 1v16a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1zm9 7a2 2 0 100 4 2 2 0 000-4zm-4 6c0-1.333 2.667-2 4-2s4 .667 4 2v1H8v-1z"/>
+                    </svg>
+                    {t('classroom')}
+                  </button>
                   <button onClick={() => handleAdaptResource(resource)} className="bg-primary text-white border-none px-4 py-2 rounded-lg text-[13px] font-semibold cursor-pointer hover:bg-teal-700 transition-colors shadow-sm whitespace-nowrap" data-testid={`btn-adapt-${resource.id}`} aria-label={`Adapt ${resource.title}`}>
-                    Adapt for class →
+                    {t('adaptFor')} →
                   </button>
                 </div>
               </div>
@@ -993,34 +1034,48 @@ export default function Home() {
     </div>
   );
 
-  const renderOutputActions = () => (
-    <div className="flex items-center justify-between mb-5">
-      <button onClick={() => setCurrentScreen('results')} className="text-[13px] font-medium text-slate-500 hover:text-primary flex items-center gap-1.5 bg-transparent border-none cursor-pointer" data-testid="btn-back-to-results">
-        <ArrowLeft className="w-4 h-4" /> Back to results
-      </button>
-      <div className="flex gap-2">
-        <button
-          onClick={handleSaveLesson}
-          disabled={lessonSaved}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold border cursor-pointer transition-colors ${lessonSaved ? 'bg-teal-50 text-teal-700 border-teal-200 cursor-default' : 'bg-white text-slate-600 border-border hover:border-primary hover:text-primary'}`}
-          aria-label={lessonSaved ? "Lesson saved" : "Save lesson to library"}
-        >
-          {lessonSaved ? <><BookmarkCheck className="w-4 h-4" /> Saved</> : <><Bookmark className="w-4 h-4" /> Save</>}
+  const renderOutputActions = () => {
+    const lessonTitle = `${searchParams.topic} — ${searchParams.yearLevel} ${searchParams.subject}`;
+    return (
+      <div className="flex items-center justify-between mb-5">
+        <button onClick={() => setCurrentScreen('results')} className="text-[13px] font-medium text-slate-500 hover:text-primary flex items-center gap-1.5 bg-transparent border-none cursor-pointer" data-testid="btn-back-to-results">
+          <ArrowLeft className="w-4 h-4" /> {t('backToResults')}
         </button>
-        <button
-          onClick={handleGenerateSlides}
-          disabled={isGeneratingSlides}
-          className="flex items-center gap-1.5 bg-primary text-white border-none px-4 py-2 rounded-lg text-[13px] font-semibold cursor-pointer hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-60"
-          aria-label="Generate slide deck"
-        >
-          {isGeneratingSlides ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</> : <><Presentation className="w-4 h-4" /> Slides →</>}
-        </button>
-        <button className="bg-primary text-white border-none px-4 py-2 rounded-md text-[13px] font-semibold hover:bg-teal-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm" onClick={() => window.print()}>
-          <Download className="w-4 h-4" /> PDF
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleSaveLesson}
+            disabled={lessonSaved}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold border cursor-pointer transition-colors ${lessonSaved ? 'bg-teal-50 text-teal-700 border-teal-200 cursor-default' : 'bg-white text-slate-600 border-border hover:border-primary hover:text-primary'}`}
+            aria-label={lessonSaved ? "Lesson saved" : "Save lesson to library"}
+          >
+            {lessonSaved ? <><BookmarkCheck className="w-4 h-4" /> {t('saved')}</> : <><Bookmark className="w-4 h-4" /> {t('save')}</>}
+          </button>
+          <button
+            onClick={handleGenerateSlides}
+            disabled={isGeneratingSlides}
+            className="flex items-center gap-1.5 bg-primary text-white border-none px-4 py-2 rounded-lg text-[13px] font-semibold cursor-pointer hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-60"
+            aria-label="Generate slide deck"
+          >
+            {isGeneratingSlides ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('generating')}</> : <><Presentation className="w-4 h-4" /> {t('slides')} →</>}
+          </button>
+          <button className="bg-white text-slate-600 border border-border px-4 py-2 rounded-lg text-[13px] font-semibold hover:border-primary hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer" onClick={() => window.print()}>
+            <Download className="w-4 h-4" /> {t('pdf')}
+          </button>
+          <button
+            onClick={() => handleShareToClassroom(undefined, lessonTitle)}
+            className="flex items-center gap-1.5 bg-[#1a73e8] hover:bg-[#1557b0] text-white text-[13px] font-semibold px-4 py-2 rounded-lg cursor-pointer border-none transition-colors shadow-sm"
+            title={t('googleClassroom')}
+            aria-label={t('googleClassroom')}
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 3h18a1 1 0 011 1v16a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1zm9 7a2 2 0 100 4 2 2 0 000-4zm-4 6c0-1.333 2.667-2 4-2s4 .667 4 2v1H8v-1z"/>
+            </svg>
+            {t('classroom')}
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderLessonPlanContent = (plan: LessonPlan) => {
     const getDifficultyColor = (d: string) => d === 'foundation' ? 'bg-green-100 text-green-700' : d === 'core' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
