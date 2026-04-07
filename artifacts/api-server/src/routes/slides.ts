@@ -4,7 +4,190 @@ import { groq, GROQ_MODEL } from "../lib/groq";
 const router: IRouter = Router();
 const TIMEOUT_MS = 30000;
 
-const MOCK_SLIDES = {
+// ─── Dynamic fallback ────────────────────────────────────────────────────────
+// Build a topic-specific slide deck directly from the lesson plan data so that
+// if the Groq API is unavailable (rate-limit, timeout, etc.) users still see
+// relevant content for the topic they searched — never unrelated hardcoded content.
+function buildDynamicFallback(
+  lessonPlan: Record<string, unknown>,
+  subject: string,
+  yearLevel: string,
+  topic: string,
+  state: string
+) {
+  const objective = (lessonPlan.objective as string) || `Students will understand key concepts related to ${topic}.`;
+  const duration  = (lessonPlan.duration as string) || "60 minutes";
+  const activities = (lessonPlan.activities as Array<{ label: string; text: string }>) || [];
+  const localEx = (lessonPlan.localExample as { title: string; body: string }) || { title: `${topic} in ${state}`, body: `Explore how ${topic} is relevant in ${state}.` };
+  const questions = (lessonPlan.questions as Array<{ q: string; difficulty: string }>) || [];
+
+  const title = `${topic} — ${yearLevel} ${subject}`;
+
+  const slides = [
+    {
+      slideNumber: 1, type: "title",
+      heading: title,
+      subheading: `${yearLevel} ${subject} · ${state} Curriculum`,
+      bodyText: "",
+      bulletPoints: [],
+      keyTerms: [], workedExample: null, table: null, activitySteps: [],
+      teacherNote: `Welcome students and introduce the topic: ${topic}. Ask students what they already know about this subject before displaying today's learning objectives.`,
+      backgroundTheme: "teal", emoji: "📚", timeMinutes: 2,
+    },
+    {
+      slideNumber: 2, type: "objective",
+      heading: "Learning Intentions & Success Criteria",
+      subheading: `By the end of today's lesson you will be able to:`,
+      bodyText: objective,
+      bulletPoints: [
+        `Identify and explain the core concepts of ${topic} using appropriate ${subject.toLowerCase()} vocabulary.`,
+        `Apply understanding of ${topic} to analyse real-world examples relevant to ${state} and Australia.`,
+        `Evaluate evidence and construct a reasoned response to questions about ${topic}.`,
+        `Connect today's learning to broader themes in ${yearLevel} ${subject} curriculum.`,
+      ],
+      keyTerms: [], workedExample: null, table: null, activitySteps: [],
+      teacherNote: `Read each success criterion aloud. Ask students to rate their current confidence (1–5 fingers) before starting. Return to these at the end as the exit reflection.`,
+      backgroundTheme: "white", emoji: "🎯", timeMinutes: 3,
+    },
+    {
+      slideNumber: 3, type: "engage",
+      heading: `Hook: Why Does ${topic} Matter?`,
+      subheading: "Engage — Activate prior knowledge",
+      bodyText: `${topic} is one of the most significant areas of study in ${yearLevel} ${subject}. Understanding this topic equips students with knowledge and skills relevant to everyday life, further study, and informed citizenship in Australia. Today's lesson connects directly to real Australian contexts in ${state} and the broader national curriculum.`,
+      bulletPoints: [
+        `${topic} connects to Australian Curriculum v9 outcomes for ${yearLevel} ${subject}.`,
+        `Students in ${state} encounter this topic in everyday life, community, and future careers.`,
+        `Today's lesson uses real Australian data and examples to ground the theory in practice.`,
+        `Understanding ${topic} supports critical thinking, evidence evaluation, and scientific/analytical literacy.`,
+      ],
+      keyTerms: [], workedExample: null, table: null, activitySteps: [],
+      teacherNote: `Start with a provocative question: "Where do you see ${topic} in your life or community?" Allow 2 minutes Think-Pair-Share before presenting the lesson objectives. Cold-call 3–4 students to share their partner's response.`,
+      backgroundTheme: "dark", emoji: "💡", timeMinutes: 7,
+    },
+    {
+      slideNumber: 4, type: "key_terms",
+      heading: "Key Vocabulary for This Topic",
+      subheading: "Master these terms before we go further",
+      bodyText: `Every discipline has its own precise language. Using subject-specific vocabulary accurately is a mark of deep understanding and is assessed in all ${yearLevel} ${subject} examinations and assignments.`,
+      bulletPoints: [],
+      keyTerms: [
+        { term: topic, definition: `The central concept of today's lesson. Understanding ${topic} requires connecting theory to real-world evidence and Australian examples.` },
+        { term: subject, definition: `The discipline through which we study ${topic}. ${subject} provides the frameworks, methods, and vocabulary for understanding this field.` },
+        { term: "Evidence", definition: "Information gathered through observation, measurement, or research that supports or refutes a claim. Good evidence is reliable, valid, and from credible sources." },
+        { term: "Analysis", definition: "Breaking down complex information into its component parts to understand how they relate to each other and to the whole." },
+        { term: "Evaluation", definition: "Making a judgement about the quality, reliability, or significance of evidence, arguments, or ideas using clear criteria." },
+        { term: "Australian Curriculum v9", definition: `The national framework that sets learning expectations for ${yearLevel} ${subject} across all states and territories, including ${state}.` },
+      ],
+      workedExample: null, table: null, activitySteps: [],
+      teacherNote: `Have students copy these definitions into their workbooks. Then use 'Definition Bingo' — read a definition aloud and students call out the term. Add subject-specific terms from your own knowledge of ${topic} if needed.`,
+      backgroundTheme: "purple", emoji: "📖", timeMinutes: 8,
+    },
+    ...activities.slice(0, 4).map((act, i) => ({
+      slideNumber: 5 + i, type: "theory",
+      heading: act.label || `Core Concept ${i + 1}`,
+      subheading: `Explain — ${subject} content`,
+      bodyText: act.text || `This section explores a key concept within ${topic} as it applies to ${yearLevel} ${subject} in ${state}.`,
+      bulletPoints: [
+        `This concept is central to understanding ${topic} at the ${yearLevel} level.`,
+        `Students should be able to explain this concept using precise ${subject.toLowerCase()} vocabulary.`,
+        `Real Australian examples help contextualise this concept for ${state} students.`,
+      ],
+      keyTerms: [], workedExample: null, table: null, activitySteps: [],
+      teacherNote: `Pause after explaining this concept and ask: "Can someone restate this in their own words?" Use cold-calling to check comprehension. Students should be recording notes in their own words throughout.`,
+      backgroundTheme: "white" as const, emoji: "🔍", timeMinutes: 6,
+    })),
+    {
+      slideNumber: 9, type: "local_context",
+      heading: localEx.title || `${topic} in ${state}`,
+      subheading: `Local Context — ${state} Australian example`,
+      bodyText: localEx.body || `${state} provides a compelling local context for studying ${topic}. By examining examples close to home, students can connect abstract concepts to lived experience and community relevance.`,
+      bulletPoints: [
+        `${state} provides specific, relevant examples that bring ${topic} to life for local students.`,
+        `Connecting curriculum content to local context improves engagement and long-term retention.`,
+        `Understanding local applications of ${topic} prepares students for community involvement and future careers.`,
+      ],
+      keyTerms: [], workedExample: null, table: null, activitySteps: [],
+      teacherNote: `Ask students: "Have you seen this in your local area or heard about it in ${state} news?" Make space for personal connections. Acknowledge that local examples may include sensitive topics that affect students' families or communities.`,
+      backgroundTheme: "dark" as const, emoji: "🗺️", timeMinutes: 5,
+    },
+    {
+      slideNumber: 10, type: "activity",
+      heading: `Student Activity: Explore ${topic}`,
+      subheading: "Elaborate — Hands-on investigation",
+      bodyText: `You will now apply what you've learned about ${topic} through an independent investigation. This activity helps consolidate your understanding and develops skills in analysis, evidence evaluation, and written communication.`,
+      bulletPoints: [],
+      keyTerms: [], workedExample: null,  table: null,
+      activitySteps: [
+        `Review your notes from today's lesson on ${topic} and identify three key ideas.`,
+        `Find one real-world Australian example related to ${topic} using the resources provided.`,
+        `Record your example: What is it? Where does it occur? Why does it relate to ${topic}?`,
+        `Evaluate the example: What does it tell us about ${topic}? What are its limitations?`,
+        `Write a 3-sentence summary connecting your example to the curriculum learning intentions.`,
+        `Share your example with a partner — compare: are your examples similar or different?`,
+      ],
+      teacherNote: `Allow 12–15 minutes. Circulate to support students. Foundation students: provide a structured template with sentence starters. Extension students: ask them to find a counterexample or critique a claim about ${topic}.`,
+      backgroundTheme: "highlight" as const, emoji: "💻", timeMinutes: 15,
+    },
+    {
+      slideNumber: 11, type: "discussion",
+      heading: "Discussion Questions",
+      subheading: "Evaluate — Three levels of thinking",
+      bodyText: `Use evidence from today's lesson to support your responses. These questions are designed to push your thinking beyond recall and into analysis and evaluation — the skills most valued in ${yearLevel} ${subject} assessment.`,
+      bulletPoints: [
+        questions[0] ? `🟢 Foundation: ${questions[0].q}` : `🟢 Foundation: Describe two key concepts you learned about ${topic} today. Use specific vocabulary in your answer.`,
+        questions[1] ? `🟡 Core: ${questions[1].q}` : `🟡 Core: Explain how ${topic} connects to real life in Australia. Use at least one specific example and evaluate its significance.`,
+        questions[2] ? `🔴 Extension: ${questions[2].q}` : `🔴 Extension: Evaluate the claim that understanding ${topic} is essential for all Australians. Construct a reasoned argument using evidence from today's lesson and your own knowledge.`,
+      ],
+      keyTerms: [], workedExample: null, table: null, activitySteps: [],
+      teacherNote: `Assign questions by readiness group or allow student choice. After 5 minutes, use fishbowl structure: place 3–4 students in the centre to discuss the extension question while others observe and take notes. Debrief by asking: "What was the strongest piece of evidence you heard?"`,
+      backgroundTheme: "white" as const, emoji: "💬", timeMinutes: 8,
+    },
+    {
+      slideNumber: 12, type: "summary",
+      heading: "Lesson Summary",
+      subheading: "Consolidation — The big ideas from today",
+      bodyText: `Today's lesson covered the core concepts, evidence, and applications of ${topic} within ${yearLevel} ${subject}. You have built knowledge that connects to the ${state} curriculum, real Australian examples, and future assessment tasks. Return to your learning intentions and rate your confidence again.`,
+      bulletPoints: [
+        `${topic} is a significant area of study in ${yearLevel} ${subject} with real-world relevance to ${state} and Australia.`,
+        `Key vocabulary — including terms from today's Key Terms slide — must be used accurately in assessments.`,
+        `Evidence-based analysis and evaluation are the core skills assessed in this topic.`,
+        `Local Australian examples help connect abstract concepts to real community and national contexts.`,
+        `Today's learning connects to broader themes across ${yearLevel} ${subject} and future study pathways.`,
+      ],
+      keyTerms: [], workedExample: null, table: null, activitySteps: [],
+      teacherNote: `Return to the confidence ratings from Slide 2. Ask: "Has your confidence in any learning intention changed? What is the one thing you are most confident about? What is one question you still have?" Collect exit tickets.`,
+      backgroundTheme: "teal" as const, emoji: "✅", timeMinutes: 3,
+    },
+    {
+      slideNumber: 13, type: "exit_ticket",
+      heading: "Exit Ticket",
+      subheading: "Complete before you leave — 4 minutes",
+      bodyText: `Your exit ticket has three parts and should take no more than 4 minutes. Write your responses in your workbook or on the card provided. These responses inform your teacher's planning for the next lesson.`,
+      bulletPoints: [],
+      keyTerms: [], workedExample: null, table: null,
+      activitySteps: [
+        `RECALL: Name two key concepts or vocabulary terms from today's lesson on ${topic} and write a definition for each.`,
+        `EXPLAIN: In two sentences, explain how ${topic} connects to a real Australian example. Use subject-specific vocabulary.`,
+        `REFLECT: Rate your confidence in each learning intention from Slide 2 (1–5). Write one question you still have about ${topic}.`,
+      ],
+      teacherNote: `Collect exit tickets at the door. Sort into three piles: confident, developing, needs support. Use these to form targeted groups for the following lesson's opening activity or to plan a brief misconception-busting starter.`,
+      backgroundTheme: "teal" as const, emoji: "📝", timeMinutes: 4,
+    },
+  ];
+
+  return {
+    title,
+    subject,
+    yearLevel,
+    topic,
+    totalMinutes: parseInt(duration) || 60,
+    slides,
+    usedFallback: true,
+  };
+}
+
+// ─── Hardcoded demo-only fallback (only used if lessonPlan itself is absent) ──
+const STATIC_DEMO = {
   title: "Climate Change & Australian Ecosystems",
   subject: "Science",
   yearLevel: "Year 9",
@@ -404,26 +587,50 @@ Return ONLY valid JSON (no markdown, no code blocks):
   "slides": [ ...14 slides using schema above... ]
 }`;
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-  try {
-    const completion = await groq.chat.completions.create({
-      model: GROQ_MODEL,
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 8000,
-      temperature: 0.65,
-    });
-    clearTimeout(timeout);
-    const text = completion.choices[0]?.message?.content ?? "";
-    const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    const parsed = JSON.parse(cleaned);
-    res.json({ ...parsed, usedFallback: false });
-  } catch (err) {
-    clearTimeout(timeout);
-    req.log.warn({ err }, "AI slides call failed, using fallback");
-    res.json(MOCK_SLIDES);
+  // Retry up to 2 times on rate-limit (429) errors with exponential back-off
+  const MAX_RETRIES = 2;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      const delayMs = attempt * 2000; // 2 s, then 4 s
+      req.log.info(`Slides: retry attempt ${attempt} after ${delayMs}ms`);
+      await new Promise(r => setTimeout(r, delayMs));
+    }
+    try {
+      const groqCall = groq.chat.completions.create({
+        model: GROQ_MODEL,
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 8000,
+        temperature: 0.65,
+        stream: false,
+      });
+      const timedOut = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Groq timeout")), TIMEOUT_MS)
+      );
+      const completion = await Promise.race([groqCall, timedOut]);
+      const text = completion.choices[0]?.message?.content ?? "";
+      const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      const parsed = JSON.parse(cleaned);
+      res.json({ ...parsed, usedFallback: false });
+      return;
+    } catch (err: unknown) {
+      lastErr = err;
+      // Only retry on rate-limit errors
+      const isRateLimit = err && typeof err === "object" && "status" in err && (err as { status: number }).status === 429;
+      if (!isRateLimit || attempt === MAX_RETRIES) break;
+      req.log.warn({ err }, `Slides: rate limited (429), will retry (attempt ${attempt + 1}/${MAX_RETRIES})`);
+    }
   }
+
+  // All retries exhausted — build a dynamic topic-specific fallback from the lesson plan data
+  req.log.warn({ err: lastErr }, "Slides: AI call failed after retries, using dynamic topic fallback");
+  res.json(buildDynamicFallback(
+    lessonPlan,
+    subject   ?? "General",
+    yearLevel ?? "Secondary",
+    topic     ?? "This Topic",
+    state     ?? "Australia"
+  ));
 });
 
 export default router;
