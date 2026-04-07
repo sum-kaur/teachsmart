@@ -82,20 +82,74 @@ function buildDynamicFallback(
       teacherNote: `Have students copy these definitions into their workbooks. Then use 'Definition Bingo' — read a definition aloud and students call out the term. Add subject-specific terms from your own knowledge of ${topic} if needed.`,
       backgroundTheme: "purple", emoji: "📖", timeMinutes: 8,
     },
-    ...activities.slice(0, 4).map((act, i) => ({
-      slideNumber: 5 + i, type: "theory",
-      heading: act.label || `Core Concept ${i + 1}`,
-      subheading: `Explain — ${subject} content`,
-      bodyText: act.text || `This section explores a key concept within ${topic} as it applies to ${yearLevel} ${subject} in ${state}.`,
+    {
+      slideNumber: 5, type: "theory",
+      heading: `What Is ${topic}? — Core Concepts`,
+      subheading: `Explain — Foundational knowledge for ${yearLevel} ${subject}`,
+      bodyText: activities[0]?.text
+        ? activities[0].text
+        : `${topic} is a central area of study in ${yearLevel} ${subject}. Understanding the foundational concepts of ${topic} gives students the knowledge base required to analyse evidence, evaluate arguments, and make informed judgements. Mastery of these core ideas underpins performance in ${state} curriculum assessments at the ${yearLevel} level.`,
       bulletPoints: [
-        `This concept is central to understanding ${topic} at the ${yearLevel} level.`,
-        `Students should be able to explain this concept using precise ${subject.toLowerCase()} vocabulary.`,
-        `Real Australian examples help contextualise this concept for ${state} students.`,
+        `${topic} is a foundational concept in ${yearLevel} ${subject} that connects theory to real-world evidence and Australian examples.`,
+        `Students at the ${yearLevel} level are expected to explain, analyse, and evaluate aspects of ${topic} using subject-specific vocabulary.`,
+        `The ${state} curriculum places ${topic} within a broader context of Australian society, environment, and civic understanding.`,
+        `Accurate use of ${subject.toLowerCase()} terminology when discussing ${topic} is directly assessed in classroom tasks and external examinations.`,
       ],
       keyTerms: [], workedExample: null, table: null, activitySteps: [],
-      teacherNote: `Pause after explaining this concept and ask: "Can someone restate this in their own words?" Use cold-calling to check comprehension. Students should be recording notes in their own words throughout.`,
+      teacherNote: `Introduce the core concept using plain language first, then restate it using subject-specific vocabulary. Ask students: "Put this in your own words — what is ${topic}?" Use cold-calling (3–4 students) before accepting a class consensus definition. Students should record their own paraphrased definition in their workbooks.`,
       backgroundTheme: "white" as const, emoji: "🔍", timeMinutes: 6,
-    })),
+    },
+    {
+      slideNumber: 6, type: "theory",
+      heading: `How ${topic} Works — Key Processes and Mechanisms`,
+      subheading: `Explain — Causes, mechanisms, and how they interact`,
+      bodyText: activities[1]?.text
+        ? activities[1].text
+        : `Understanding the mechanisms behind ${topic} requires students to examine how different factors interact over time and across contexts. In ${yearLevel} ${subject}, students are expected to move beyond description and explain the processes that drive outcomes related to ${topic}. This slide focuses on the "how" and "why" — the causal reasoning that underpins ${subject.toLowerCase()} analysis.`,
+      bulletPoints: [
+        `The key processes driving ${topic} involve a sequence of interrelated causes, effects, and feedback mechanisms studied in ${yearLevel} ${subject}.`,
+        `Identifying causal relationships within ${topic} allows students to construct evidence-based arguments rather than simple descriptive summaries.`,
+        `In ${state} and across Australia, the mechanisms of ${topic} produce real, measurable outcomes documented by government agencies and research organisations.`,
+        `Understanding how ${topic} operates prepares students for the analytical writing and extended responses required in ${yearLevel} assessments.`,
+      ],
+      keyTerms: [], workedExample: null, table: null, activitySteps: [],
+      teacherNote: `Draw a simple cause-and-effect diagram on the whiteboard as you explain the mechanism. Ask students to copy the diagram and annotate it with their own labels. Pause at each step and ask: "What happens next, and why?" Check understanding with a cold-call before moving to the evidence slide.`,
+      backgroundTheme: "white" as const, emoji: "⚙️", timeMinutes: 6,
+    },
+    {
+      slideNumber: 7, type: "theory",
+      heading: `Evidence and Data — What Research Tells Us`,
+      subheading: `Explain — Using evidence to support claims about ${topic}`,
+      bodyText: activities[2]?.text
+        ? activities[2].text
+        : `Strong claims about ${topic} in ${yearLevel} ${subject} must be supported by credible, specific evidence. Australian research organisations including the Bureau of Meteorology, CSIRO, the Australian Bureau of Statistics, and relevant state authorities publish data that students can cite when constructing arguments. Using named sources with specific statistics distinguishes sophisticated analysis from unsupported opinion.`,
+      bulletPoints: [
+        `Evidence about ${topic} in Australia is collected by independent research bodies whose data is publicly accessible and widely used in ${yearLevel} assessments.`,
+        `Evaluating the reliability and relevance of evidence is a core analytical skill assessed in ${yearLevel} ${subject} across all Australian states.`,
+        `Students should practise citing specific statistics, named sources, and dated findings when making claims about ${topic} in written tasks.`,
+        `Convergent evidence — multiple independent sources pointing to the same conclusion — provides stronger support for claims than any single data point alone.`,
+      ],
+      keyTerms: [], workedExample: null, table: null, activitySteps: [],
+      teacherNote: `Show students a real piece of evidence (a graph, table, or quote from an Australian source) related to ${topic}. Ask: "What does this evidence tell us? What are its limitations? What would make this evidence stronger?" Model how to embed a statistic into a sentence: "According to [source], [statistic], which suggests [conclusion]."`,
+      backgroundTheme: "white" as const, emoji: "📊", timeMinutes: 6,
+    },
+    {
+      slideNumber: 8, type: "theory",
+      heading: `Impacts and Consequences of ${topic}`,
+      subheading: `Explain — Real-world outcomes across Australian contexts`,
+      bodyText: activities[3]?.text
+        ? activities[3].text
+        : `The study of ${topic} in ${yearLevel} ${subject} is not purely theoretical — it has measurable impacts on individuals, communities, industries, and government policy in Australia. Evaluating these impacts requires students to weigh competing perspectives, consider the interests of different stakeholders, and assess the scale and significance of outcomes using specific Australian examples and data.`,
+      bulletPoints: [
+        `${topic} has direct, documented consequences for Australian communities, environments, and economic systems that students can investigate using publicly available data.`,
+        `Different stakeholders — including government bodies, communities, industries, and individuals — are affected by and respond to ${topic} in distinct ways.`,
+        `The impacts of ${topic} in ${state} may differ from national patterns due to geographic, demographic, or policy differences, making local analysis essential.`,
+        `Evaluating the significance of these impacts — not just listing them — is the highest-order skill assessed in ${yearLevel} ${subject} extended responses.`,
+      ],
+      keyTerms: [], workedExample: null, table: null, activitySteps: [],
+      teacherNote: `Ask students to brainstorm: "Who is most affected by ${topic} in Australia, and how?" Record responses in two columns on the board: "Who is affected" and "How they are affected." After 2 minutes, introduce a real Australian example and ask students to evaluate its significance using a scale of 1–5 with justification.`,
+      backgroundTheme: "white" as const, emoji: "🌏", timeMinutes: 7,
+    },
     {
       slideNumber: 9, type: "local_context",
       heading: localEx.title || `${topic} in ${state}`,
@@ -521,7 +575,7 @@ router.post("/slides", async (req, res): Promise<void> => {
     ? `Unit: "${unitContext.unitTitle}" — Lesson ${unitContext.currentLesson || "?"} of ${unitContext.totalLessons || "?"}. Learning intention: ${unitContext.learningIntention || "not specified"}.`
     : "";
 
-  const prompt = `You are an expert Australian secondary school teacher (Years 7–12) creating a professional, publication-quality slide deck for a real classroom lesson.
+  const prompt = `You are an expert Australian secondary school educator creating a polished, classroom-ready slide deck on "${topic}" for ${yearLevel} ${subject} students in ${state}.
 
 LESSON CONTEXT:
 - Year Level: ${yearLevel}
@@ -531,19 +585,42 @@ LESSON CONTEXT:
 - Curriculum alignment: ${JSON.stringify(alignmentResult || {})}
 ${unitNote}
 
-SOURCE LESSON PLAN:
+SOURCE LESSON PLAN (use as context only — do NOT copy its pedagogical stage labels into slide headings):
 ${lessonJson}
 
-MANDATORY QUALITY STANDARDS — every slide must meet these:
-1. bodyText: 3–5 complete sentences of substantive educational content. This is real teaching text, not a placeholder. It must explain the concept with accuracy and depth appropriate for ${yearLevel}.
-2. bulletPoints: Must be complete sentences of 15–25 words each. NEVER write fragment phrases like "Temperature rising" or "Evidence from BOM". Write "Australia's average temperature has risen by 1.47°C since 1910 according to BOM weather station records."
-3. teacherNote: Minimum 50 words of practical classroom instruction. Include specific teaching strategies (Think-Pair-Share, cold calling, whiteboard activities), time guidance, and differentiation hints.
-4. All statistics, examples, and data must reference REAL Australian sources: BOM, CSIRO, AIMS, ABS, ACARA, relevant state curriculum authority, or named Australian research institutions.
-5. keyTerms definitions must be age-appropriate, precise, and 2–4 sentences each.
-6. workedExample must show a fully solved problem with explicit numbered steps — not a summary.
-7. activitySteps must be numbered, specific, and actionable instructions a student can follow independently.
+═══════════════════════════════════════════════
+CRITICAL RULES — MUST follow every single one:
+═══════════════════════════════════════════════
 
-SLIDE SCHEMA (return exactly this JSON structure for every slide):
+RULE 1 — UNIQUE CONTENT PER SLIDE
+Each slide must cover a DISTINCT sub-concept or aspect of "${topic}". No sentence, bullet point, statistic, or example may be repeated across more than one slide. If you find yourself writing the same idea twice, stop and choose a different angle for that slide.
+
+RULE 2 — TOPIC-SPECIFIC HEADINGS ONLY
+Slide headings must describe WHAT THE SLIDE TEACHES about ${topic}. NEVER use pedagogical stage labels as headings. These are BANNED as headings: "Hook", "Explore", "Analyse", "Evaluate", "Reflect", "Elaborate", "Engage", "Explain", "Elicit", "Extend", "Activity", "Discussion", "Summary", "Objective". Use content headings instead. GOOD: "The Causes of World War I — Militarism and Alliance Systems". BAD: "Hook: Why Does This Matter?".
+
+RULE 3 — EACH THEORY SLIDE COVERS A DIFFERENT ANGLE
+The 4 theory slides (slides 5–8) must each focus on a genuinely different dimension of "${topic}":
+  - Slide 5: Definition and foundational concepts — what is ${topic}? What are the core ideas?
+  - Slide 6: Mechanisms, causes or processes — how does it work? Why does it happen?
+  - Slide 7: Evidence, data and research — what do Australian sources (BOM, CSIRO, ABS, ACARA, AIHW, named research bodies) say?
+  - Slide 8: Impacts, consequences and stakeholder perspectives — who is affected and how?
+
+RULE 4 — COMPLETE SENTENCES ONLY
+bulletPoints must be complete sentences of 15–25 words each. NEVER write fragment phrases like "Rising temperatures" or "Evidence shows impact". Write full explanatory sentences with specific data.
+
+RULE 5 — REAL AUSTRALIAN SOURCES
+All statistics, examples, and data must come from REAL Australian organisations: BOM, CSIRO, AIMS, ABS, AIHW, ACARA, state curriculum authorities, or named Australian universities or government agencies. Never invent statistics.
+
+RULE 6 — TEACHER NOTES ARE PRACTICAL INSTRUCTIONS
+teacherNote (minimum 60 words each): specific classroom strategies (Think-Pair-Share, cold calling, fishbowl, whiteboard activities), timing guidance, and differentiation for foundation/extension students. Must be directly usable instructions, not generic commentary.
+
+RULE 7 — WORKED EXAMPLE IS FULLY SOLVED
+workedExample must show a complete worked solution with 5 explicit numbered steps showing all working — not a summary or outline.
+
+RULE 8 — ACTIVITY STEPS ARE STUDENT-ACTIONABLE
+activitySteps must be numbered, concrete, and specific enough that a student can follow each step independently without clarification.
+
+SLIDE SCHEMA — return this exact structure for every slide:
 {
   "slideNumber": number,
   "type": "title" | "objective" | "engage" | "key_terms" | "theory" | "local_context" | "worked_example" | "activity" | "discussion" | "summary" | "exit_ticket",
@@ -561,30 +638,30 @@ SLIDE SCHEMA (return exactly this JSON structure for every slide):
   "timeMinutes": number
 }
 
-REQUIRED SLIDE STRUCTURE (14 slides using the 5E inquiry model):
-1. TITLE (teal) — Lesson title, curriculum code, year level. bodyText empty. timeMinutes: 2
-2. OBJECTIVE (white) — Learning intentions as 4 complete-sentence bullet points, plus bodyText explaining curriculum context. timeMinutes: 3
-3. ENGAGE (dark) — A compelling Australian hook (real data, striking statistic, or local news event). Include bodyText with full contextual explanation. timeMinutes: 7
-4. KEY_TERMS (purple) — 5–7 key vocabulary terms with full definitions in keyTerms array. bodyText explains why vocabulary matters. timeMinutes: 8
-5. THEORY slide 1 (white) — First core concept with full bodyText explanation + 4 bullet points. timeMinutes: 6
-6. THEORY slide 2 (white) — Second core concept with full bodyText + table OR 4 bullets. timeMinutes: 6
-7. THEORY slide 3 (white) — Third core concept (evidence, data, or mechanism). Use table if comparing items. timeMinutes: 6
-8. THEORY slide 4 (white) — Australian impacts or applications. Full bodyText + 4 bullets with specific data. timeMinutes: 7
-9. LOCAL_CONTEXT (dark) — State-specific NSW/VIC/QLD/WA/SA example with full bodyText. timeMinutes: 5
-10. WORKED_EXAMPLE (highlight) — Fully worked problem relevant to the topic with 5-step solution in workedExample. bodyText explains the skill. timeMinutes: 8
-11. ACTIVITY (highlight) — 6–8 numbered activitySteps for a real student task. bodyText explains the purpose. timeMinutes: 15
-12. DISCUSSION (white) — Three tiered questions (🟢 Foundation, 🟡 Core, 🔴 Extension) as bulletPoints. bodyText frames the discussion. timeMinutes: 8
-13. SUMMARY (teal) — 5 complete-sentence bullet points summarising the big ideas. bodyText connects to HSC/ATAR/future learning. timeMinutes: 3
-14. EXIT_TICKET (teal) — 3 numbered activitySteps (Recall / Explain / Reflect tasks). bodyText sets expectations. timeMinutes: 4
+REQUIRED SLIDE STRUCTURE — exactly 14 slides:
+1. TITLE (teal) — Topic title with curriculum strand and year level in subheading. bodyText: empty string "". timeMinutes: 2
+2. OBJECTIVE (white) — 4 learning intention bullet points (complete sentences), bodyText explains curriculum context for this topic. timeMinutes: 3
+3. ENGAGE (dark) — A striking Australian statistic, case study, or recent event that hooks students into ${topic}. Full bodyText (4–5 sentences) giving the context behind the hook. 4 bullet points with specific data. timeMinutes: 7
+4. KEY_TERMS (purple) — 5–7 topic-specific vocabulary terms with precise, age-appropriate definitions in keyTerms array. bodyText explains why mastering this vocabulary matters for ${yearLevel} assessment. timeMinutes: 8
+5. THEORY — What Is "${topic}"? (white) — Definition and foundational concepts. Full bodyText (4–5 sentences). 4 complete-sentence bullet points covering distinct foundational ideas. timeMinutes: 6
+6. THEORY — Mechanisms and Causes (white) — How ${topic} works: processes, causes, contributing factors. Full bodyText. Use a table (headers + rows) OR 4 bullet points — choose whichever is clearer for this content. timeMinutes: 6
+7. THEORY — Evidence and Data (white) — What Australian research shows. Full bodyText citing real sources. 4 bullet points each with a specific statistic or named finding from a real Australian body. timeMinutes: 6
+8. THEORY — Impacts and Consequences (white) — Who is affected by ${topic} in Australia and how. Full bodyText. 4 bullet points covering different stakeholder groups or impact types. timeMinutes: 7
+9. LOCAL_CONTEXT (dark) — A specific ${state} example or case study directly related to ${topic}. Full bodyText with named local details (organisations, places, data). 3 bullet points with local specifics. timeMinutes: 5
+10. WORKED_EXAMPLE (highlight) — A fully worked problem, analysis task, or source interpretation relevant to ${topic} at ${yearLevel} level. bodyText explains the skill being practised. workedExample object with problem, 5 explicit solution steps, and a final answer. timeMinutes: 8
+11. ACTIVITY (highlight) — 6–8 numbered student task steps for an investigation or analysis activity about ${topic}. bodyText explains the purpose and learning outcome. timeMinutes: 15
+12. DISCUSSION (white) — 3 tiered discussion questions as bullet points: 🟢 Foundation (recall/describe), 🟡 Core (explain/analyse), 🔴 Extension (evaluate/judge). bodyText frames why these questions develop ${yearLevel} ${subject} skills. timeMinutes: 8
+13. SUMMARY (teal) — 5 complete-sentence bullet points summarising the 5 most important ideas from today's lesson. bodyText connects learning to future assessment and broader study. timeMinutes: 3
+14. EXIT_TICKET (teal) — 3 numbered exit tasks: RECALL (name/define), EXPLAIN (connect to evidence), REFLECT (confidence rating + remaining question). bodyText sets expectations for the exit activity. timeMinutes: 4
 
-Return ONLY valid JSON (no markdown, no code blocks):
+Return ONLY valid JSON — no markdown fences, no code blocks, no commentary:
 {
   "title": string,
   "subject": string,
   "yearLevel": string,
   "topic": string,
   "totalMinutes": number,
-  "slides": [ ...14 slides using schema above... ]
+  "slides": [ ...exactly 14 slides... ]
 }`;
 
   // Retry up to 2 times on rate-limit (429) errors with exponential back-off
