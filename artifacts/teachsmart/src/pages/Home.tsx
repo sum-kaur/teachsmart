@@ -271,8 +271,8 @@ export default function Home() {
         const outcomes = alignmentResult?.outcomes ?? [];
         const o = outcomes[0] ?? { id: "AC9-UNKNOWN", description: `Core ${searchParams.subject} outcome` };
         const t = searchParams.topic || 'this topic';
-        setLessonPlan({
-          resourceType: 'Lesson Plan' as const,
+        const rType = searchParams.resourceType;
+        const common = {
           outcomeCode: o.id,
           outcomeDescription: o.description,
           successCriteria: [
@@ -280,25 +280,81 @@ export default function Home() {
             `Apply knowledge to an Australian context`,
             `Evaluate evidence and form a reasoned conclusion`,
           ],
-          objective: `Students explore ${t} using Australian curriculum-aligned resources.`,
-          duration: "60 minutes",
-          activities: [
-            { label: "Hook (5 min)", text: `Engage students with a thought-provoking question about ${t}.` },
-            { label: "Explore (20 min)", text: "Students investigate core concepts through guided inquiry." },
-            { label: "Analyse (15 min)", text: "Groups discuss findings, connecting concepts to Australian contexts." },
-            { label: "Evaluate (15 min)", text: "Class discussion evaluates evidence and forms conclusions." },
-            { label: "Reflect (5 min)", text: "Exit ticket: one key learning and one remaining question." },
-          ],
-          localExample: { title: "Australian Context", body: `Connect ${t} to examples relevant to ${searchParams.state || 'Australian'} students.` },
-          questions: [
-            { q: `Define the key concepts of ${t}.`, difficulty: "foundation" },
-            { q: `Explain two ways ${t} is relevant to Australians.`, difficulty: "foundation" },
-            { q: `Analyse the evidence and explain how it supports understanding of ${t}.`, difficulty: "core" },
-            { q: `Compare different perspectives on ${t}.`, difficulty: "core" },
-            { q: `Critically evaluate the significance of ${t} for contemporary Australia.`, difficulty: "extension" },
-          ],
-          usedFallback: true,
-        });
+          usedFallback: true as const,
+        };
+        if (rType === 'Worksheet') {
+          setLessonPlan({
+            ...common,
+            resourceType: 'Worksheet' as const,
+            sections: [
+              { title: 'Knowledge and Understanding', instructions: 'Answer each question using full sentences.', questions: [
+                { q: `Define the term '${t}' in your own words.`, lines: 3, marks: 2 },
+                { q: `List two key facts about ${t} in an Australian context.`, lines: 4, marks: 4 },
+              ]},
+              { title: 'Application', instructions: 'Use your knowledge to answer the following questions.', questions: [
+                { q: `Describe how ${t} is relevant to Australian students today.`, lines: 5, marks: 5 },
+                { q: `Give one real-world example of ${t} from Australia.`, lines: 4, marks: 3 },
+              ]},
+              { title: 'Analysis and Evaluation', instructions: 'Think critically and justify your answers with evidence.', questions: [
+                { q: `Analyse two different perspectives on ${t}. Which do you find more convincing, and why?`, lines: 8, marks: 8 },
+              ]},
+            ],
+            extensionTask: `Research a recent Australian news story related to ${t}. Write a 150-word response explaining how it connects to what you have learned.`,
+            wordBank: [t, searchParams.subject, 'evidence', 'analysis', 'perspective', 'outcome'],
+          });
+        } else if (rType === 'Discussion') {
+          setLessonPlan({
+            ...common,
+            resourceType: 'Discussion' as const,
+            discussionPrompt: `To what extent has ${t} shaped modern Australia, and what challenges remain?`,
+            backgroundContext: `${t} is a significant issue in Australian society, connecting to history, culture, and contemporary debates.`,
+            perspectives: [
+              { viewpoint: 'Supporter', keyArguments: [`${t} has brought positive change`, 'Evidence supports its value', 'It connects to Australian values'] },
+              { viewpoint: 'Critic', keyArguments: [`${t} has unresolved challenges`, 'Not all Australians benefit equally', 'Change is still needed'] },
+            ],
+            sentenceStarters: ['I believe...', 'The evidence suggests...', 'A counterargument might be...', 'From an Australian perspective...', 'On the other hand...', 'What this shows is...'],
+            reflectionQuestions: [`What surprised you most about ${t}?`, `Whose voice is most important in this debate?`, `What would you want changed?`],
+            teacherFacilitationNotes: `Ensure all students have a chance to speak. Monitor for respectful disagreement. Connect discussion to the ${searchParams.subject} outcomes.`,
+          });
+        } else if (rType === 'Assessment') {
+          setLessonPlan({
+            ...common,
+            resourceType: 'Assessment' as const,
+            taskDescription: `Students will demonstrate their understanding of ${t} through a structured ${searchParams.yearLevel} ${searchParams.subject} assessment task.`,
+            taskType: 'Extended Response',
+            duration: '50 minutes',
+            markingCriteria: [
+              { criterion: 'Knowledge and Understanding', excellent: 'Demonstrates thorough, accurate knowledge with specific detail', satisfactory: 'Shows adequate knowledge with some accuracy', developing: 'Shows limited knowledge with some inaccuracy', marks: 8 },
+              { criterion: 'Analysis and Evaluation', excellent: 'Insightful analysis with well-reasoned evaluation', satisfactory: 'Some analysis present but reasoning could be stronger', developing: 'Limited analysis; mostly descriptive', marks: 8 },
+              { criterion: 'Use of Evidence', excellent: 'Consistently uses specific evidence to support all claims', satisfactory: 'Uses evidence at times but not consistently', developing: 'Little evidence used; claims mostly unsupported', marks: 6 },
+              { criterion: 'Communication', excellent: 'Clear, fluent, well-structured response throughout', satisfactory: 'Generally clear with some structure', developing: 'Unclear or poorly structured', marks: 3 },
+            ],
+            totalMarks: 25,
+            teacherMarkingGuide: `Reward students who use specific evidence from Australian contexts. Accept any well-reasoned position as long as it is supported by evidence.`,
+          });
+        } else {
+          setLessonPlan({
+            ...common,
+            resourceType: 'Lesson Plan' as const,
+            objective: `Students explore ${t} using Australian curriculum-aligned resources.`,
+            duration: '60 minutes',
+            activities: [
+              { label: 'Hook (5 min)', text: `Engage students with a thought-provoking question about ${t}.` },
+              { label: 'Explore (20 min)', text: 'Students investigate core concepts through guided inquiry.' },
+              { label: 'Analyse (15 min)', text: 'Groups discuss findings, connecting concepts to Australian contexts.' },
+              { label: 'Evaluate (15 min)', text: 'Class discussion evaluates evidence and forms conclusions.' },
+              { label: 'Reflect (5 min)', text: 'Exit ticket: one key learning and one remaining question.' },
+            ],
+            localExample: { title: 'Australian Context', body: `Connect ${t} to examples relevant to ${searchParams.state || 'Australian'} students.` },
+            questions: [
+              { q: `Define the key concepts of ${t}.`, difficulty: 'foundation' },
+              { q: `Explain two ways ${t} is relevant to Australians.`, difficulty: 'foundation' },
+              { q: `Analyse the evidence and explain how it supports understanding of ${t}.`, difficulty: 'core' },
+              { q: `Compare different perspectives on ${t}.`, difficulty: 'core' },
+              { q: `Critically evaluate the significance of ${t} for contemporary Australia.`, difficulty: 'extension' },
+            ],
+          });
+        }
         setTeacherNotes(`Ensure students understand the key concepts of ${t} before starting.`);
       } catch {
         // If even the fallback fails, keep lessonPlan null — renderLessonPlan will show a retry prompt

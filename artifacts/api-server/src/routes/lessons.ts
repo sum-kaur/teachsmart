@@ -335,7 +335,9 @@ router.post("/lesson", async (req, res): Promise<void> => {
     clearTimeout(timeout);
     const text = completion.choices[0]?.message?.content ?? "";
     const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    res.json({ ...JSON.parse(cleaned), usedFallback: false });
+    // Always force-inject resourceType so the frontend discriminated union works
+    // even if Groq omits or misnames the field in its response.
+    res.json({ ...JSON.parse(cleaned), resourceType, usedFallback: false });
   } catch (err) {
     clearTimeout(timeout);
     req.log.warn({ err }, "AI lesson call failed, using fallback");
