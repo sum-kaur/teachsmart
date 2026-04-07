@@ -535,18 +535,20 @@ export default function Home() {
         {subtitle && <div className="text-[13px] text-muted-foreground mt-0.5">{subtitle}</div>}
       </div>
       <div className="flex gap-2 items-center">
-        {/* Google Classroom button */}
-        <button
-          onClick={() => handleShareToClassroom(classroomUrl, classroomTitle ?? title)}
-          className="flex items-center gap-1.5 bg-[#1a73e8] hover:bg-[#1557b0] text-white text-[11px] font-semibold px-3 py-1.5 rounded-full cursor-pointer border-none transition-colors shadow-sm"
-          title={t('googleClassroom')}
-          aria-label={t('googleClassroom')}
-        >
-          <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-white" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 3h18a1 1 0 011 1v16a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1zm9 7a2 2 0 100 4 2 2 0 000-4zm-4 6c0-1.333 2.667-2 4-2s4 .667 4 2v1H8v-1z"/>
-          </svg>
-          {t('classroom')}
-        </button>
+        {/* Google Classroom button — only when a share URL is available */}
+        {classroomUrl && (
+          <button
+            onClick={() => handleShareToClassroom(classroomUrl, classroomTitle ?? title)}
+            className="flex items-center gap-1.5 bg-[#1a73e8] hover:bg-[#1557b0] text-white text-[11px] font-semibold px-3 py-1.5 rounded-full cursor-pointer border-none transition-colors shadow-sm"
+            title={t('googleClassroom')}
+            aria-label={t('googleClassroom')}
+          >
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-white" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 3h18a1 1 0 011 1v16a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1zm9 7a2 2 0 100 4 2 2 0 000-4zm-4 6c0-1.333 2.667-2 4-2s4 .667 4 2v1H8v-1z"/>
+            </svg>
+            {t('classroom')}
+          </button>
+        )}
 
         {/* Language switcher */}
         <div className="relative">
