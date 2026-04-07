@@ -1233,7 +1233,7 @@ export default function Home() {
             setCurrentScreen('results');
           }}
           onLoadLesson={(l: SavedLesson) => {
-            setLessonPlan({ objective: l.objective, duration: l.duration, activities: l.activities, localExample: l.localExample, questions: l.questions, usedFallback: false });
+            setLessonPlan({ resourceType: 'Lesson Plan', outcomeCode: '', outcomeDescription: l.topic, successCriteria: [], objective: l.objective, duration: l.duration, activities: l.activities, localExample: l.localExample, questions: l.questions, usedFallback: false });
             setTeacherNotes('Loaded from library.');
             setSearchParams(prev => ({ ...prev, subject: l.subject, yearLevel: l.yearLevel, topic: l.topic }));
             setCurrentScreen('lesson');
