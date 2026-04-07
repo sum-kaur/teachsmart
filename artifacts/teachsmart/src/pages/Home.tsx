@@ -3,7 +3,8 @@ import {
   BookOpen, Compass, Search, FileText, Download, Edit, ArrowLeft,
   CheckCircle, Home as HomeIcon, FileStack, BarChart3, MapPin,
   CalendarDays, Settings2, Globe, ChevronDown, ChevronUp,
-  Presentation, Library as LibraryIcon, Bookmark, BookmarkCheck, Loader2, Sparkles, ExternalLink
+  Presentation, Library as LibraryIcon, Bookmark, BookmarkCheck, Loader2, Sparkles, ExternalLink,
+  Plus, X, Users
 } from "lucide-react";
 import { useGetDashboardStats, useGetRecentResources, useGetFeed } from "@workspace/api-client-react";
 import VoiceMic from "../components/VoiceMic";
@@ -79,6 +80,8 @@ type FeedResult = {
   usedFallback: boolean;
 };
 
+type MyClass = { id: string; code: string; name: string; yearLevel: string; subject: string; state: string };
+
 const MOCK_DASHBOARD_STATS = { totalSearches: 124, resourcesGenerated: 89, averageAlignmentScore: 92, topSubject: "History" };
 const MOCK_RECENT = [
   { id: "1", title: "Climate Change Impacts", subject: "Science", yearLevel: "Year 9", topic: "Climate Change", alignmentScore: 94, searchedAt: new Date().toISOString() },
@@ -113,6 +116,16 @@ export default function Home() {
   const [lessonSaved, setLessonSaved] = useState(false);
   const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [highContrast, setHighContrast] = useState(false);
+  const [myClasses, setMyClasses] = useState<MyClass[]>(() => {
+    try { return JSON.parse(localStorage.getItem('teachsmart_classes') ?? '[]') as MyClass[]; } catch { return []; }
+  });
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  const [expandedFeedIdx, setExpandedFeedIdx] = useState<Set<number>>(new Set());
+  const [showLangMenu, setShowLangMenu] = useState(false);
+  const [showAddClassForm, setShowAddClassForm] = useState(false);
+  const [newClassName, setNewClassName] = useState('');
+  const [newClassYearLevel, setNewClassYearLevel] = useState('Year 9');
+  const [newClassSubject, setNewClassSubject] = useState('History');
 
   const voiceLang = LANGUAGES.find(l => l.code === uiLanguage)?.voiceCode ?? 'en-AU';
   const preferredLanguage = voiceLang;
@@ -159,6 +172,40 @@ export default function Home() {
     if (highContrast) classes.push('high-contrast');
     document.documentElement.className = classes.join(' ');
   }, [fontSize, highContrast]);
+
+  useEffect(() => {
+    localStorage.setItem('teachsmart_classes', JSON.stringify(myClasses));
+  }, [myClasses]);
+
+  const handleAddClass = () => {
+    if (!newClassName.trim()) return;
+    const raw = newClassName.trim();
+    const code = raw.replace(/[^0-9a-zA-Z]/g, '').slice(0, 3).toUpperCase() || raw.slice(0, 3).toUpperCase();
+    const cls: MyClass = { id: Date.now().toString(), code, name: raw, yearLevel: newClassYearLevel, subject: newClassSubject, state: searchParams.state };
+    setMyClasses(prev => [...prev, cls]);
+    setNewClassName('');
+    setShowAddClassForm(false);
+  };
+
+  const handleSelectClass = (cls: MyClass) => {
+    setSelectedClassId(prev => prev === cls.id ? null : cls.id);
+    if (selectedClassId !== cls.id) {
+      setSearchParams(prev => ({ ...prev, yearLevel: cls.yearLevel, subject: cls.subject, state: cls.state }));
+    }
+  };
+
+  const handleRemoveClass = (id: string) => {
+    setMyClasses(prev => prev.filter(c => c.id !== id));
+    if (selectedClassId === id) setSelectedClassId(null);
+  };
+
+  const toggleFeedItem = (idx: number) => {
+    setExpandedFeedIdx(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx); else next.add(idx);
+      return next;
+    });
+  };
 
   const handleSearch = async () => {
     if (!searchParams.topic) return;
@@ -281,7 +328,13 @@ export default function Home() {
 
   const handleSaveLesson = () => {
     if (!lessonPlan) return;
-    saveLesson({ title: `${searchParams.topic} — ${searchParams.yearLevel} ${searchParams.subject}`, subject: searchParams.subject, yearLevel: searchParams.yearLevel, topic: searchParams.topic, objective: lessonPlan.objective, duration: lessonPlan.duration, activities: lessonPlan.activities, localExample: lessonPlan.localExample, questions: lessonPlan.questions });
+    const title = `${searchParams.topic} — ${searchParams.yearLevel} ${searchParams.subject}`;
+    const base = { title, subject: searchParams.subject, yearLevel: searchParams.yearLevel, topic: searchParams.topic };
+    if (lessonPlan.resourceType === 'Lesson Plan') {
+      saveLesson({ ...base, objective: lessonPlan.objective, duration: lessonPlan.duration, activities: lessonPlan.activities, localExample: lessonPlan.localExample, questions: lessonPlan.questions });
+    } else {
+      saveLesson({ ...base, objective: `${lessonPlan.resourceType}: ${lessonPlan.outcomeDescription}`, duration: '', activities: [], localExample: { title: '', body: '' }, questions: [] });
+    }
     setLessonSaved(true);
   };
 
@@ -302,9 +355,9 @@ export default function Home() {
         <HomeIcon className="w-4 h-4" /> Dashboard
       </button>
 
-      <button onClick={() => setCurrentScreen('unit-planner')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'unit-planner' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-unit-planner">
-        <BookOpen className="w-4 h-4" /> Unit Planner
-        {unitContext.unitTitle && <span className="ml-auto w-2 h-2 rounded-full bg-primary shrink-0"></span>}
+      <button onClick={() => setCurrentScreen('dashboard')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left text-slate-400 border-transparent hover:text-white hover:bg-white/5`} data-testid="nav-my-classes">
+        <Users className="w-4 h-4" /> My Classes
+        {myClasses.length > 0 && <span className="ml-auto bg-primary/20 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">{myClasses.length}</span>}
       </button>
 
       <button onClick={() => setCurrentScreen('search')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${['search', 'results', 'lesson'].includes(currentScreen) ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-new-resource">
@@ -323,18 +376,11 @@ export default function Home() {
         <Settings2 className="w-4 h-4" /> Settings
       </button>
 
-      <div className="mt-auto px-4 pt-5 border-t border-white/10">
-        <div className="flex items-center gap-2 mb-3">
-          {LANGUAGES.map(lang => (
-            <button key={lang.code} onClick={() => setUiLanguage(lang.code)} title={lang.label} className={`text-base border-none bg-transparent cursor-pointer rounded p-0.5 transition-opacity ${uiLanguage === lang.code ? 'opacity-100 ring-1 ring-primary rounded' : 'opacity-40 hover:opacity-80'}`} aria-label={`Switch to ${lang.label}`}>
-              {lang.flag}
-            </button>
-          ))}
-        </div>
+      <div className="mt-auto px-5 pt-5 border-t border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-sm font-semibold text-white">SJ</div>
-          <div>
-            <div className="text-[13px] font-medium text-slate-300">Sarah Chen</div>
+          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-sm font-semibold text-white shrink-0">SJ</div>
+          <div className="min-w-0">
+            <div className="text-[13px] font-medium text-slate-200 truncate">Sarah Chen</div>
             <div className="text-[11px] text-slate-500">History · Year 9</div>
           </div>
         </div>
@@ -350,16 +396,27 @@ export default function Home() {
       </div>
       <div className="flex gap-2 items-center">
         <div className="flex items-center gap-1.5 bg-green-100 text-green-700 text-[11px] font-semibold px-2.5 py-1 rounded-full">
-          <CheckCircle className="w-3 h-3" /> NSW Aligned
+          <CheckCircle className="w-3 h-3" /> {searchParams.state} Aligned
         </div>
         <div className="flex items-center gap-1.5 bg-blue-100 text-blue-700 text-[11px] font-semibold px-2.5 py-1 rounded-full">
           <Edit className="w-3 h-3" /> Bias Checked
         </div>
-        {uiLanguage !== 'en' && (
-          <div className="flex items-center gap-1 bg-primary/10 text-primary text-[11px] font-semibold px-2.5 py-1 rounded-full">
-            <Globe className="w-3 h-3" /> {LANGUAGES.find(l => l.code === uiLanguage)?.label}
-          </div>
-        )}
+        <div className="relative">
+          <button onClick={() => setShowLangMenu(v => !v)} className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-semibold px-2.5 py-1.5 rounded-full cursor-pointer border-none transition-colors" aria-label="Switch language">
+            <Globe className="w-3.5 h-3.5" />
+            <span>{LANGUAGES.find(l => l.code === uiLanguage)?.flag}</span>
+          </button>
+          {showLangMenu && (
+            <div className="absolute right-0 top-8 bg-white border border-border rounded-xl shadow-lg py-1 min-w-[170px] z-50">
+              {LANGUAGES.map(lang => (
+                <button key={lang.code} onClick={() => { setUiLanguage(lang.code); setShowLangMenu(false); }} className={`flex items-center gap-2.5 w-full text-left px-3.5 py-2 text-[13px] font-medium cursor-pointer border-none transition-colors ${uiLanguage === lang.code ? 'bg-teal-50 text-primary' : 'bg-transparent text-foreground hover:bg-slate-50'}`}>
+                  <span className="text-base">{lang.flag}</span> {lang.label}
+                  {uiLanguage === lang.code && <CheckCircle className="w-3.5 h-3.5 text-primary ml-auto" />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -383,89 +440,164 @@ export default function Home() {
     );
   };
 
-  const renderDashboard = () => (
-    <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
-      {renderTopbar("Dashboard", "Good morning, Sarah")}
-      <div className="p-8 flex-1">
-        <div className="grid grid-cols-4 gap-4 mb-7">
-          {[
-            { label: "Total Searches", value: dashboardStats.totalSearches },
-            { label: "Resources Generated", value: dashboardStats.resourcesGenerated },
-            { label: "Avg Alignment Score", value: `${dashboardStats.averageAlignmentScore}%` },
-            { label: "Top Subject", value: dashboardStats.topSubject },
-          ].map((stat) => (
-            <div key={stat.label} className="bg-white rounded-xl shadow-sm border border-border p-5" data-testid={`stat-${stat.label.replace(/\s+/g, '-').toLowerCase()}`}>
-              <div className="text-[12px] text-muted-foreground uppercase font-semibold tracking-widest mb-1.5">{stat.label}</div>
-              <div className="font-serif text-3xl text-primary">{stat.value}</div>
+  const renderDashboard = () => {
+    const selectedClass = myClasses.find(c => c.id === selectedClassId);
+    return (
+      <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50" onClick={() => showLangMenu && setShowLangMenu(false)}>
+        {renderTopbar("Dashboard", "")}
+        <div className="p-8 flex-1 max-w-4xl w-full">
+
+          {/* ── Hero search ─────────────────────────────────────── */}
+          <div className="mb-8">
+            <p className="text-[13px] text-slate-400 mb-1">Good morning, Sarah</p>
+            <h1 className="font-serif text-[28px] text-foreground font-semibold mb-5 leading-snug">What are you teaching today?</h1>
+            <div className="bg-white rounded-xl border border-border shadow-sm flex items-center gap-0 overflow-hidden focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+              <Search className="w-4.5 h-4.5 text-slate-400 ml-4 shrink-0" />
+              <input
+                type="text"
+                value={searchParams.topic}
+                onChange={e => setSearchParams(prev => ({...prev, topic: e.target.value}))}
+                onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                placeholder="e.g. Year 9 Climate Change, Year 8 Shakespeare, Year 10 Algebra..."
+                className="flex-1 px-3 py-3.5 text-[14px] text-foreground placeholder:text-slate-400 outline-none border-none bg-transparent"
+                aria-label="Search topic"
+                data-testid="dashboard-search-input"
+              />
+              <VoiceMic onTranscript={t => setSearchParams(prev => ({...prev, topic: t}))} voiceLang={voiceLang} className="mr-1" />
+              <button
+                onClick={handleSearch}
+                disabled={isSearching || !searchParams.topic.trim()}
+                className="m-1.5 bg-primary text-white px-5 py-2.5 rounded-lg text-[13px] font-semibold cursor-pointer border-none hover:bg-teal-700 transition-colors disabled:opacity-50 shrink-0"
+                data-testid="dashboard-search-btn"
+              >
+                {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Search'}
+              </button>
             </div>
-          ))}
-        </div>
+            {selectedClass && (
+              <div className="mt-2.5 flex items-center gap-2">
+                <span className="bg-teal-50 border border-teal-200 text-teal-700 text-[12px] font-semibold px-3 py-1 rounded-full flex items-center gap-1.5">
+                  <Users className="w-3 h-3" /> For {selectedClass.name} · {selectedClass.yearLevel} {selectedClass.subject}
+                  <button onClick={() => setSelectedClassId(null)} className="ml-1 text-teal-400 hover:text-teal-700 bg-transparent border-none cursor-pointer p-0"><X className="w-3 h-3" /></button>
+                </span>
+              </div>
+            )}
+          </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-7">
-          <div onClick={() => setCurrentScreen('unit-planner')} className="bg-white rounded-xl shadow-sm border border-border p-7 cursor-pointer hover:border-primary hover:shadow-md transition-all hover:-translate-y-0.5 group" data-testid="card-unit-planner">
-            <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><BookOpen className="w-6 h-6" /></div>
-            <div className="text-base font-bold text-foreground mb-1.5">Unit Planner</div>
-            <div className="text-sm text-muted-foreground leading-relaxed">Context-aware lesson plans that know where you are in your teaching sequence.</div>
-          </div>
-          <div onClick={() => setCurrentScreen('search')} className="bg-white rounded-xl shadow-sm border border-border p-7 cursor-pointer hover:border-primary hover:shadow-md transition-all hover:-translate-y-0.5 group" data-testid="card-generate-resource">
-            <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><Compass className="w-6 h-6" /></div>
-            <div className="text-base font-bold text-foreground mb-1.5">Generate Resource</div>
-            <div className="text-sm text-muted-foreground leading-relaxed">Search for curriculum-aligned materials, lesson plans, and worksheets tailored to your students.</div>
-          </div>
-          <div onClick={() => setCurrentScreen('semester')} className="bg-white rounded-xl shadow-sm border border-border p-7 cursor-pointer hover:border-primary hover:shadow-md transition-all hover:-translate-y-0.5 group" data-testid="card-semester">
-            <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><CalendarDays className="w-6 h-6" /></div>
-            <div className="text-base font-bold text-foreground mb-1.5">Semester Planner</div>
-            <div className="text-sm text-muted-foreground leading-relaxed">Build a full-semester curriculum overview with AI, click any week to explore resources.</div>
-          </div>
-        </div>
-
-        <div className="mb-7">
-          <div className="flex items-center gap-2 mb-3">
-            <MapPin className="w-4 h-4 text-primary" />
-            <span className="text-sm font-semibold text-foreground">This Week in Your Area</span>
-            {feedResult && <span className="text-[11px] text-muted-foreground ml-1">📍 {feedResult.localContext.suburb} · {feedResult.weather.temp}°C {feedResult.weather.description}</span>}
-            {isFeedLoading && <span className="text-[11px] text-muted-foreground animate-pulse ml-1">📍 Detecting your area...</span>}
-          </div>
-          {isFeedLoading && (
-            <div className="grid grid-cols-3 gap-4">{[0,1,2].map(i => <div key={i} className="bg-white rounded-xl border border-border p-5 animate-pulse"><div className="h-4 bg-slate-100 rounded w-2/3 mb-3"></div><div className="h-3 bg-slate-100 rounded w-full mb-2"></div><div className="h-3 bg-slate-100 rounded w-4/5"></div></div>)}</div>
-          )}
-          {!isFeedLoading && feedResult && (
-            <div className="grid grid-cols-3 gap-4">
-              {feedResult.feedItems.map((item, i) => {
-                const typeColorMap: Record<string, string> = { weather: "bg-sky-50 text-sky-700", local_history: "bg-amber-50 text-amber-700", environment: "bg-green-50 text-green-700", community: "bg-purple-50 text-purple-700" };
-                return (
-                  <div key={i} className="bg-white rounded-xl shadow-sm border border-border p-5 flex flex-col gap-3 hover:shadow-md hover:border-teal-200 transition-all" data-testid={`feed-card-${i}`}>
-                    <div className="flex items-center gap-2"><span className="text-2xl">{item.icon}</span><span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${typeColorMap[item.type] ?? "bg-slate-50 text-slate-600"}`}>{item.type.replace("_", " ")}</span></div>
-                    <div className="text-[14px] font-bold text-foreground leading-snug">{item.headline}</div>
-                    <div className="text-[13px] text-slate-600 leading-relaxed flex-1">{item.teachingAngle}</div>
-                    <div className="text-[11px] font-semibold text-primary bg-teal-50 px-2.5 py-1 rounded-full w-fit">{item.curriculumLink}</div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {!isFeedLoading && !feedResult && (
-            <div className="grid grid-cols-3 gap-4 opacity-50">{['🌦','🗺','🌿'].map((icon, i) => <div key={i} className="bg-white rounded-xl border border-border p-5 text-center text-slate-400 text-sm"><div className="text-2xl mb-2">{icon}</div><div>Enter your postcode to see local teaching opportunities</div></div>)}</div>
-          )}
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
-          <div className="px-6 py-4 border-b border-border text-sm font-semibold text-foreground">Recent Resources</div>
-          <div className="divide-y divide-border">
-            {(recentResources || []).map((resource, i) => (
-              <div key={resource.id} className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] px-6 py-3.5 items-center text-sm hover:bg-slate-50 transition-colors" data-testid={`recent-resource-${i}`}>
-                <div className="font-medium text-foreground">{resource.title}</div>
-                <div className="text-muted-foreground">{resource.subject}</div>
-                <div className="text-muted-foreground">{resource.yearLevel}</div>
-                <div className="text-muted-foreground">{resource.alignmentScore}% Match</div>
-                <span className="bg-green-100 text-green-700 text-[11px] font-semibold px-2.5 py-1 rounded-full">Verified</span>
+          {/* ── CTA shortcuts ────────────────────────────────────── */}
+          <div className="grid grid-cols-3 gap-3 mb-7">
+            {[
+              { icon: <BookOpen className="w-4 h-4" />, label: "Unit Planner", desc: "Plan a full teaching sequence", screen: 'unit-planner' as Screen, color: "text-purple-600 bg-purple-50" },
+              { icon: <Compass className="w-4 h-4" />, label: "New Resource", desc: "Find curriculum-aligned materials", screen: 'search' as Screen, color: "text-primary bg-teal-50" },
+              { icon: <CalendarDays className="w-4 h-4" />, label: "Semester Plan", desc: "Map your whole term with AI", screen: 'semester' as Screen, color: "text-amber-600 bg-amber-50" },
+            ].map(card => (
+              <div key={card.label} onClick={() => setCurrentScreen(card.screen)} className="bg-white rounded-xl border border-border px-4 py-3.5 cursor-pointer hover:border-primary hover:shadow-sm transition-all flex items-center gap-3 group" data-testid={`card-${card.label.replace(/\s+/g, '-').toLowerCase()}`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${card.color} group-hover:scale-110 transition-transform`}>{card.icon}</div>
+                <div>
+                  <div className="text-[13px] font-bold text-foreground">{card.label}</div>
+                  <div className="text-[11px] text-slate-400 leading-snug mt-0.5">{card.desc}</div>
+                </div>
               </div>
             ))}
           </div>
+
+          {/* ── My Classes chips ─────────────────────────────────── */}
+          <div className="mb-7">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5">My Classes</div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {myClasses.map(cls => (
+                <div key={cls.id} className={`flex items-center gap-1.5 rounded-full text-[12px] font-semibold px-3 py-1.5 cursor-pointer border transition-all group ${selectedClassId === cls.id ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-slate-700 border-border hover:border-primary hover:text-primary'}`} onClick={() => handleSelectClass(cls)} data-testid={`class-chip-${cls.code}`}>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${selectedClassId === cls.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>{cls.code}</span>
+                  {cls.name}
+                  <button onClick={e => { e.stopPropagation(); handleRemoveClass(cls.id); }} className={`ml-0.5 border-none bg-transparent cursor-pointer p-0 opacity-0 group-hover:opacity-100 transition-opacity ${selectedClassId === cls.id ? 'text-white/70 hover:text-white' : 'text-slate-400 hover:text-slate-700'}`} aria-label={`Remove ${cls.name}`}><X className="w-3 h-3" /></button>
+                </div>
+              ))}
+              {showAddClassForm ? (
+                <div className="bg-white border border-primary rounded-xl p-3 flex flex-col gap-2 shadow-sm w-60">
+                  <input autoFocus value={newClassName} onChange={e => setNewClassName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddClass()} placeholder="Class name (e.g. 9S History)" className="text-[12px] border border-border rounded-md px-2.5 py-1.5 outline-none focus:border-primary" />
+                  <div className="flex gap-1.5">
+                    <select value={newClassYearLevel} onChange={e => setNewClassYearLevel(e.target.value)} className="flex-1 text-[11px] border border-border rounded-md px-1.5 py-1 outline-none focus:border-primary bg-white">
+                      {['Year 7','Year 8','Year 9','Year 10','Year 11','Year 12'].map(y => <option key={y}>{y}</option>)}
+                    </select>
+                    <select value={newClassSubject} onChange={e => setNewClassSubject(e.target.value)} className="flex-1 text-[11px] border border-border rounded-md px-1.5 py-1 outline-none focus:border-primary bg-white">
+                      {['History','English','Mathematics','Science','Geography','Economics','Business','Legal Studies','Drama','Visual Arts','Music','PDHPE'].map(s => <option key={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <button onClick={handleAddClass} className="flex-1 bg-primary text-white text-[11px] font-semibold py-1.5 rounded-md border-none cursor-pointer hover:bg-teal-700">Add</button>
+                    <button onClick={() => { setShowAddClassForm(false); setNewClassName(''); }} className="flex-1 bg-slate-100 text-slate-600 text-[11px] font-semibold py-1.5 rounded-md border-none cursor-pointer hover:bg-slate-200">Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setShowAddClassForm(true)} className="flex items-center gap-1 bg-white border border-dashed border-slate-300 hover:border-primary text-slate-400 hover:text-primary rounded-full text-[12px] font-semibold px-3 py-1.5 cursor-pointer transition-colors border-none" data-testid="btn-add-class">
+                  <Plus className="w-3.5 h-3.5" /> Add class
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* ── This Week feed ───────────────────────────────────── */}
+          <div className="mb-7">
+            <div className="flex items-center gap-2 mb-3">
+              <MapPin className="w-3.5 h-3.5 text-primary" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">This Week in Your Area</span>
+              {feedResult && <span className="text-[11px] text-muted-foreground ml-auto">📍 {feedResult.localContext.suburb} · {feedResult.weather.temp}°C</span>}
+              {isFeedLoading && <span className="text-[11px] text-muted-foreground animate-pulse ml-auto">📍 Detecting...</span>}
+            </div>
+            {isFeedLoading && (
+              <div className="grid grid-cols-3 gap-3">{[0,1,2].map(i => <div key={i} className="bg-white rounded-xl border border-border p-4 animate-pulse"><div className="h-3.5 bg-slate-100 rounded w-2/3 mb-2"></div><div className="h-2.5 bg-slate-100 rounded w-full mb-1.5"></div><div className="h-2.5 bg-slate-100 rounded w-4/5"></div></div>)}</div>
+            )}
+            {!isFeedLoading && feedResult && (
+              <div className="grid grid-cols-3 gap-3">
+                {feedResult.feedItems.map((item, i) => {
+                  const typeColorMap: Record<string, string> = { weather: "bg-sky-50 text-sky-700", local_history: "bg-amber-50 text-amber-700", environment: "bg-green-50 text-green-700", community: "bg-purple-50 text-purple-700" };
+                  const isExpanded = expandedFeedIdx.has(i);
+                  return (
+                    <div key={i} className="bg-white rounded-xl border border-border hover:border-slate-300 transition-all cursor-pointer" onClick={() => toggleFeedItem(i)} data-testid={`feed-card-${i}`}>
+                      <div className="p-4">
+                        <div className="flex items-start gap-2 mb-2">
+                          <span className="text-xl mt-0.5">{item.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full mb-1.5 inline-block ${typeColorMap[item.type] ?? "bg-slate-50 text-slate-600"}`}>{item.type.replace("_", " ")}</span>
+                            <div className="text-[13px] font-bold text-foreground leading-snug">{item.headline}</div>
+                          </div>
+                          <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 mt-1 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                        </div>
+                        <div className="text-[11px] font-semibold text-primary bg-teal-50 px-2 py-0.5 rounded-full w-fit">{item.curriculumLink}</div>
+                      </div>
+                      {isExpanded && (
+                        <div className="px-4 pb-4 border-t border-border pt-3">
+                          <div className="text-[12px] text-slate-600 leading-relaxed">{item.teachingAngle}</div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {!isFeedLoading && !feedResult && (
+              <div className="grid grid-cols-3 gap-3 opacity-40">{['🌦','🗺','🌿'].map((icon, i) => <div key={i} className="bg-white rounded-xl border border-border p-4 text-center text-slate-400 text-[12px]"><div className="text-xl mb-1.5">{icon}</div>Local teaching opportunities</div>)}</div>
+            )}
+          </div>
+
+          {/* ── Recent Resources ─────────────────────────────────── */}
+          <div className="bg-white rounded-xl border border-border overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-border text-[12px] font-bold uppercase tracking-wider text-slate-400">Recent Resources</div>
+            <div className="divide-y divide-border">
+              {(recentResources || []).map((resource, i) => (
+                <div key={resource.id} className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] px-5 py-3 items-center text-[13px] hover:bg-slate-50 transition-colors" data-testid={`recent-resource-${i}`}>
+                  <div className="font-medium text-foreground truncate">{resource.title}</div>
+                  <div className="text-slate-400">{resource.subject}</div>
+                  <div className="text-slate-400">{resource.yearLevel}</div>
+                  <div className="text-slate-400">{resource.alignmentScore}% match</div>
+                  <span className="bg-green-100 text-green-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">Verified</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderInputForm = () => {
     if (isSearching) {

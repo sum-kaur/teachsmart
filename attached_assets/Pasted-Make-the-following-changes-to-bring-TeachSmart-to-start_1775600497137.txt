@@ -1,0 +1,24 @@
+Make the following changes to bring TeachSmart to startup production quality. Do all of these in one pass.
+
+New Dashboard layout:
+1. Remove the stats row completely
+The four stat cards (47 searches, 23 resources, 89%, Science) are hardcoded placeholders that make the app look unfinished. Remove them entirely. Replace with a single warm welcome hero section:
+Good morning, Sarah                    [small grey text]
+What are you teaching today?           [large heading, DM Serif Display]
+Below the heading show a single prominent search bar — full width, with a microphone icon on the right and a teal search button. Placeholder text: "e.g. Year 9 Climate Change, Year 8 Shakespeare, Year 10 Algebra..." This is the primary action. Everything else is secondary.
+Add a global button on side which would give the same language switch opportunities as in settings. Make sure the voice input language switching works. When a user selects a language in Settings or from the globe icon, the Web Speech API recognition object must be reinitialised with the correct language code before starting. Find every place where new webkitSpeechRecognition() or new SpeechRecognition() is created and ensure recognition.lang is set from the current language preference stored in state or localStorage immediately before recognition.start() is called. Test that selecting Hindi (hi-IN) actually transcribes Hindi speech, not English.
+2. Redesign the three CTA cards
+Keep Unit Planner, Generate Resource, Semester Planner but make them smaller, equal width, and horizontally aligned in a single row. Each card should be minimal: just a small teal icon, a bold 2-word label, and one short sentence. No long descriptions. Make them feel like quick shortcuts, not feature explanations.
+3. Move My Classes above the feed
+Show My Classes as a horizontal scrollable row of compact class chips directly below the CTA cards. Each chip shows the class code badge (9S, 10B, 8S) and class name. A small + chip at the end to add a new class. Clicking any chip pre-fills the search bar above with that class's details and shows a teal "For [Class Name]" tag on the search bar. This is the smoothest possible connection between classes and search.
+4. Clean up This Week in Your Area
+Keep the three teaching opportunity cards but make them wider and less cramped. Show only the headline and curriculum link on each card by default. The full text expands on click. This makes the feed feel scannable rather than overwhelming.
+5. Clean up Recent Resources
+Keep the recent resources table but move it to the bottom of the page as a secondary element. 
+6. Fix the language flags
+Move the language selector from the footer into the Settings page only. Remove it from the sidebar footer entirely. Replace the footer with just the teacher avatar, name, and role — clean and professional.
+7. Sidebar — reduce to 6 items maximum
+Consolidate the sidebar to: Dashboard, My Classes, New Resource, My Library, Semester Plan, Settings. 
+8. Overall visual tone
+The dashboard should feel like a calm, professional tool that respects the teacher's time. Use more white space. Make the typography hierarchy clearer — one large heading, supporting text 30% smaller, everything else secondary. The teal should appear only on interactive elements and highlights, not decoratively everywhere.
+Keep all existing functionality. Only change layout, hierarchy, and visual presentation.
