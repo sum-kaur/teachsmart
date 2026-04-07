@@ -267,36 +267,42 @@ export default function Home() {
       setLessonPlan(output);
       setTeacherNotes(`Ensure students have the background knowledge needed for ${searchParams.topic} before beginning. Check for prior understanding using a brief entry task.`);
     } catch {
-      const o = alignmentResult.outcomes[0] ?? { id: "AC9-UNKNOWN", description: `Core ${searchParams.subject} outcome` };
-      setLessonPlan({
-        resourceType: 'Lesson Plan',
-        outcomeCode: o.id,
-        outcomeDescription: o.description,
-        successCriteria: [
-          `Identify and explain the key concepts of ${searchParams.topic}`,
-          `Apply knowledge to an Australian context`,
-          `Evaluate evidence and form a reasoned conclusion`,
-        ],
-        objective: `Students explore ${searchParams.topic} using Australian curriculum-aligned resources.`,
-        duration: "60 minutes",
-        activities: [
-          { label: "Hook (5 min)", text: `Engage students with a thought-provoking question about ${searchParams.topic}.` },
-          { label: "Explore (20 min)", text: "Students investigate core concepts through guided inquiry." },
-          { label: "Analyse (15 min)", text: "Groups discuss findings, connecting concepts to Australian contexts." },
-          { label: "Evaluate (15 min)", text: "Class discussion evaluates evidence and forms conclusions." },
-          { label: "Reflect (5 min)", text: "Exit ticket: one key learning and one remaining question." },
-        ],
-        localExample: { title: "Australian Context", body: `Connect ${searchParams.topic} to examples relevant to ${searchParams.state} students.` },
-        questions: [
-          { q: `Define the key concepts of ${searchParams.topic}.`, difficulty: "foundation" },
-          { q: `Explain two ways ${searchParams.topic} is relevant to Australians.`, difficulty: "foundation" },
-          { q: `Analyse the evidence and explain how it supports understanding of ${searchParams.topic}.`, difficulty: "core" },
-          { q: `Compare different perspectives on ${searchParams.topic}.`, difficulty: "core" },
-          { q: `Critically evaluate the significance of ${searchParams.topic} for contemporary Australia.`, difficulty: "extension" },
-        ],
-        usedFallback: true,
-      });
-      setTeacherNotes(`Ensure students understand the key concepts of ${searchParams.topic} before starting.`);
+      try {
+        const outcomes = alignmentResult?.outcomes ?? [];
+        const o = outcomes[0] ?? { id: "AC9-UNKNOWN", description: `Core ${searchParams.subject} outcome` };
+        const t = searchParams.topic || 'this topic';
+        setLessonPlan({
+          resourceType: 'Lesson Plan' as const,
+          outcomeCode: o.id,
+          outcomeDescription: o.description,
+          successCriteria: [
+            `Identify and explain the key concepts of ${t}`,
+            `Apply knowledge to an Australian context`,
+            `Evaluate evidence and form a reasoned conclusion`,
+          ],
+          objective: `Students explore ${t} using Australian curriculum-aligned resources.`,
+          duration: "60 minutes",
+          activities: [
+            { label: "Hook (5 min)", text: `Engage students with a thought-provoking question about ${t}.` },
+            { label: "Explore (20 min)", text: "Students investigate core concepts through guided inquiry." },
+            { label: "Analyse (15 min)", text: "Groups discuss findings, connecting concepts to Australian contexts." },
+            { label: "Evaluate (15 min)", text: "Class discussion evaluates evidence and forms conclusions." },
+            { label: "Reflect (5 min)", text: "Exit ticket: one key learning and one remaining question." },
+          ],
+          localExample: { title: "Australian Context", body: `Connect ${t} to examples relevant to ${searchParams.state || 'Australian'} students.` },
+          questions: [
+            { q: `Define the key concepts of ${t}.`, difficulty: "foundation" },
+            { q: `Explain two ways ${t} is relevant to Australians.`, difficulty: "foundation" },
+            { q: `Analyse the evidence and explain how it supports understanding of ${t}.`, difficulty: "core" },
+            { q: `Compare different perspectives on ${t}.`, difficulty: "core" },
+            { q: `Critically evaluate the significance of ${t} for contemporary Australia.`, difficulty: "extension" },
+          ],
+          usedFallback: true,
+        });
+        setTeacherNotes(`Ensure students understand the key concepts of ${t} before starting.`);
+      } catch {
+        // If even the fallback fails, keep lessonPlan null — renderLessonPlan will show a retry prompt
+      }
     } finally { setIsGeneratingLesson(false); }
   };
 
@@ -1166,7 +1172,32 @@ export default function Home() {
       );
     }
 
-    if (!lessonPlan) return null;
+    if (!lessonPlan) {
+      return (
+        <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
+          {renderTopbar("Lesson Plan", "")}
+          <div className="flex-1 flex flex-col items-center justify-center gap-5 min-h-[60vh]">
+            <div className="text-4xl">⚠️</div>
+            <div className="text-[17px] font-semibold text-foreground">Couldn't load the lesson plan</div>
+            <div className="text-[13px] text-slate-500 max-w-sm text-center">The AI service may be temporarily unavailable. You can go back and try again, or return to your search results.</div>
+            <div className="flex gap-3 mt-2">
+              <button
+                onClick={() => setCurrentScreen('results')}
+                className="bg-primary text-white border-none px-5 py-2.5 rounded-xl text-[13px] font-semibold cursor-pointer hover:bg-teal-700"
+              >
+                ← Back to results
+              </button>
+              <button
+                onClick={() => setCurrentScreen('dashboard')}
+                className="bg-slate-100 text-slate-600 border-none px-5 py-2.5 rounded-xl text-[13px] font-semibold cursor-pointer hover:bg-slate-200"
+              >
+                Go to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
     const resource = selectedResource;
     const topbarLabel = lessonPlan.resourceType === 'Lesson Plan' ? 'Lesson Plan Editor' : lessonPlan.resourceType === 'Worksheet' ? 'Worksheet' : lessonPlan.resourceType === 'Discussion' ? 'Discussion Guide' : 'Assessment Task';
 
