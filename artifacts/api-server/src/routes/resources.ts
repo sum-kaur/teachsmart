@@ -254,6 +254,11 @@ Return ONLY valid JSON, no markdown:
       };
     });
 
+    if (reliableResources.length === 0) {
+      // AI returned no resources — use topic-specific static fallback
+      throw new Error("AI returned empty resources list");
+    }
+
     res.json({ resources: enrichWithTrust(reliableResources), usedFallback: false, usedWebSearch: false });
 
   } catch (err) {
