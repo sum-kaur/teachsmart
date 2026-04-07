@@ -10,7 +10,7 @@ export type DemoScenario = {
   };
   resources: {
     resources: {
-      id: string; title: string; source: string; type: string;
+      id: string; title: string; url?: string; source: string; type: string;
       description: string; alignmentScore: number; safetyRating: string;
       biasFlag: string; localContextTags: string[]; outcomeIds: string[];
       whyThisResource: string;
@@ -44,6 +44,7 @@ const DEMO_SCENARIOS: DemoScenario[] = [
       resources: [
         {
           id: "csiro-climate-evidence", title: "Australia's Changing Climate — Evidence and Projections",
+          url: "https://www.csiro.au/en/research/environmental-impacts/climate-change/climate-change-qa",
           source: "CSIRO", type: "Lesson Plan", alignmentScore: 96,
           safetyRating: "verified", biasFlag: "low",
           description: "Comprehensive CSIRO resource using real datasets to investigate temperature records, sea-level rise, and extreme weather events across Australia over 100 years.",
@@ -53,6 +54,7 @@ const DEMO_SCENARIOS: DemoScenario[] = [
         },
         {
           id: "abc-climate-backyard", title: "Climate Science in Your Backyard",
+          url: "https://education.abc.net.au/home#!/media/2585870/climate-science",
           source: "ABC Education", type: "Interactive", alignmentScore: 89,
           safetyRating: "verified", biasFlag: "low",
           description: "Video series and interactive activities connecting local weather observations to broader climate patterns across different Australian ecosystems — from the Barrier Reef to the Murray-Darling Basin.",
@@ -62,6 +64,7 @@ const DEMO_SCENARIOS: DemoScenario[] = [
         },
         {
           id: "bom-climate-explorer", title: "Climate Data Explorer",
+          url: "http://www.bom.gov.au/climate/data/",
           source: "Bureau of Meteorology", type: "Assessment", alignmentScore: 83,
           safetyRating: "verified", biasFlag: "low",
           description: "Interactive data portal with 100+ years of BOM weather station records. Students conduct genuine scientific inquiry using the same tools as professional meteorologists.",
@@ -113,6 +116,7 @@ const DEMO_SCENARIOS: DemoScenario[] = [
       resources: [
         {
           id: "khan-algebra-nsw", title: "Algebraic Reasoning — NSW Curriculum Aligned",
+          url: "https://www.khanacademy.org/math/algebra",
           source: "Khan Academy", type: "Interactive", alignmentScore: 92,
           safetyRating: "verified", biasFlag: "low",
           description: "Adaptive practice problems for Year 9 algebra covering linear equations, factorisation, and algebraic fractions, with immediate feedback and hints linked to NSW curriculum outcomes.",
@@ -122,6 +126,7 @@ const DEMO_SCENARIOS: DemoScenario[] = [
         },
         {
           id: "amsi-algebra-tasks", title: "Algebraic Thinking Problem Tasks",
+          url: "https://calculate.org.au/2019/09/13/algebraic-thinking/",
           source: "AMSI — Australian Mathematical Sciences Institute", type: "Worksheet", alignmentScore: 88,
           safetyRating: "verified", biasFlag: "low",
           description: "Rich problem-solving tasks from AMSI that connect algebraic thinking to real-world Australian contexts, including financial planning and sports statistics.",
@@ -131,6 +136,7 @@ const DEMO_SCENARIOS: DemoScenario[] = [
         },
         {
           id: "desmos-linear", title: "Desmos — Graphing Linear Relationships",
+          url: "https://teacher.desmos.com/activitybuilder/custom/5d99b7e7aa12e4494f3e028c",
           source: "Desmos Education", type: "Interactive", alignmentScore: 85,
           safetyRating: "verified", biasFlag: "low",
           description: "Free interactive graphing tool for exploring linear and quadratic relationships visually, with structured activity builder lessons aligned to Stage 5 outcomes.",
@@ -182,6 +188,7 @@ const DEMO_SCENARIOS: DemoScenario[] = [
       resources: [
         {
           id: "shakespeare-globe", title: "Shakespeare's Globe — Romeo and Juliet Teaching Resources",
+          url: "https://www.shakespearesglobe.com/learn/digital-resources/",
           source: "Shakespeare's Globe Theatre (UK)", type: "Lesson Plan", alignmentScore: 89,
           safetyRating: "verified", biasFlag: "low",
           description: "Performance-based teaching resources from Shakespeare's own theatre, including scene analysis activities, character mapping, and language investigation tasks that treat the text as a script written to be performed.",
@@ -191,6 +198,7 @@ const DEMO_SCENARIOS: DemoScenario[] = [
         },
         {
           id: "scootle-shakespeare", title: "Shakespeare for Australian Students — Digital Text Pack",
+          url: "https://www.scootle.edu.au/ec/search?q=romeo+and+juliet&v=text",
           source: "Scootle — Education Services Australia", type: "Interactive", alignmentScore: 85,
           safetyRating: "verified", biasFlag: "low",
           description: "Australian Curriculum-aligned digital resources including annotated text, video performances, and guided close-reading activities contextualised for Australian students.",
@@ -200,6 +208,7 @@ const DEMO_SCENARIOS: DemoScenario[] = [
         },
         {
           id: "no-fear-shakespeare", title: "No Fear Shakespeare — Romeo and Juliet",
+          url: "https://www.sparknotes.com/shakespeare/romeoandjuliet/full-text/",
           source: "SparkNotes (reviewed for bias)", type: "Worksheet", alignmentScore: 78,
           safetyRating: "verified", biasFlag: "low",
           description: "Side-by-side modern English translation for comprehension scaffolding, used alongside the original text to support diverse learners while maintaining engagement with Shakespeare's language.",
@@ -251,6 +260,7 @@ const DEMO_SCENARIOS: DemoScenario[] = [
       resources: [
         {
           id: "aiatsis-rights-nsw", title: "Road to Reconciliation — 1967 Referendum and the NSW Freedom Rides",
+          url: "https://aiatsis.gov.au/explore/1967-referendum",
           source: "AIATSIS — Australian Institute of Aboriginal and Torres Strait Islander Studies", type: "Lesson Plan", alignmentScore: 97,
           safetyRating: "verified", biasFlag: "low",
           description: "Primary source collection examining the 1967 Referendum, the 1965 NSW Freedom Rides led by Charles Perkins, and the ongoing struggle for Aboriginal and Torres Strait Islander rights. Includes oral history recordings from Darug and Wiradjuri Elders and archival photographs from the Parramatta and Western Sydney region.",
@@ -260,6 +270,7 @@ const DEMO_SCENARIOS: DemoScenario[] = [
         },
         {
           id: "national-museum-rights-nsw", title: "Defining Moments — Rights and Freedoms Digital Classroom",
+          url: "https://www.nma.gov.au/defining-moments",
           source: "National Museum of Australia", type: "Interactive", alignmentScore: 90,
           safetyRating: "verified", biasFlag: "low",
           description: "Interactive digital exhibition covering the 1967 Referendum, the Mabo decision, the Stolen Generations, and the National Apology — with primary sources, student inquiry tasks, and connections to the NSW Stage 5 History syllabus.",
@@ -269,6 +280,7 @@ const DEMO_SCENARIOS: DemoScenario[] = [
         },
         {
           id: "amnesty-udhr-nsw", title: "Human Rights Education Resources — UDHR and Australian Context",
+          url: "https://www.amnesty.org.au/human-rights-education/",
           source: "Amnesty International Australia", type: "Assessment", alignmentScore: 85,
           safetyRating: "verified", biasFlag: "low",
           description: "Case-study resources connecting the 1948 Universal Declaration of Human Rights to contemporary Australian contexts — including Indigenous land rights, asylum seeker policy, and LGBTIQ+ equality. Includes structured essay scaffold for HSC-style extended response.",

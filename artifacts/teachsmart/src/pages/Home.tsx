@@ -3,7 +3,7 @@ import {
   BookOpen, Compass, Search, FileText, Download, Edit, ArrowLeft,
   CheckCircle, Home as HomeIcon, FileStack, BarChart3, MapPin,
   CalendarDays, Settings2, Globe, ChevronDown, ChevronUp,
-  Presentation, Library as LibraryIcon, Bookmark, BookmarkCheck, Loader2, Sparkles
+  Presentation, Library as LibraryIcon, Bookmark, BookmarkCheck, Loader2, Sparkles, ExternalLink
 } from "lucide-react";
 import { useGetDashboardStats, useGetRecentResources, useGetFeed } from "@workspace/api-client-react";
 import VoiceMic from "../components/VoiceMic";
@@ -23,7 +23,7 @@ type AlignmentResult = {
 };
 
 type Resource = {
-  id: string; title: string; source: string; type: string; description: string;
+  id: string; title: string; url?: string; source: string; type: string; description: string;
   alignmentScore: number; safetyRating: string; biasFlag: string;
   localContextTags: string[]; outcomeIds: string[]; whyThisResource: string;
   trustScorecard?: import("../components/TrustScorecard").TrustScorecardData;
@@ -772,6 +772,17 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 shrink-0">
+                  {resource.url && (
+                    <a
+                      href={resource.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-colors no-underline"
+                      aria-label={`Open ${resource.title} in new tab`}
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" /> Open resource
+                    </a>
+                  )}
                   <button
                     onClick={() => handleSaveResource(resource)}
                     disabled={savedResourceIds.has(resource.id)}
