@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { QRCodeSVG } from "qrcode.react";
+import LZString from "lz-string";
 import {
   BookOpen, Compass, Search, FileText, Download, Edit, ArrowLeft,
   CheckCircle, Home as HomeIcon, FileStack, BarChart3, MapPin,
@@ -97,6 +99,7 @@ const EMPTY_UNIT: UnitContext = { unitTitle: '', textbook: '', totalLessons: '',
 export default function Home() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [showQR, setShowQR] = useState(false);
 
   useEffect(() => {
     const onOnline = () => setIsOffline(false);
@@ -113,9 +116,34 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    // Handle QR share links: #share?data=...
+    const hash = window.location.hash;
+    if (hash.startsWith('#share?')) {
+      const params = new URLSearchParams(hash.slice('#share?'.length));
+      const data = params.get('data');
+      if (data) {
+        try {
+          const payload = JSON.parse(LZString.decompressFromEncodedURIComponent(data) ?? '{}');
+          const plan: GeneratedOutput = {
+            resourceType: payload.rType,
+            outcomeCode: payload.outcomeCode,
+            outcomeDescription: payload.outcomeDescription,
+            successCriteria: payload.successCriteria,
+            usedFallback: false,
+            ...payload,
+          } as GeneratedOutput;
+          setLessonPlan(plan);
+          setCurrentScreen('lesson');
+          window.history.replaceState(null, '', '#lesson');
+          return;
+        } catch { /* invalid share link — fall through to dashboard */ }
+      }
+    }
     window.history.replaceState(null, '', '#dashboard');
     const onHashChange = () => {
-      const screen = (window.location.hash.slice(1) || 'dashboard') as Screen;
+      const hash = window.location.hash;
+      if (hash.startsWith('#share?')) return; // handled above on load
+      const screen = (hash.slice(1) || 'dashboard') as Screen;
       setCurrentScreen(screen as Screen);
     };
     window.addEventListener('hashchange', onHashChange);
@@ -1141,6 +1169,67 @@ export default function Home() {
     </div>
   );
 
+  const buildShareUrl = () => {
+    if (!lessonPlan) return '';
+    const payload = {
+      rType: lessonPlan.resourceType,
+      title: `${searchParams.topic} — ${searchParams.yearLevel} ${searchParams.subject}`,
+      outcomeCode: lessonPlan.outcomeCode,
+      outcomeDescription: lessonPlan.outcomeDescription,
+      successCriteria: lessonPlan.successCriteria,
+      ...(lessonPlan.resourceType === 'Lesson Plan' && {
+        objective: (lessonPlan as LessonPlan).objective,
+        duration: (lessonPlan as LessonPlan).duration,
+        activities: (lessonPlan as LessonPlan).activities,
+        localExample: (lessonPlan as LessonPlan).localExample,
+        questions: (lessonPlan as LessonPlan).questions,
+      }),
+      ...(lessonPlan.resourceType === 'Worksheet' && {
+        sections: (lessonPlan as WorksheetOutput).sections,
+        extensionTask: (lessonPlan as WorksheetOutput).extensionTask,
+        wordBank: (lessonPlan as WorksheetOutput).wordBank,
+      }),
+      ...(lessonPlan.resourceType === 'Assessment' && {
+        taskType: (lessonPlan as AssessmentOutput).taskType,
+        duration: (lessonPlan as AssessmentOutput).duration,
+        totalMarks: (lessonPlan as AssessmentOutput).totalMarks,
+        studentSections: (lessonPlan as AssessmentOutput).studentSections,
+        markingCriteria: (lessonPlan as AssessmentOutput).markingCriteria,
+      }),
+    };
+    const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(payload));
+    return `${window.location.origin}/#share?data=${compressed}`;
+  };
+
+  const renderQRModal = () => {
+    if (!showQR) return null;
+    const url = buildShareUrl();
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowQR(false)}>
+        <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-sm w-full mx-4 flex flex-col items-center gap-5" onClick={e => e.stopPropagation()}>
+          <div className="text-[18px] font-serif font-semibold text-foreground">Share via QR Code</div>
+          <p className="text-[13px] text-slate-500 text-center">Colleague scans this with their phone to instantly load this {lessonPlan?.resourceType?.toLowerCase()}.</p>
+          <div className="p-3 border-2 border-border rounded-xl">
+            <QRCodeSVG value={url} size={200} includeMargin={false} />
+          </div>
+          <div className="w-full">
+            <div className="text-[11px] text-slate-400 mb-1 text-center">Or copy the link</div>
+            <div className="flex gap-2">
+              <input readOnly value={url} className="flex-1 text-[11px] border border-border rounded-lg px-3 py-2 text-slate-600 bg-slate-50 outline-none" />
+              <button
+                onClick={() => { navigator.clipboard.writeText(url); }}
+                className="bg-primary text-white text-[12px] font-semibold px-3 py-2 rounded-lg border-none cursor-pointer hover:bg-teal-700 whitespace-nowrap"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+          <button onClick={() => setShowQR(false)} className="text-[13px] text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer">Close</button>
+        </div>
+      </div>
+    );
+  };
+
   const renderOutputActions = () => {
     const lessonTitle = `${searchParams.topic} — ${searchParams.yearLevel} ${searchParams.subject}`;
     return (
@@ -1156,6 +1245,18 @@ export default function Home() {
             aria-label={lessonSaved ? "Lesson saved" : "Save lesson to library"}
           >
             {lessonSaved ? <><BookmarkCheck className="w-4 h-4" /> {t('saved')}</> : <><Bookmark className="w-4 h-4" /> {t('save')}</>}
+          </button>
+          <button
+            onClick={() => setShowQR(true)}
+            className="flex items-center gap-1.5 bg-white text-slate-600 border border-border px-4 py-2 rounded-lg text-[13px] font-semibold hover:border-primary hover:text-primary transition-colors cursor-pointer"
+            title="Share via QR Code"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+              <rect x="5" y="5" width="3" height="3"/><rect x="16" y="5" width="3" height="3"/><rect x="5" y="16" width="3" height="3"/>
+              <path d="M14 14h3v3h-3zM17 17h3v3h-3zM14 20h3"/>
+            </svg>
+            Share QR
           </button>
           <button
             onClick={handleGenerateSlides}
@@ -1582,6 +1683,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans">
+      {renderQRModal()}
       {isOffline && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-amber-500 text-white text-[13px] font-medium text-center py-2 px-4">
           You are offline — showing cached content. New searches will resume when connected.
