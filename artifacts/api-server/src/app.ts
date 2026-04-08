@@ -40,7 +40,7 @@ const frontendDist = join(__dirname, "../../teachsmart/dist/public");
 if (existsSync(frontendDist)) {
   app.use(express.static(frontendDist));
   // SPA fallback — all non-API routes return index.html
-  app.get("*", (_req, res) => {
+  app.get("/*splat", (_req, res) => {
     res.sendFile(join(frontendDist, "index.html"));
   });
 }
