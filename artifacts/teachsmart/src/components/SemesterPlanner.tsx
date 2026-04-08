@@ -66,6 +66,18 @@ export default function SemesterPlanner({ subject, yearLevel, state, preferredLa
     if (editingWeek !== null) editInputRef.current?.focus();
   }, [editingWeek]);
 
+  useEffect(() => {
+    setLocalYearLevel(useMatchingYearLevel(yearLevel));
+  }, [yearLevel]);
+
+  useEffect(() => {
+    setLocalSubject(useMatchingSubject(subject));
+  }, [subject]);
+
+  useEffect(() => {
+    setLocalState(useMatchingState(state));
+  }, [state]);
+
   const generate = async () => {
     setIsGenerating(true);
     setSemesterData(null);

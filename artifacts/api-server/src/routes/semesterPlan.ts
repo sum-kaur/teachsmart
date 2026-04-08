@@ -4,20 +4,70 @@ import { groq, GROQ_MODEL } from "../lib/groq";
 const router: IRouter = Router();
 const TIMEOUT_MS = 20000;
 
-const MOCK_SEMESTER = {
-  semesterTitle: "Year 9 Science — Term 2 2025",
-  weeks: [
-    { weekNumber: 1, dateRange: "Week 1", topic: "Introduction to Earth Systems", outcomes: ["AC9S9U05"], keyActivities: ["Diagnostic assessment", "Earth systems overview", "BOM data exploration"], assessmentEvent: null, resources: ["CSIRO Education", "BOM Interactive"] },
-    { weekNumber: 2, dateRange: "Week 2", topic: "Atmosphere and Greenhouse Gases", outcomes: ["AC9S9U05", "AC9S9U07"], keyActivities: ["Greenhouse effect experiment", "CO₂ data analysis", "Modelling activity"], assessmentEvent: null, resources: ["ABC Education Climate Series", "CSIRO Data Portal"] },
-    { weekNumber: 3, dateRange: "Week 3", topic: "Evidence for Climate Change", outcomes: ["AC9S9U05", "AC9S9U07"], keyActivities: ["Ice core data activity", "Temperature record analysis", "Source evaluation"], assessmentEvent: "quiz", resources: ["BOM 100-year temperature records", "Antarctic Division"] },
-    { weekNumber: 4, dateRange: "Week 4", topic: "Australian Impacts — Oceans & Reef", outcomes: ["AC9S9U05"], keyActivities: ["Great Barrier Reef case study", "Sea level data", "Video analysis"], assessmentEvent: null, resources: ["GBRMPA Education", "CSIRO Oceans"] },
-    { weekNumber: 5, dateRange: "Week 5", topic: "Australian Impacts — Fire & Drought", outcomes: ["AC9S9U06", "AC9S9U07"], keyActivities: ["Black Summer case study", "Murray-Darling data", "Local impact investigation"], assessmentEvent: null, resources: ["AFDRS", "Murray-Darling Basin Authority"] },
-    { weekNumber: 6, dateRange: "Week 6", topic: "Human Activity & Resource Use", outcomes: ["AC9S9U06"], keyActivities: ["Carbon footprint calculation", "Resource audit", "Debate preparation"], assessmentEvent: null, resources: ["WWF Footprint Calculator", "DCCEEW"] },
-    { weekNumber: 7, dateRange: "Week 7", topic: "Mitigation Strategies & Renewables", outcomes: ["AC9S9U06", "AC9S9U07"], keyActivities: ["Renewable energy audit", "Policy research task", "Expert speaker (if available)"], assessmentEvent: null, resources: ["Clean Energy Council", "AEMO Data Dashboard"] },
-    { weekNumber: 8, dateRange: "Week 8", topic: "Revision & Examination Preparation", outcomes: ["AC9S9U05", "AC9S9U06", "AC9S9U07"], keyActivities: ["Concept mapping", "Past paper practice", "Peer teaching"], assessmentEvent: "exam", resources: ["Previous examination papers", "Study notes"] },
-  ],
-  usedFallback: true,
-};
+function yearNumber(yearLevel: string) {
+  const match = yearLevel.match(/\d+/);
+  return match ? Number(match[0]) : 9;
+}
+
+function buildFallbackSemester(
+  subject: string,
+  yearLevel: string,
+  state: string,
+  term: string | undefined,
+  totalWeeks: number,
+  weekTopics?: { weekNumber: number; topic?: string; outcomes?: string; assessmentEvent?: string }[],
+) {
+  const yr = yearNumber(yearLevel);
+  const topicPool = [
+    `Foundations of ${subject}`,
+    `${subject} concepts and vocabulary`,
+    `${state} case studies in ${subject}`,
+    `Analysing evidence in ${subject}`,
+    `Applied ${subject} investigation`,
+    `${subject} skills and methods`,
+    `Comparing perspectives in ${subject}`,
+    `${subject} revision and consolidation`,
+  ];
+
+  const overrides = new Map((weekTopics ?? []).map((week) => [week.weekNumber, week]));
+  const weeks = Array.from({ length: totalWeeks }, (_, index) => {
+    const weekNumber = index + 1;
+    const override = overrides.get(weekNumber);
+    const defaultAssessmentEvent =
+      weekNumber === Math.max(2, Math.ceil(totalWeeks / 2)) ? "quiz" :
+      weekNumber === totalWeeks ? "exam" :
+      null;
+    const assessmentEvent = override?.assessmentEvent || defaultAssessmentEvent;
+    const topic = override?.topic?.trim() || `${topicPool[index % topicPool.length]} — Week ${weekNumber}`;
+    const outcomes = override?.outcomes
+      ? override.outcomes.split(",").map((value) => value.trim()).filter(Boolean)
+      : [`AC9${subject.slice(0, 2).toUpperCase()}${Math.max(yr, 7)}-${String(weekNumber).padStart(2, "0")}`];
+
+    return {
+      weekNumber,
+      dateRange: `Week ${weekNumber}`,
+      topic,
+      outcomes,
+      keyActivities: [
+        `Explicit teaching of ${topic.toLowerCase()} concepts`,
+        `Guided class activity linked to ${yearLevel} ${subject}`,
+        `${assessmentEvent ? "Assessment preparation and review" : "Independent practice and reflection"}`,
+      ],
+      assessmentEvent,
+      resources: [
+        `${state} curriculum support materials`,
+        `Teacher-selected ${subject} source`,
+        `Australian classroom example or case study`,
+      ],
+    };
+  });
+
+  return {
+    semesterTitle: `${yearLevel} ${subject} — ${term || "Semester plan"} · ${state}`,
+    weeks,
+    usedFallback: true,
+  };
+}
 
 router.post("/semester-plan", async (req, res): Promise<void> => {
   const body = req.body as {
@@ -81,7 +131,7 @@ Generate exactly ${totalWeeks} weeks. Mix content delivery (green), revision (am
   } catch (err) {
     clearTimeout(timeout);
     req.log.warn({ err }, "AI semester plan call failed, using fallback");
-    res.json(MOCK_SEMESTER);
+    res.json(buildFallbackSemester(subject, yearLevel, state, term, totalWeeks, weekTopics));
   }
 });
 
