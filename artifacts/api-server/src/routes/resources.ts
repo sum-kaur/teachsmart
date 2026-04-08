@@ -323,16 +323,19 @@ router.post("/resources", async (req, res): Promise<void> => {
     ? `\nIMPORTANT: Only return resources of type "${resourceTypeFilter}". Every result must have "type": "${resourceTypeFilter}".`
     : "";
 
+  async function loadAiSuggestions() {
+    return enrichWithTrust(await fetchAiSuggestions());
+  }
+
   const overallTimeout = setTimeout(() => {
     if (!res.headersSent) {
       res.status(504).json({ error: "Search timed out" });
     }
   }, TIMEOUT_MS);
 
-  // Helper: fetch AI suggestions from Groq (runs in parallel, never blocks verified results)
+  // Helper: fetch AI suggestions from Groq
   async function fetchAiSuggestions(): Promise<any[]> {
-    try {
-      const groqPrompt = `You are an Australian curriculum resource expert. Suggest 3 likely useful Australian educational resources for ${yearLevel} ${subject} students studying "${topic}" in ${state}.
+    const groqPrompt = `You are an Australian curriculum resource expert. Suggest 3 likely useful Australian educational resources for ${yearLevel} ${subject} students studying "${topic}" in ${state}.
 
 Relevant curriculum outcomes:
 ${outcomesText}
@@ -368,38 +371,49 @@ Return ONLY valid JSON, no markdown:
     ]
   }]
 }`;
-      const completion = await groq.chat.completions.create({
-        model: GROQ_MODEL,
-        messages: [{ role: "user", content: groqPrompt }],
-        max_tokens: 2800,
-        temperature: 0.5,
-      });
-      const text = completion.choices[0]?.message?.content ?? "";
-      const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      const aiResult = JSON.parse(cleaned);
-      const suggested = (Array.isArray(aiResult.resources) ? aiResult.resources : [])
-        .filter((r: Record<string, unknown>) => seemsSubjectRelevant(r, subject, topic));
-      return suggested.map((r: Record<string, unknown>, i: number) => ({
-        ...r,
-        id: r.id ?? `ai-suggestion-${i + 1}-${Date.now()}`,
-        provenance: "ai-suggestion" as const,
-        verifiedLink: false,
-        urlType: "search" as const,
-      }));
-    } catch {
-      return [];
+    const MAX_AI_RETRIES = 2;
+    let lastErr: unknown;
+
+    for (let attempt = 0; attempt <= MAX_AI_RETRIES; attempt++) {
+      try {
+        const completion = await groq.chat.completions.create({
+          model: GROQ_MODEL,
+          messages: [{ role: "user", content: groqPrompt }],
+          max_tokens: 2800,
+          temperature: 0.5,
+        });
+        const text = completion.choices[0]?.message?.content ?? "";
+        const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+        const aiResult = JSON.parse(cleaned);
+        const suggested = (Array.isArray(aiResult.resources) ? aiResult.resources : [])
+          .filter((r: Record<string, unknown>) => seemsSubjectRelevant(r, subject, topic));
+        return suggested.map((r: Record<string, unknown>, i: number) => ({
+          ...r,
+          id: r.id ?? `ai-suggestion-${i + 1}-${Date.now()}`,
+          provenance: "ai-suggestion" as const,
+          verifiedLink: false,
+          urlType: "search" as const,
+        }));
+      } catch (err) {
+        lastErr = err;
+        const isRateLimit = err && typeof err === "object" && "status" in err && (err as { status?: number }).status === 429;
+        if (!isRateLimit || attempt === MAX_AI_RETRIES) {
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, (attempt + 1) * 1200));
+      }
     }
+
+    req.log.warn({ err: lastErr }, "AI suggestions unavailable for this resource search");
+    return [];
   }
 
   try {
     const curatedResources = findCuratedResources(subject, yearLevel, topic, resourceTypeFilter);
     req.log.info({ subject, yearLevel, topic, state, resourceTypeFilter, curatedCount: curatedResources.length }, "Resource search started");
 
-    // Always kick off AI suggestions in parallel
-    const aiSuggestionsPromise = fetchAiSuggestions();
-
     if (curatedResources.length > 0) {
-      const aiSuggestions = enrichWithTrust(await aiSuggestionsPromise);
+      const aiSuggestions = await loadAiSuggestions();
       clearTimeout(overallTimeout);
       res.json({ resources: enrichWithTrust(curatedResources), aiSuggestions, usedFallback: false, usedWebSearch: false, usedCuratedRegistry: true });
       return;
@@ -437,7 +451,7 @@ Return ONLY valid JSON, no markdown:
         outcomesText, interests, unitNote, langNote,
       );
 
-      const aiSuggestions = enrichWithTrust(await aiSuggestionsPromise);
+      const aiSuggestions = await loadAiSuggestions();
 
       if (scored.length > 0) {
         clearTimeout(overallTimeout);
@@ -457,7 +471,7 @@ Return ONLY valid JSON, no markdown:
     }
 
     // Step 3: No verified results — AI suggestions are the only option
-    const aiSuggestions = enrichWithTrust(await aiSuggestionsPromise);
+    const aiSuggestions = await loadAiSuggestions();
     clearTimeout(overallTimeout);
     res.json({ resources: [], aiSuggestions, usedFallback: false, usedWebSearch: false, usedCuratedRegistry: false });
 

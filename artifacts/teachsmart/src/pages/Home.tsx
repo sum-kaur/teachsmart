@@ -1493,10 +1493,10 @@ export default function Home() {
             </div>
           ))}
 
-          {/* AI-Generated Suggestions toggle — always shown when available */}
-          {aiSuggestions.length > 0 && (
+          {/* AI-Generated Suggestions section — always shown below verified results */}
+          {(resources.length > 0 || aiSuggestions.length > 0) && (
             <div className="mt-2">
-              {!showAiSuggestions ? (
+              {aiSuggestions.length > 0 && !showAiSuggestions ? (
                 <button
                   onClick={() => setShowAiSuggestions(true)}
                   className="w-full bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200 rounded-xl p-4 flex items-center justify-between cursor-pointer hover:border-violet-300 transition-colors group"
@@ -1510,7 +1510,7 @@ export default function Home() {
                   </div>
                   <ChevronDown className="w-5 h-5 text-violet-400 group-hover:text-violet-600 transition-colors" />
                 </button>
-              ) : (
+              ) : aiSuggestions.length > 0 ? (
                 <>
                   <div className="bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200 rounded-xl p-4 flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -1560,6 +1560,16 @@ export default function Home() {
                     ))}
                   </div>
                 </>
+              ) : (
+                <div className="w-full bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200 rounded-xl p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-violet-100 rounded-lg p-2"><Sparkles className="w-4 h-4 text-violet-600" /></div>
+                    <div className="text-left">
+                      <div className="text-[14px] font-semibold text-violet-800">AI-Generated Suggestions</div>
+                      <div className="text-[12px] text-violet-600">No AI suggestions were returned for this search. Verified web resources are still shown above.</div>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           )}
