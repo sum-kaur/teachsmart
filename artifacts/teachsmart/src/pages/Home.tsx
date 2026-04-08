@@ -85,6 +85,33 @@ type FeedResult = {
 
 type MyClass = { id: string; code: string; name: string; yearLevel: string; subject: string; state: string };
 
+type SharePayload = {
+  rType: GeneratedOutput['resourceType'];
+  oc: string;
+  od: string;
+  sc: string[];
+  of?: boolean;
+  o?: string;
+  d?: string;
+  a?: { label: string; text: string }[];
+  lx?: { title: string; body: string };
+  q?: { q: string; difficulty: string }[];
+  sec?: { title: string; instructions: string; questions: { q: string; lines: number; marks: number }[] }[];
+  et?: string;
+  wb?: string[];
+  dp?: string;
+  bc?: string;
+  p?: { viewpoint: string; keyArguments: string[] }[];
+  ss?: string[];
+  rq?: string[];
+  tn?: string;
+  tt?: string;
+  tm?: number;
+  st?: { section: string; instructions: string; questions: { number: number; q: string; marks: number; lines: number }[] }[];
+  mc?: { criterion: string; excellent: string; satisfactory: string; developing: string; marks: number }[];
+  tg?: string;
+};
+
 const MOCK_DASHBOARD_STATS = { totalSearches: 124, resourcesGenerated: 89, averageAlignmentScore: 92, topSubject: "History" };
 const MOCK_RECENT = [
   { id: "1", title: "Climate Change Impacts", subject: "Science", yearLevel: "Year 9", topic: "Climate Change", alignmentScore: 94, searchedAt: new Date().toISOString() },
@@ -96,10 +123,116 @@ type Screen = 'dashboard' | 'unit-planner' | 'classes' | 'search' | 'results' | 
 
 const EMPTY_UNIT: UnitContext = { unitTitle: '', textbook: '', totalLessons: '', currentLesson: '', prevSummary: '', learningIntention: '', successCriteria: '', assessmentType: 'exam' };
 
+const base64UrlEncode = (bytes: Uint8Array) =>
+  btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+
+const base64UrlDecode = (value: string) => {
+  const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+  return Uint8Array.from(atob(padded), (char) => char.charCodeAt(0));
+};
+
+const encodeSharePayload = (payload: SharePayload) => base64UrlEncode(LZString.compressToUint8Array(JSON.stringify(payload)));
+
+const decodeSharePayload = (encoded: string) => {
+  const json = LZString.decompressFromUint8Array(base64UrlDecode(encoded));
+  return json ? JSON.parse(json) as SharePayload : null;
+};
+
+const toGeneratedOutput = (payload: SharePayload): GeneratedOutput => {
+  const base = {
+    resourceType: payload.rType,
+    outcomeCode: payload.oc,
+    outcomeDescription: payload.od,
+    successCriteria: payload.sc,
+    usedFallback: payload.of ?? false,
+  };
+
+  if (payload.rType === 'Lesson Plan') {
+    return {
+      ...base,
+      resourceType: 'Lesson Plan',
+      objective: payload.o ?? '',
+      duration: payload.d ?? '60 minutes',
+      activities: payload.a ?? [],
+      localExample: payload.lx ?? { title: '', body: '' },
+      questions: payload.q ?? [],
+    };
+  }
+
+  if (payload.rType === 'Worksheet') {
+    return {
+      ...base,
+      resourceType: 'Worksheet',
+      sections: payload.sec ?? [],
+      extensionTask: payload.et ?? '',
+      wordBank: payload.wb ?? [],
+    };
+  }
+
+  if (payload.rType === 'Discussion') {
+    return {
+      ...base,
+      resourceType: 'Discussion',
+      discussionPrompt: payload.dp ?? '',
+      backgroundContext: payload.bc ?? '',
+      perspectives: payload.p ?? [],
+      sentenceStarters: payload.ss ?? [],
+      reflectionQuestions: payload.rq ?? [],
+      teacherFacilitationNotes: payload.tn ?? '',
+    };
+  }
+
+  return {
+    ...base,
+    resourceType: 'Assessment',
+    taskType: payload.tt ?? '',
+    duration: payload.d ?? '60 minutes',
+    studentSections: payload.st ?? [],
+    markingCriteria: payload.mc ?? [],
+    totalMarks: payload.tm ?? 0,
+    teacherMarkingGuide: payload.tg ?? '',
+  };
+};
+
+const getApiBases = () => {
+  const explicitBase = import.meta.env.VITE_API_URL;
+  if (explicitBase) return [explicitBase];
+
+  const bases = [''];
+  if (typeof window !== 'undefined') {
+    const { hostname, port, protocol } = window.location;
+    if ((hostname === 'localhost' || hostname === '127.0.0.1') && port !== '8080') {
+      bases.push(`${protocol}//${hostname}:8080`);
+    }
+  }
+  return Array.from(new Set(bases));
+};
+
+const fetchJsonFromApi = async (path: string, init?: RequestInit) => {
+  let lastError: unknown;
+  for (const base of getApiBases()) {
+    try {
+      const response = await fetch(`${base}/api${path}`, init);
+      if (!response.ok) {
+        throw new Error(`API error ${response.status}`);
+      }
+      return response.json();
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('API request failed');
+};
+
 export default function Home() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [showQR, setShowQR] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+  const [isCreatingShareLink, setIsCreatingShareLink] = useState(false);
+  const [shareLinkError, setShareLinkError] = useState<string | null>(null);
+  const [showFallbackShare, setShowFallbackShare] = useState(false);
 
   useEffect(() => {
     const onOnline = () => setIsOffline(false);
@@ -116,14 +249,46 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    // Handle QR share links: #share?data=...
+    // Handle QR share links: short server-backed /s/:id or #s/<id>, compact #s=..., and legacy #share?data=...
     const hash = window.location.hash;
-    if (hash.startsWith('#share?')) {
-      const params = new URLSearchParams(hash.slice('#share?'.length));
-      const data = params.get('data');
-      if (data) {
+    const pathMatch = window.location.pathname.match(/\/s\/([A-Z0-9]+)$/i);
+    const sharePathId = pathMatch?.[1] ?? null;
+    const shareId = hash.startsWith('#s/') ? hash.slice(3) : null;
+    const compactData = hash.startsWith('#s=') ? hash.slice(3) : null;
+    const legacyData = hash.startsWith('#share?')
+      ? new URLSearchParams(hash.slice('#share?'.length)).get('data')
+      : null;
+    const sharedData = compactData ?? legacyData;
+    const resolvedShareId = sharePathId ?? shareId;
+    if (resolvedShareId) {
+      fetchJsonFromApi(`/share/${encodeURIComponent(resolvedShareId)}`)
+        .then((response) => response as { payload?: SharePayload })
+        .then((result) => {
+          if (!result.payload) throw new Error('Missing share payload');
+          setLessonPlan(toGeneratedOutput(result.payload));
+          setCurrentScreen('lesson');
+          window.history.replaceState(null, '', '/#lesson');
+        })
+        .catch(() => {
+          window.history.replaceState(null, '', '/#dashboard');
+          setCurrentScreen('dashboard');
+        });
+      return;
+    }
+    if (sharedData) {
+      if (compactData) {
         try {
-          const payload = JSON.parse(LZString.decompressFromEncodedURIComponent(data) ?? '{}');
+          const payload = decodeSharePayload(sharedData);
+          if (!payload) throw new Error('Invalid compact share payload');
+          const plan = toGeneratedOutput(payload);
+          setLessonPlan(plan);
+          setCurrentScreen('lesson');
+          window.history.replaceState(null, '', '#lesson');
+          return;
+        } catch { /* invalid share link — fall through to dashboard */ }
+      } else {
+        try {
+          const payload = JSON.parse(LZString.decompressFromEncodedURIComponent(sharedData) ?? '{}');
           const plan: GeneratedOutput = {
             resourceType: payload.rType,
             outcomeCode: payload.outcomeCode,
@@ -204,21 +369,13 @@ export default function Home() {
   const recentResources = Array.isArray(recentResourcesRaw) ? recentResourcesRaw : MOCK_RECENT;
   const feedMutation = useGetFeed();
 
-  const getApiBase = () => {
-    // VITE_API_URL can override for separate deployments; empty = same origin
-    return import.meta.env.VITE_API_URL ?? '';
-  };
-
   const apiFetch = useCallback(async (path: string, body: Record<string, unknown>) => {
-    const base = getApiBase();
-    const res = await fetch(`${base}/api${path}`, {
+    return fetchJsonFromApi(path, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(12000),
     });
-    if (!res.ok) throw new Error(`API error ${res.status}`);
-    return res.json();
   }, []);
 
   const loadFeed = useCallback(async (postcode: string, state: string, subject: string, yearLevel: string) => {
@@ -1171,59 +1328,177 @@ export default function Home() {
 
   const buildShareUrl = () => {
     if (!lessonPlan) return '';
-    const payload = {
+    const payload: SharePayload = {
       rType: lessonPlan.resourceType,
-      title: `${searchParams.topic} — ${searchParams.yearLevel} ${searchParams.subject}`,
-      outcomeCode: lessonPlan.outcomeCode,
-      outcomeDescription: lessonPlan.outcomeDescription,
-      successCriteria: lessonPlan.successCriteria,
+      oc: lessonPlan.outcomeCode,
+      od: lessonPlan.outcomeDescription,
+      sc: lessonPlan.successCriteria,
+      ...(lessonPlan.usedFallback ? { of: true } : {}),
       ...(lessonPlan.resourceType === 'Lesson Plan' && {
-        objective: (lessonPlan as LessonPlan).objective,
-        duration: (lessonPlan as LessonPlan).duration,
-        activities: (lessonPlan as LessonPlan).activities,
-        localExample: (lessonPlan as LessonPlan).localExample,
-        questions: (lessonPlan as LessonPlan).questions,
+        o: (lessonPlan as LessonPlan).objective,
+        d: (lessonPlan as LessonPlan).duration,
+        a: (lessonPlan as LessonPlan).activities,
+        lx: (lessonPlan as LessonPlan).localExample,
+        q: (lessonPlan as LessonPlan).questions,
       }),
       ...(lessonPlan.resourceType === 'Worksheet' && {
-        sections: (lessonPlan as WorksheetOutput).sections,
-        extensionTask: (lessonPlan as WorksheetOutput).extensionTask,
-        wordBank: (lessonPlan as WorksheetOutput).wordBank,
+        sec: (lessonPlan as WorksheetOutput).sections,
+        et: (lessonPlan as WorksheetOutput).extensionTask,
+        wb: (lessonPlan as WorksheetOutput).wordBank,
+      }),
+      ...(lessonPlan.resourceType === 'Discussion' && {
+        dp: (lessonPlan as DiscussionOutput).discussionPrompt,
+        bc: (lessonPlan as DiscussionOutput).backgroundContext,
+        p: (lessonPlan as DiscussionOutput).perspectives,
+        ss: (lessonPlan as DiscussionOutput).sentenceStarters,
+        rq: (lessonPlan as DiscussionOutput).reflectionQuestions,
+        tn: (lessonPlan as DiscussionOutput).teacherFacilitationNotes,
       }),
       ...(lessonPlan.resourceType === 'Assessment' && {
-        taskType: (lessonPlan as AssessmentOutput).taskType,
-        duration: (lessonPlan as AssessmentOutput).duration,
-        totalMarks: (lessonPlan as AssessmentOutput).totalMarks,
-        studentSections: (lessonPlan as AssessmentOutput).studentSections,
-        markingCriteria: (lessonPlan as AssessmentOutput).markingCriteria,
+        tt: (lessonPlan as AssessmentOutput).taskType,
+        d: (lessonPlan as AssessmentOutput).duration,
+        tm: (lessonPlan as AssessmentOutput).totalMarks,
+        st: (lessonPlan as AssessmentOutput).studentSections,
+        mc: (lessonPlan as AssessmentOutput).markingCriteria,
+        tg: (lessonPlan as AssessmentOutput).teacherMarkingGuide,
       }),
     };
-    const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(payload));
-    return `${window.location.origin}/#share?data=${compressed}`;
+    return `${window.location.origin}/#s=${encodeSharePayload(payload)}`;
   };
+
+  const createShortShareUrl = useCallback(async () => {
+    if (!lessonPlan) return '';
+
+    const payload: SharePayload = {
+      rType: lessonPlan.resourceType,
+      oc: lessonPlan.outcomeCode,
+      od: lessonPlan.outcomeDescription,
+      sc: lessonPlan.successCriteria,
+      ...(lessonPlan.usedFallback ? { of: true } : {}),
+      ...(lessonPlan.resourceType === 'Lesson Plan' && {
+        o: (lessonPlan as LessonPlan).objective,
+        d: (lessonPlan as LessonPlan).duration,
+        a: (lessonPlan as LessonPlan).activities,
+        lx: (lessonPlan as LessonPlan).localExample,
+        q: (lessonPlan as LessonPlan).questions,
+      }),
+      ...(lessonPlan.resourceType === 'Worksheet' && {
+        sec: (lessonPlan as WorksheetOutput).sections,
+        et: (lessonPlan as WorksheetOutput).extensionTask,
+        wb: (lessonPlan as WorksheetOutput).wordBank,
+      }),
+      ...(lessonPlan.resourceType === 'Discussion' && {
+        dp: (lessonPlan as DiscussionOutput).discussionPrompt,
+        bc: (lessonPlan as DiscussionOutput).backgroundContext,
+        p: (lessonPlan as DiscussionOutput).perspectives,
+        ss: (lessonPlan as DiscussionOutput).sentenceStarters,
+        rq: (lessonPlan as DiscussionOutput).reflectionQuestions,
+        tn: (lessonPlan as DiscussionOutput).teacherFacilitationNotes,
+      }),
+      ...(lessonPlan.resourceType === 'Assessment' && {
+        tt: (lessonPlan as AssessmentOutput).taskType,
+        d: (lessonPlan as AssessmentOutput).duration,
+        tm: (lessonPlan as AssessmentOutput).totalMarks,
+        st: (lessonPlan as AssessmentOutput).studentSections,
+        mc: (lessonPlan as AssessmentOutput).markingCriteria,
+        tg: (lessonPlan as AssessmentOutput).teacherMarkingGuide,
+      }),
+    };
+
+    const result = await fetchJsonFromApi('/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payload }),
+      signal: AbortSignal.timeout(8000),
+    });
+    const parsed = result as { id?: string };
+    if (!parsed.id) throw new Error('Share creation returned no id');
+    return `${window.location.origin}/s/${parsed.id}`;
+  }, [lessonPlan]);
+
+  useEffect(() => {
+    if (!showQR) {
+      setShareUrl('');
+      setIsCreatingShareLink(false);
+      setShareLinkError(null);
+      setShowFallbackShare(false);
+      return;
+    }
+
+    setShareUrl('');
+    setShareLinkError(null);
+    setShowFallbackShare(false);
+    setIsCreatingShareLink(true);
+
+    createShortShareUrl()
+      .then((url) => {
+        if (url) setShareUrl(url);
+      })
+      .catch(() => {
+        setShareLinkError('Short share link could not be created. Make sure the API server has been restarted.');
+      })
+      .finally(() => {
+        setIsCreatingShareLink(false);
+      });
+  }, [showQR, createShortShareUrl]);
 
   const renderQRModal = () => {
     if (!showQR) return null;
-    const url = buildShareUrl();
+    const fallbackUrl = buildShareUrl();
+    const url = shareUrl || (showFallbackShare ? fallbackUrl : '');
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowQR(false)}>
         <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-sm w-full mx-4 flex flex-col items-center gap-5" onClick={e => e.stopPropagation()}>
           <div className="text-[18px] font-serif font-semibold text-foreground">Share via QR Code</div>
           <p className="text-[13px] text-slate-500 text-center">Colleague scans this with their phone to instantly load this {lessonPlan?.resourceType?.toLowerCase()}.</p>
           <div className="p-3 border-2 border-border rounded-xl">
-            <QRCodeSVG value={url} size={200} includeMargin={false} />
+            {url ? (
+              <QRCodeSVG
+                value={url}
+                size={256}
+                includeMargin
+                level="L"
+                bgColor="#FFFFFF"
+                fgColor="#111827"
+              />
+            ) : (
+              <div className="w-[256px] h-[256px] flex flex-col items-center justify-center text-center px-4">
+                <Loader2 className="w-7 h-7 animate-spin text-slate-400 mb-3" />
+                <div className="text-[12px] text-slate-500">
+                  {isCreatingShareLink ? 'Creating short share link...' : 'Waiting for share link...'}
+                </div>
+              </div>
+            )}
           </div>
+          {shareLinkError && (
+            <div className="w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-800 text-center">
+              {shareLinkError}
+            </div>
+          )}
           <div className="w-full">
             <div className="text-[11px] text-slate-400 mb-1 text-center">Or copy the link</div>
             <div className="flex gap-2">
               <input readOnly value={url} className="flex-1 text-[11px] border border-border rounded-lg px-3 py-2 text-slate-600 bg-slate-50 outline-none" />
               <button
-                onClick={() => { navigator.clipboard.writeText(url); }}
-                className="bg-primary text-white text-[12px] font-semibold px-3 py-2 rounded-lg border-none cursor-pointer hover:bg-teal-700 whitespace-nowrap"
+                onClick={() => { if (url) navigator.clipboard.writeText(url); }}
+                disabled={!url}
+                className="bg-primary text-white text-[12px] font-semibold px-3 py-2 rounded-lg border-none cursor-pointer hover:bg-teal-700 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Copy
               </button>
             </div>
           </div>
+          {shareLinkError && !showFallbackShare && (
+            <button
+              onClick={() => {
+                setShowFallbackShare(true);
+                setShareUrl(fallbackUrl);
+              }}
+              className="text-[12px] text-slate-500 hover:text-primary bg-transparent border-none cursor-pointer"
+            >
+              Use longer offline fallback link
+            </button>
+          )}
           <button onClick={() => setShowQR(false)} className="text-[13px] text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer">Close</button>
         </div>
       </div>
