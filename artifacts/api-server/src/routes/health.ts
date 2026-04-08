@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { HealthCheckResponse } from "@workspace/api-zod";
+import { getGroq, GROQ_MODEL } from "../lib/groq";
 
 const router: IRouter = Router();
 
@@ -20,7 +21,6 @@ router.get("/debug-env", (_req, res) => {
 
 router.get("/debug-groq", async (_req, res) => {
   try {
-    const { getGroq, GROQ_MODEL } = await import("../lib/groq");
     const groq = getGroq();
     const result = await groq.chat.completions.create({
       model: GROQ_MODEL,
@@ -30,7 +30,8 @@ router.get("/debug-groq", async (_req, res) => {
     res.json({ ok: true, reply: result.choices[0]?.message?.content, model: GROQ_MODEL });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    res.json({ ok: false, error: message });
+    const stack = err instanceof Error ? err.stack : undefined;
+    res.json({ ok: false, error: message, stack });
   }
 });
 
