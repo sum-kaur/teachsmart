@@ -50,12 +50,12 @@
 
 ---
 
-### Slide 3: Meet Sarah Chen — Our Persona (1:00–1:30, 30 seconds)
+### Slide 3: Meet Sarah Jin — Our Persona (1:00–1:30, 30 seconds)
 
 **Layout:** Large photo of a Year 9 History classroom (Parramatta suburb, diverse students). Text overlay or accent box with details.
 
 **Text:**
-- **Headline:** "Meet Sarah Chen"
+- **Headline:** "Meet Sarah Jin"
 - **Details (large, visible):**
   - Year 9 History teacher
   - Parramatta, NSW (postcode 2150)

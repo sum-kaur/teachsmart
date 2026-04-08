@@ -111,7 +111,7 @@ Key fact: CurricuLLM scores 89% on curriculum knowledge benchmarks. GPT/Gemini/C
 
 ## Demo Scenario (primary — use this for all testing)
 
-**Persona:** Sarah Chen, Year 9 History teacher, Parramatta (postcode 2150), Western Sydney.
+**Persona:** Sarah Jin, Year 9 History teacher, Parramatta (postcode 2150), Western Sydney.
 
 **Search:** Year 9 · NSW · History · "Rights and Freedoms"
 

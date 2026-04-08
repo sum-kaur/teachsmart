@@ -675,17 +675,23 @@ export default function Home() {
             ...common,
             resourceType: 'Worksheet' as const,
             sections: [
-              { title: 'Knowledge and Understanding', instructions: `Using "${rTitle}" from ${rSource}, answer each question in full sentences.`, questions: [
-                { q: `What is the main topic or argument presented in "${rTitle}" by ${rSource}?`, lines: 3, marks: 2 },
-                { q: `List two key facts or pieces of evidence from the resource about ${t}.`, lines: 4, marks: 4 },
-              ]},
-              { title: 'Application', instructions: `Use your reading of "${rTitle}" to answer the following.`, questions: [
-                { q: `How does the information in "${rTitle}" connect to ${t} for Australian students today?`, lines: 5, marks: 5 },
-                { q: `Give one real-world Australian example that supports or extends what you read in the resource.`, lines: 4, marks: 3 },
-              ]},
-              { title: 'Analysis and Evaluation', instructions: `Think critically about "${rTitle}" and justify your answers with evidence from the resource.`, questions: [
-                { q: `Analyse the perspective presented in "${rTitle}" by ${rSource}. Does the resource present a balanced view of ${t}? Explain with at least two references to the resource.`, lines: 8, marks: 8 },
-              ]},
+              {
+                title: 'Knowledge and Understanding', instructions: `Using "${rTitle}" from ${rSource}, answer each question in full sentences.`, questions: [
+                  { q: `What is the main topic or argument presented in "${rTitle}" by ${rSource}?`, lines: 3, marks: 2 },
+                  { q: `List two key facts or pieces of evidence from the resource about ${t}.`, lines: 4, marks: 4 },
+                ]
+              },
+              {
+                title: 'Application', instructions: `Use your reading of "${rTitle}" to answer the following.`, questions: [
+                  { q: `How does the information in "${rTitle}" connect to ${t} for Australian students today?`, lines: 5, marks: 5 },
+                  { q: `Give one real-world Australian example that supports or extends what you read in the resource.`, lines: 4, marks: 3 },
+                ]
+              },
+              {
+                title: 'Analysis and Evaluation', instructions: `Think critically about "${rTitle}" and justify your answers with evidence from the resource.`, questions: [
+                  { q: `Analyse the perspective presented in "${rTitle}" by ${rSource}. Does the resource present a balanced view of ${t}? Explain with at least two references to the resource.`, lines: 8, marks: 8 },
+                ]
+              },
             ],
             extensionTask: `Find a second source on ${t} and write a 150-word comparison explaining how it agrees or disagrees with "${rTitle}" by ${rSource}.`,
             wordBank: [t, searchParams.subject, rSource, 'evidence', 'analysis', 'perspective'],
@@ -719,17 +725,23 @@ export default function Home() {
               duration: '60 minutes',
               totalMarks: 25,
               studentSections: [
-                { section: 'Section A: Skills and Procedures', instructions: `Apply the concepts from "${rTitle}" (${rSource}). Show all working.`, questions: [
-                  { number: 1, q: `Define the key ${t} terms or concepts covered in "${rTitle}". Give an example for each.`, marks: 3, lines: 5 },
-                  { number: 2, q: `Using the method from "${rTitle}", solve a similar problem. Show each step of your working.`, marks: 4, lines: 6 },
-                ]},
-                { section: 'Section B: Application', instructions: `Apply your understanding of ${t}. Show full working and reasoning.`, questions: [
-                  { number: 3, q: `A real-world scenario involves ${t}. Using the approach from "${rTitle}" by ${rSource}, set up the problem, show your method, and solve it.`, marks: 5, lines: 8 },
-                  { number: 4, q: `Explain how the ${t} concepts from "${rTitle}" connect to a real-world Australian context. Provide a worked example.`, marks: 5, lines: 8 },
-                ]},
-                { section: 'Section C: Analysis and Reasoning', instructions: 'Show extended reasoning and justify your approach.', questions: [
-                  { number: 5, q: `Compare two different approaches to solving a ${t} problem. When would the method from "${rTitle}" be most efficient? Justify with worked examples.`, marks: 8, lines: 14 },
-                ]},
+                {
+                  section: 'Section A: Skills and Procedures', instructions: `Apply the concepts from "${rTitle}" (${rSource}). Show all working.`, questions: [
+                    { number: 1, q: `Define the key ${t} terms or concepts covered in "${rTitle}". Give an example for each.`, marks: 3, lines: 5 },
+                    { number: 2, q: `Using the method from "${rTitle}", solve a similar problem. Show each step of your working.`, marks: 4, lines: 6 },
+                  ]
+                },
+                {
+                  section: 'Section B: Application', instructions: `Apply your understanding of ${t}. Show full working and reasoning.`, questions: [
+                    { number: 3, q: `A real-world scenario involves ${t}. Using the approach from "${rTitle}" by ${rSource}, set up the problem, show your method, and solve it.`, marks: 5, lines: 8 },
+                    { number: 4, q: `Explain how the ${t} concepts from "${rTitle}" connect to a real-world Australian context. Provide a worked example.`, marks: 5, lines: 8 },
+                  ]
+                },
+                {
+                  section: 'Section C: Analysis and Reasoning', instructions: 'Show extended reasoning and justify your approach.', questions: [
+                    { number: 5, q: `Compare two different approaches to solving a ${t} problem. When would the method from "${rTitle}" be most efficient? Justify with worked examples.`, marks: 8, lines: 14 },
+                  ]
+                },
               ],
               markingCriteria: [
                 { criterion: 'Knowledge of Concepts', excellent: `Thorough understanding of ${t} concepts with correct definitions and examples`, satisfactory: 'Adequate understanding with mostly correct terminology', developing: 'Limited understanding; key concepts incorrect or missing', marks: 7 },
@@ -747,17 +759,23 @@ export default function Home() {
               duration: '60 minutes',
               totalMarks: 25,
               studentSections: [
-                { section: 'Section A: Short Answer', instructions: `Using "${rTitle}" from ${rSource}, answer all questions in full sentences.`, questions: [
-                  { number: 1, q: `What is the main argument or information presented in "${rTitle}" by ${rSource}?`, marks: 2, lines: 4 },
-                  { number: 2, q: `Identify two key facts or pieces of evidence about ${t} from the resource.`, marks: 4, lines: 5 },
-                ]},
-                { section: 'Section B: Structured Response', instructions: `Answer both questions using specific evidence from "${rTitle}".`, questions: [
-                  { number: 3, q: `Explain how the information in "${rTitle}" helps us understand ${t} in the Australian context. Use at least one specific example from the resource.`, marks: 5, lines: 8 },
-                  { number: 4, q: `Analyse the perspective presented by ${rSource}. What strengths and limitations does this resource have for understanding ${t}?`, marks: 6, lines: 10 },
-                ]},
-                { section: 'Section C: Extended Response', instructions: 'Write a detailed response using evidence from the resource and your own knowledge.', questions: [
-                  { number: 5, q: `Using "${rTitle}" from ${rSource} as your primary source, evaluate the significance of ${t} in modern Australia. How effectively does the resource present this topic?`, marks: 8, lines: 20 },
-                ]},
+                {
+                  section: 'Section A: Short Answer', instructions: `Using "${rTitle}" from ${rSource}, answer all questions in full sentences.`, questions: [
+                    { number: 1, q: `What is the main argument or information presented in "${rTitle}" by ${rSource}?`, marks: 2, lines: 4 },
+                    { number: 2, q: `Identify two key facts or pieces of evidence about ${t} from the resource.`, marks: 4, lines: 5 },
+                  ]
+                },
+                {
+                  section: 'Section B: Structured Response', instructions: `Answer both questions using specific evidence from "${rTitle}".`, questions: [
+                    { number: 3, q: `Explain how the information in "${rTitle}" helps us understand ${t} in the Australian context. Use at least one specific example from the resource.`, marks: 5, lines: 8 },
+                    { number: 4, q: `Analyse the perspective presented by ${rSource}. What strengths and limitations does this resource have for understanding ${t}?`, marks: 6, lines: 10 },
+                  ]
+                },
+                {
+                  section: 'Section C: Extended Response', instructions: 'Write a detailed response using evidence from the resource and your own knowledge.', questions: [
+                    { number: 5, q: `Using "${rTitle}" from ${rSource} as your primary source, evaluate the significance of ${t} in modern Australia. How effectively does the resource present this topic?`, marks: 8, lines: 20 },
+                  ]
+                },
               ],
               markingCriteria: [
                 { criterion: 'Knowledge and Understanding', excellent: 'Thorough understanding of the resource with accurate, specific references', satisfactory: 'Adequate understanding with some references', developing: 'Limited understanding; few references to resource content', marks: 8 },
@@ -851,9 +869,9 @@ export default function Home() {
       const resourceSource = selectedResource?.source || 'the selected classroom resource';
       const resourceDescription = selectedResource?.description || `This lesson uses ${resourceTitle} as the anchor resource for studying ${t}.`;
       const resourceLabel = selectedResource?.title ? `"${resourceTitle}" from ${resourceSource}` : `${resourceTitle} from ${resourceSource}`;
-      const obj = lessonPlan && 'objective' in lessonPlan ? (lessonPlan as Record<string,unknown>).objective as string : `Students will understand the key concepts of ${t}.`;
-      const acts: Array<{label:string;text:string}> = lessonPlan && 'activities' in lessonPlan ? (lessonPlan as Record<string,unknown>).activities as Array<{label:string;text:string}> : [];
-      const qs: Array<{q:string;difficulty:string}> = lessonPlan && 'questions' in lessonPlan ? (lessonPlan as Record<string,unknown>).questions as Array<{q:string;difficulty:string}> : [];
+      const obj = lessonPlan && 'objective' in lessonPlan ? (lessonPlan as Record<string, unknown>).objective as string : `Students will understand the key concepts of ${t}.`;
+      const acts: Array<{ label: string; text: string }> = lessonPlan && 'activities' in lessonPlan ? (lessonPlan as Record<string, unknown>).activities as Array<{ label: string; text: string }> : [];
+      const qs: Array<{ q: string; difficulty: string }> = lessonPlan && 'questions' in lessonPlan ? (lessonPlan as Record<string, unknown>).questions as Array<{ q: string; difficulty: string }> : [];
       const sc: string[] = lessonPlan?.successCriteria ?? [`Explain the key concepts of ${t}`, `Apply knowledge of ${t} to Australian contexts`, `Evaluate evidence and form a reasoned conclusion about ${t}`];
       setSlidedeckData({
         title: `${t} — ${sy} ${ss}`,
@@ -935,8 +953,8 @@ export default function Home() {
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-sm font-semibold text-white shrink-0">SJ</div>
           <div className="min-w-0">
-            <div className="text-[13px] font-medium text-slate-200 truncate">Sarah Chen</div>
-            <div className="text-[11px] text-slate-500">History · Year 9</div>
+            <div className="text-[13px] font-medium text-slate-200 truncate">Sarah Jen</div>
+            <div className="text-[11px] text-slate-500"> </div>
           </div>
         </div>
       </div>
@@ -959,7 +977,7 @@ export default function Home() {
             aria-label={t('googleClassroom')}
           >
             <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-white" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3 3h18a1 1 0 011 1v16a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1zm9 7a2 2 0 100 4 2 2 0 000-4zm-4 6c0-1.333 2.667-2 4-2s4 .667 4 2v1H8v-1z"/>
+              <path d="M3 3h18a1 1 0 011 1v16a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1zm9 7a2 2 0 100 4 2 2 0 000-4zm-4 6c0-1.333 2.667-2 4-2s4 .667 4 2v1H8v-1z" />
             </svg>
             {t('classroom')}
           </button>
@@ -1028,14 +1046,14 @@ export default function Home() {
               <input
                 type="text"
                 value={searchParams.topic}
-                onChange={e => setSearchParams(prev => ({...prev, topic: e.target.value}))}
+                onChange={e => setSearchParams(prev => ({ ...prev, topic: e.target.value }))}
                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
                 placeholder={t('searchPlaceholder')}
                 className="flex-1 px-3 py-3.5 text-[14px] text-foreground placeholder:text-slate-400 outline-none border-none bg-transparent"
                 aria-label="Search topic"
                 data-testid="dashboard-search-input"
               />
-              <VoiceMic onTranscript={transcript => setSearchParams(prev => ({...prev, topic: transcript}))} voiceLang={voiceLang} className="mr-1" />
+              <VoiceMic onTranscript={transcript => setSearchParams(prev => ({ ...prev, topic: transcript }))} voiceLang={voiceLang} className="mr-1" />
               <button
                 onClick={handleSearch}
                 disabled={isSearching || !searchParams.topic.trim()}
@@ -1088,10 +1106,10 @@ export default function Home() {
                   <input autoFocus value={newClassName} onChange={e => setNewClassName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddClass()} placeholder="Class name (e.g. 9S History)" className="text-[12px] border border-border rounded-md px-2.5 py-1.5 outline-none focus:border-primary" />
                   <div className="flex gap-1.5">
                     <select value={newClassYearLevel} onChange={e => setNewClassYearLevel(e.target.value)} className="flex-1 text-[11px] border border-border rounded-md px-1.5 py-1 outline-none focus:border-primary bg-white">
-                      {['Year 7','Year 8','Year 9','Year 10','Year 11','Year 12'].map(y => <option key={y}>{y}</option>)}
+                      {['Year 7', 'Year 8', 'Year 9', 'Year 10', 'Year 11', 'Year 12'].map(y => <option key={y}>{y}</option>)}
                     </select>
                     <select value={newClassSubject} onChange={e => setNewClassSubject(e.target.value)} className="flex-1 text-[11px] border border-border rounded-md px-1.5 py-1 outline-none focus:border-primary bg-white">
-                      {['History','English','Mathematics','Science','Geography','Economics','Business','Legal Studies','Drama','Visual Arts','Music','PDHPE'].map(s => <option key={s}>{s}</option>)}
+                      {['History', 'English', 'Mathematics', 'Science', 'Geography', 'Economics', 'Business', 'Legal Studies', 'Drama', 'Visual Arts', 'Music', 'PDHPE'].map(s => <option key={s}>{s}</option>)}
                     </select>
                   </div>
                   <div className="flex gap-1.5">
@@ -1116,7 +1134,7 @@ export default function Home() {
               {isFeedLoading && <span className="text-[11px] text-muted-foreground animate-pulse ml-auto">📍 Detecting...</span>}
             </div>
             {isFeedLoading && (
-              <div className="grid grid-cols-3 gap-3">{[0,1,2].map(i => <div key={i} className="bg-white rounded-xl border border-border p-4 animate-pulse"><div className="h-3.5 bg-slate-100 rounded w-2/3 mb-2"></div><div className="h-2.5 bg-slate-100 rounded w-full mb-1.5"></div><div className="h-2.5 bg-slate-100 rounded w-4/5"></div></div>)}</div>
+              <div className="grid grid-cols-3 gap-3">{[0, 1, 2].map(i => <div key={i} className="bg-white rounded-xl border border-border p-4 animate-pulse"><div className="h-3.5 bg-slate-100 rounded w-2/3 mb-2"></div><div className="h-2.5 bg-slate-100 rounded w-full mb-1.5"></div><div className="h-2.5 bg-slate-100 rounded w-4/5"></div></div>)}</div>
             )}
             {!isFeedLoading && feedResult && (
               <div className="grid grid-cols-3 gap-3">
@@ -1147,7 +1165,7 @@ export default function Home() {
               </div>
             )}
             {!isFeedLoading && !feedResult && (
-              <div className="grid grid-cols-3 gap-3 opacity-40">{['🌦','🗺','🌿'].map((icon, i) => <div key={i} className="bg-white rounded-xl border border-border p-4 text-center text-slate-400 text-[12px]"><div className="text-xl mb-1.5">{icon}</div>Local teaching opportunities</div>)}</div>
+              <div className="grid grid-cols-3 gap-3 opacity-40">{['🌦', '🗺', '🌿'].map((icon, i) => <div key={i} className="bg-white rounded-xl border border-border p-4 text-center text-slate-400 text-[12px]"><div className="text-xl mb-1.5">{icon}</div>Local teaching opportunities</div>)}</div>
             )}
           </div>
 
@@ -1254,23 +1272,23 @@ export default function Home() {
             <div className="grid grid-cols-4 gap-4 mb-6">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[13px] font-medium text-slate-600">Year Level</label>
-                <select className="px-3.5 py-2.5 border border-border rounded-lg text-sm bg-white outline-none focus:border-primary transition-colors appearance-none cursor-pointer" value={searchParams.yearLevel} onChange={(e) => setSearchParams({...searchParams, yearLevel: e.target.value})} data-testid="select-year-level">
+                <select className="px-3.5 py-2.5 border border-border rounded-lg text-sm bg-white outline-none focus:border-primary transition-colors appearance-none cursor-pointer" value={searchParams.yearLevel} onChange={(e) => setSearchParams({ ...searchParams, yearLevel: e.target.value })} data-testid="select-year-level">
                   {['Year 7', 'Year 8', 'Year 9', 'Year 10', 'Year 11', 'Year 12'].map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-[13px] font-medium text-slate-600">State</label>
-                <select className="px-3.5 py-2.5 border border-border rounded-lg text-sm bg-white outline-none focus:border-primary transition-colors appearance-none cursor-pointer" value={searchParams.state} onChange={(e) => { const newState = e.target.value; setSearchParams(prev => ({...prev, state: newState})); loadFeed(searchParams.postcode, newState, searchParams.subject, searchParams.yearLevel); }} data-testid="select-state">
+                <select className="px-3.5 py-2.5 border border-border rounded-lg text-sm bg-white outline-none focus:border-primary transition-colors appearance-none cursor-pointer" value={searchParams.state} onChange={(e) => { const newState = e.target.value; setSearchParams(prev => ({ ...prev, state: newState })); loadFeed(searchParams.postcode, newState, searchParams.subject, searchParams.yearLevel); }} data-testid="select-state">
                   {['NSW', 'QLD', 'VIC', 'WA', 'SA', 'TAS', 'ACT', 'NT'].map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-[13px] font-medium text-slate-600">Postcode</label>
-                <input type="text" maxLength={4} className="px-3.5 py-2.5 border border-border rounded-lg text-sm bg-white outline-none focus:border-primary transition-colors" placeholder="e.g. 2150" value={searchParams.postcode} onChange={(e) => { const p = e.target.value.replace(/\D/g, '').slice(0, 4); setSearchParams(prev => ({...prev, postcode: p})); if (p.length === 4) loadFeed(p, searchParams.state, searchParams.subject, searchParams.yearLevel); }} data-testid="input-postcode" />
+                <input type="text" maxLength={4} className="px-3.5 py-2.5 border border-border rounded-lg text-sm bg-white outline-none focus:border-primary transition-colors" placeholder="e.g. 2150" value={searchParams.postcode} onChange={(e) => { const p = e.target.value.replace(/\D/g, '').slice(0, 4); setSearchParams(prev => ({ ...prev, postcode: p })); if (p.length === 4) loadFeed(p, searchParams.state, searchParams.subject, searchParams.yearLevel); }} data-testid="input-postcode" />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-[13px] font-medium text-slate-600">Subject</label>
-                <select className="px-3.5 py-2.5 border border-border rounded-lg text-sm bg-white outline-none focus:border-primary transition-colors appearance-none cursor-pointer" value={searchParams.subject} onChange={(e) => setSearchParams({...searchParams, subject: e.target.value})} data-testid="select-subject">
+                <select className="px-3.5 py-2.5 border border-border rounded-lg text-sm bg-white outline-none focus:border-primary transition-colors appearance-none cursor-pointer" value={searchParams.subject} onChange={(e) => setSearchParams({ ...searchParams, subject: e.target.value })} data-testid="select-subject">
                   {['Science', 'Mathematics', 'English', 'History', 'Geography', 'Health and Physical Education', 'Technologies', 'The Arts'].map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
@@ -1279,16 +1297,16 @@ export default function Home() {
             <div className="flex flex-col gap-1.5 mb-6">
               <label className="text-[13px] font-medium text-slate-600">Topic or Specific Outcome</label>
               <div className="flex gap-2">
-                <input type="text" className="flex-1 px-3.5 py-2.5 border border-border rounded-lg text-sm bg-white outline-none focus:border-primary transition-colors" placeholder="e.g. Climate change impacts, Algebraic fractions, Natural selection..." value={searchParams.topic} onChange={(e) => setSearchParams({...searchParams, topic: e.target.value})} onKeyDown={(e) => { if (e.key === 'Enter' && searchParams.topic) handleSearch(); }} data-testid="input-topic" />
-                <VoiceMic onTranscript={(t) => setSearchParams(prev => ({...prev, topic: t}))} voiceLang={voiceLang} />
+                <input type="text" className="flex-1 px-3.5 py-2.5 border border-border rounded-lg text-sm bg-white outline-none focus:border-primary transition-colors" placeholder="e.g. Climate change impacts, Algebraic fractions, Natural selection..." value={searchParams.topic} onChange={(e) => setSearchParams({ ...searchParams, topic: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter' && searchParams.topic) handleSearch(); }} data-testid="input-topic" />
+                <VoiceMic onTranscript={(t) => setSearchParams(prev => ({ ...prev, topic: t }))} voiceLang={voiceLang} />
               </div>
             </div>
 
             <hr className="border-t border-border my-7" />
             <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">Resource Type</div>
             <div className="grid grid-cols-4 gap-3 mb-6">
-              {[{icon: "📄", label: "Lesson Plan"}, {icon: "📋", label: "Worksheet"}, {icon: "💬", label: "Discussion"}, {icon: "✏️", label: "Assessment"}].map(type => (
-                <div key={type.label} className={`border rounded-lg p-4 text-center cursor-pointer transition-colors ${searchParams.resourceType === type.label ? 'border-primary bg-teal-50' : 'border-border bg-white hover:border-primary'}`} onClick={() => setSearchParams({...searchParams, resourceType: type.label})} data-testid={`resource-type-${type.label.replace(/\s+/g, '-').toLowerCase()}`}>
+              {[{ icon: "📄", label: "Lesson Plan" }, { icon: "📋", label: "Worksheet" }, { icon: "💬", label: "Discussion" }, { icon: "✏️", label: "Assessment" }].map(type => (
+                <div key={type.label} className={`border rounded-lg p-4 text-center cursor-pointer transition-colors ${searchParams.resourceType === type.label ? 'border-primary bg-teal-50' : 'border-border bg-white hover:border-primary'}`} onClick={() => setSearchParams({ ...searchParams, resourceType: type.label })} data-testid={`resource-type-${type.label.replace(/\s+/g, '-').toLowerCase()}`}>
                   <div className="text-2xl mb-2">{type.icon}</div>
                   <div className={`text-xs font-semibold ${searchParams.resourceType === type.label ? 'text-teal-800' : 'text-slate-600'}`}>{type.label}</div>
                 </div>
@@ -1478,7 +1496,7 @@ export default function Home() {
                     aria-label={`Share ${resource.title} to Google Classroom`}
                   >
                     <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-white" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M3 3h18a1 1 0 011 1v16a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1zm9 7a2 2 0 100 4 2 2 0 000-4zm-4 6c0-1.333 2.667-2 4-2s4 .667 4 2v1H8v-1z"/>
+                      <path d="M3 3h18a1 1 0 011 1v16a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1zm9 7a2 2 0 100 4 2 2 0 000-4zm-4 6c0-1.333 2.667-2 4-2s4 .667 4 2v1H8v-1z" />
                     </svg>
                     {t('classroom')}
                   </button>
@@ -1828,9 +1846,9 @@ export default function Home() {
             title="Share via QR Code"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-              <rect x="5" y="5" width="3" height="3"/><rect x="16" y="5" width="3" height="3"/><rect x="5" y="16" width="3" height="3"/>
-              <path d="M14 14h3v3h-3zM17 17h3v3h-3zM14 20h3"/>
+              <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+              <rect x="5" y="5" width="3" height="3" /><rect x="16" y="5" width="3" height="3" /><rect x="5" y="16" width="3" height="3" />
+              <path d="M14 14h3v3h-3zM17 17h3v3h-3zM14 20h3" />
             </svg>
             Share QR
           </button>
@@ -1852,7 +1870,7 @@ export default function Home() {
             aria-label={t('googleClassroom')}
           >
             <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3 3h18a1 1 0 011 1v16a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1zm9 7a2 2 0 100 4 2 2 0 000-4zm-4 6c0-1.333 2.667-2 4-2s4 .667 4 2v1H8v-1z"/>
+              <path d="M3 3h18a1 1 0 011 1v16a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1zm9 7a2 2 0 100 4 2 2 0 000-4zm-4 6c0-1.333 2.667-2 4-2s4 .667 4 2v1H8v-1z" />
             </svg>
             {t('classroom')}
           </button>
@@ -1990,8 +2008,8 @@ export default function Home() {
                     const levelColor = tip.level.toLowerCase().includes('extend') || tip.level.toLowerCase().includes('high')
                       ? 'bg-purple-100 text-purple-700'
                       : tip.level.toLowerCase().includes('support') || tip.level.toLowerCase().includes('low')
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-blue-100 text-blue-700';
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-blue-100 text-blue-700';
                     return (
                       <div key={i} className="flex items-start gap-2.5">
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${levelColor}`}>{tip.level}</span>
@@ -2333,13 +2351,13 @@ export default function Home() {
                 <div className="flex-1">
                   <label className="text-[11px] font-bold uppercase tracking-wide text-slate-400 mb-1 block">Year Level</label>
                   <select value={newClassYearLevel} onChange={e => setNewClassYearLevel(e.target.value)} className="w-full text-[13px] border border-border rounded-xl px-3 py-2 outline-none focus:border-primary bg-white">
-                    {['Year 7','Year 8','Year 9','Year 10','Year 11','Year 12'].map(y => <option key={y}>{y}</option>)}
+                    {['Year 7', 'Year 8', 'Year 9', 'Year 10', 'Year 11', 'Year 12'].map(y => <option key={y}>{y}</option>)}
                   </select>
                 </div>
                 <div className="flex-1">
                   <label className="text-[11px] font-bold uppercase tracking-wide text-slate-400 mb-1 block">Subject</label>
                   <select value={newClassSubject} onChange={e => setNewClassSubject(e.target.value)} className="w-full text-[13px] border border-border rounded-xl px-3 py-2 outline-none focus:border-primary bg-white">
-                    {['History','English','Mathematics','Science','Geography','Economics','Business','Legal Studies','Drama','Visual Arts','Music','PDHPE'].map(s => <option key={s}>{s}</option>)}
+                    {['History', 'English', 'Mathematics', 'Science', 'Geography', 'Economics', 'Business', 'Legal Studies', 'Drama', 'Visual Arts', 'Music', 'PDHPE'].map(s => <option key={s}>{s}</option>)}
                   </select>
                 </div>
               </div>

@@ -10,7 +10,7 @@ export default function Slide03Persona() {
         <div style={{ width: "52%", padding: "0 4vw 0 7vw", display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div className="font-body font-semibold" style={{ color: "#1e9b8a", fontSize: "1.5vw", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "2vh" }}>Our Primary User</div>
           <div className="font-display font-extrabold" style={{ fontSize: "5vw", color: "#f0f7f6", lineHeight: 1, marginBottom: "4vh", letterSpacing: "-0.02em" }}>
-            Meet Sarah Chen
+            Meet Sarah Jin
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "2vh" }}>
@@ -57,12 +57,12 @@ export default function Slide03Persona() {
             <img
               src={`${base}sarah-chen.png`}
               crossOrigin="anonymous"
-              alt="Sarah Chen — Year 9 teacher"
+              alt="Sarah Jin — Year 9 teacher"
               style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }}
             />
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(12,26,46,0.7) 0%, transparent 50%)" }} />
             <div style={{ position: "absolute", bottom: "3vh", left: "2vw", right: "2vw" }}>
-              <div className="font-display font-bold" style={{ color: "#f0f7f6", fontSize: "1.8vw" }}>Sarah Chen</div>
+              <div className="font-display font-bold" style={{ color: "#f0f7f6", fontSize: "1.8vw" }}>Sarah Jen</div>
               <div className="font-body" style={{ color: "#c8dedd", fontSize: "1.5vw" }}>Darug Country · Parramatta, NSW</div>
             </div>
           </div>

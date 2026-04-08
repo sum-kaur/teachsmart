@@ -28,7 +28,7 @@ What they find is:
 
 ## The Demo Scenario (memorise this — tell this story)
 
-**Sarah Chen** is a Year 9 History teacher at a public school in **Parramatta, Western Sydney** (postcode 2150).
+**Sarah Jin** is a Year 9 History teacher at a public school in **Parramatta, Western Sydney** (postcode 2150).
 
 She's teaching **"Rights and Freedoms"** next week. Her class is highly multicultural — many students have family connections to communities affected by rights struggles.
 
@@ -48,7 +48,7 @@ She opens TeachSmart:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    TEACHER (Sarah Chen)                      │
+│                    TEACHER (Sarah Jin)                      │
 │              Year 9 · History · NSW · Parramatta 2150        │
 └─────────────────────────┬───────────────────────────────────┘
                           │ Searches "Rights and Freedoms"

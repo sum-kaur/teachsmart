@@ -141,7 +141,7 @@ A 12-slide professional pitch deck for Cambridge EduX Hackathon 2026, Challenge 
 
 1. Title — hero classroom image + TeachSmart brand
 2. Problem — teacher overwhelmed, 4 pain points
-3. Sarah Chen persona — Year 9 History, Parramatta
+3. Sarah Jin persona — Year 9 History, Parramatta
 4. Solution — 3 pillars: CurricuLLM-AU, Trust Scorecard, Local Lens
 5. How It Works — 3-stream parallel pipeline
 6. Live Demo — walkthrough steps
