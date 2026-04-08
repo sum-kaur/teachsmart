@@ -205,8 +205,8 @@ export default function Home() {
   const feedMutation = useGetFeed();
 
   const getApiBase = () => {
-    const base = import.meta.env.BASE_URL?.replace(/\/$/, '') ?? '';
-    return base;
+    // VITE_API_URL can override for separate deployments; empty = same origin
+    return import.meta.env.VITE_API_URL ?? '';
   };
 
   const apiFetch = useCallback(async (path: string, body: Record<string, unknown>) => {

@@ -36,7 +36,7 @@ export default defineConfig({
         runtimeCaching: [
           {
             // Cache API responses for offline use
-            urlPattern: /^http:\/\/localhost:8080\/api\//,
+            urlPattern: /\/api\//,
             handler: "NetworkFirst",
             options: {
               cacheName: "api-cache",
