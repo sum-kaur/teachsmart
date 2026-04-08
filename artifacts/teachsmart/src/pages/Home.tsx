@@ -24,7 +24,7 @@ type AlignmentResult = {
 };
 
 type Resource = {
-  id: string; title: string; url?: string; source: string; type: string; description: string;
+  id: string; title: string; url?: string; urlType?: 'direct' | 'search'; source: string; type: string; description: string;
   alignmentScore: number; safetyRating: string; biasFlag: string;
   localContextTags: string[]; outcomeIds: string[]; whyThisResource: string;
   trustScorecard?: import("../components/TrustScorecard").TrustScorecardData;
@@ -223,43 +223,47 @@ export default function Home() {
   };
 
   const buildClientFallbackResources = (topic: string, subject: string, yearLevel: string, state: string): Resource[] => {
-    const q = encodeURIComponent(`${topic} ${subject} ${yearLevel}`);
+    const sq = (suffix: string) => `https://www.scootle.edu.au/ec/search?q=${encodeURIComponent(`${topic} ${suffix} ${yearLevel}`)}`;
+    const ts = Date.now();
     return [
       {
-        id: `scootle-${Date.now()}-1`,
-        title: `${topic} — Scootle Curated Resource Collection`,
-        url: `https://www.scootle.edu.au/ec/search?q=${q}`,
+        id: `scootle-${ts}-1`,
+        title: `${topic} — Curriculum-Aligned Teaching Resources`,
+        url: sq(subject),
+        urlType: 'search',
         source: "Scootle — Education Services Australia",
         type: "Lesson Plan",
-        description: `Curated collection of ${state}-curriculum-aligned resources from Scootle's 22,000+ resource library, filtered for ${yearLevel} ${subject} students studying ${topic}. Includes teacher notes, student activities, and assessment tasks mapped to Australian Curriculum v9.`,
+        description: `Curated collection of ${state}-curriculum-aligned teaching resources from Scootle's 22,000+ library for ${yearLevel} ${subject} students studying ${topic}. Includes teacher notes, student activities, and tasks mapped to Australian Curriculum v9.`,
         alignmentScore: 88, safetyRating: "verified", biasFlag: "low",
         localContextTags: ["Scootle", "Curriculum Aligned", `${state} Curriculum`, yearLevel],
         outcomeIds: [`AC9-${subject.replace(/\s/g,'').slice(0,3).toUpperCase()}`],
         whyThisResource: `Scootle is Australia's national repository of curriculum-aligned digital learning resources, reviewed and tagged against Australian Curriculum v9 outcomes for ${subject}.`,
       },
       {
-        id: `aiatsis-${Date.now()}-2`,
-        title: `${topic} — Teaching Resources and Primary Sources`,
-        url: `https://aiatsis.gov.au/explore/collections`,
-        source: "AIATSIS — Australian Institute of Aboriginal and Torres Strait Islander Studies",
+        id: `scootle-${ts}-2`,
+        title: `${topic} — Worksheets and Student Activities`,
+        url: sq(`${subject} worksheet activity`),
+        urlType: 'search',
+        source: "Scootle — Education Services Australia",
         type: "Worksheet",
-        description: `Curriculum-aligned teaching resources for ${yearLevel} ${subject} students in ${state} exploring ${topic}. Includes primary sources, guided inquiry tasks, and connections to Australian Curriculum v9 outcomes with First Nations perspectives embedded throughout.`,
+        description: `Student worksheets and inquiry activities for ${yearLevel} ${subject} students exploring ${topic} in ${state}. All resources are tagged to Australian Curriculum v9 outcomes and reviewed for quality.`,
         alignmentScore: 84, safetyRating: "verified", biasFlag: "low",
-        localContextTags: ["AIATSIS", "Australian Curriculum", "Primary Sources", `${state} Context`],
+        localContextTags: ["Scootle", "Student Activities", `${state} Curriculum`, yearLevel],
         outcomeIds: [`AC9-${subject.replace(/\s/g,'').slice(0,3).toUpperCase()}`],
-        whyThisResource: `AIATSIS resources are verified against Australian Curriculum v9 outcomes and are particularly strong for ${subject} topics that intersect with First Nations history and perspectives.`,
+        whyThisResource: `Scootle's worksheet collection is peer-reviewed and directly tagged to AC v9 outcomes, making it ideal for classroom-ready activities on ${topic}.`,
       },
       {
-        id: `nma-${Date.now()}-3`,
-        title: `${topic} — Digital Classroom Resources`,
-        url: `https://www.nma.gov.au/learn/classroom-resources`,
-        source: "National Museum of Australia",
+        id: `scootle-${ts}-3`,
+        title: `${topic} — Assessment and Evaluation Resources`,
+        url: sq(`${subject} assessment`),
+        urlType: 'search',
+        source: "Scootle — Education Services Australia",
         type: "Assessment",
-        description: `Interactive digital classroom resources exploring ${topic} through primary sources, oral histories, and student inquiry tasks aligned to ${yearLevel} ${subject} outcomes. Includes differentiated activities for foundation through to extension learners.`,
+        description: `Assessment tasks and evaluation resources for ${yearLevel} ${subject} students in ${state} studying ${topic}. Mapped to Australian Curriculum v9 with marking guidance included.`,
         alignmentScore: 81, safetyRating: "verified", biasFlag: "low",
-        localContextTags: ["National Museum", "Digital Classroom", "Primary Sources", "Australian History"],
+        localContextTags: ["Scootle", "Assessment", `${state} Curriculum`, yearLevel],
         outcomeIds: [`AC9-${subject.replace(/\s/g,'').slice(0,3).toUpperCase()}`],
-        whyThisResource: `The National Museum of Australia's digital classroom provides high-quality primary sources directly relevant to ${topic} for ${yearLevel} ${state} students, with curriculum mapping included.`,
+        whyThisResource: `Scootle's assessment resources are curriculum-mapped and include teacher notes, making them ready to use for ${yearLevel} ${subject} evaluation tasks on ${topic}.`,
       },
     ] as Resource[];
   };
@@ -1029,12 +1033,12 @@ export default function Home() {
                       href={resource.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors no-underline ${(resource as Record<string,unknown>).urlType === 'search' ? 'bg-teal-50 text-teal-700 hover:bg-teal-100' : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700'}`}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors no-underline ${resource.urlType === 'search' ? 'bg-teal-50 text-teal-700 hover:bg-teal-100' : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700'}`}
                       aria-label={`Open ${resource.title} in new tab`}
-                      title={(resource as Record<string,unknown>).urlType === 'search' ? 'Opens a Scootle search for this topic' : 'Opens the resource directly'}
+                      title={resource.urlType === 'search' ? 'Search Scootle for curriculum-aligned resources on this topic' : 'Opens the resource directly'}
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
-                      {(resource as Record<string,unknown>).urlType === 'search' ? 'Search on Scootle' : 'Open resource'}
+                      {resource.urlType === 'search' ? 'Search on Scootle' : 'Open resource'}
                     </a>
                   )}
                   <button
