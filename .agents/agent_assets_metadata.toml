@@ -1,5 +1,28 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "njrk1Zf1wi_Or8bEAAFNQ"
+uri = "file://artifacts/pitch-deck/public/hero-classroom.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "DAmQOE2RIUKAJVDHK9GQB"
+uri = "file://artifacts/pitch-deck/public/australia-map.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "_5B_adZebTuFdda9Puho6"
+uri = "file://artifacts/pitch-deck/public/teacher-problem.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "pkHa9ekOhjWbbUirCUVhl"
+uri = "file://artifacts/pitch-deck/public/sarah-chen.png"
+type = "image"
+title = "generated_image"
 
 [[outputs]]
 id = "rDDE4D9xMlCCVVDGPmfto"

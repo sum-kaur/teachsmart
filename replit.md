@@ -127,3 +127,27 @@ Each file contains content descriptions organized by year level and strand (Year
 - Sidebar: dark `#0f172a`
 - Fonts: DM Serif Display (headings), DM Sans (body)
 - Tailwind CSS with custom sidebar/primary tokens
+
+## TeachSmart Pitch Deck
+
+A 12-slide professional pitch deck for Cambridge EduX Hackathon 2026, Challenge 4.
+
+- **Artifact**: `artifacts/pitch-deck/` at `/pitch-deck/`
+- **Aesthetic**: Bold Editorial — dark navy `#0c1a2e`, teal `#1e9b8a`, amber `#f0a500`
+- **Fonts**: Sora (display) + Inter (body) via Google Fonts
+- **Images**: `public/` — hero-classroom.png, teacher-problem.png, sarah-chen.png, australia-map.png
+
+### Slides
+
+1. Title — hero classroom image + TeachSmart brand
+2. Problem — teacher overwhelmed, 4 pain points
+3. Sarah Chen persona — Year 9 History, Parramatta
+4. Solution — 3 pillars: CurricuLLM-AU, Trust Scorecard, Local Lens
+5. How It Works — 3-stream parallel pipeline
+6. Live Demo — walkthrough steps
+7. Why TeachSmart Wins — competitive comparison table
+8. CurricuLLM Deep Dive — AC v8 wrong vs AC v9 correct codes
+9. Impact and Scale — 200K teachers, 35K immediate market
+10. Tech Stack — React, TypeScript, Groq, Tavily, AC v9 JSON
+11. Team and Timeline — 5 slots + 4-point roadmap (fill in team names)
+12. Closing CTA — full-bleed hero with impact tagline

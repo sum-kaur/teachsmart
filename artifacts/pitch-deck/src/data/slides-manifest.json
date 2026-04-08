@@ -1,0 +1,98 @@
+[
+  {
+    "id": "a1b2c3d4-e001-4000-8000-000000000001",
+    "position": 1,
+    "filepath": "src/pages/slides/Slide01Title.tsx",
+    "title": "TeachSmart — Title",
+    "description": "Full-bleed hero title slide with brand identity and tagline",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-e001-4000-8000-000000000002",
+    "position": 2,
+    "filepath": "src/pages/slides/Slide02Problem.tsx",
+    "title": "The Problem",
+    "description": "Teachers spend 5-10 hours per week searching for resources",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-e001-4000-8000-000000000003",
+    "position": 3,
+    "filepath": "src/pages/slides/Slide03Persona.tsx",
+    "title": "Meet Sarah Chen",
+    "description": "Primary persona — Year 9 History teacher in Parramatta",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-e001-4000-8000-000000000004",
+    "position": 4,
+    "filepath": "src/pages/slides/Slide04Solution.tsx",
+    "title": "The Solution",
+    "description": "Three pillars: CurricuLLM-AU, Trust Scorecard, Local Lens",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-e001-4000-8000-000000000005",
+    "position": 5,
+    "filepath": "src/pages/slides/Slide05Pipeline.tsx",
+    "title": "How It Works",
+    "description": "Three-stream parallel pipeline under 3 seconds",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-e001-4000-8000-000000000006",
+    "position": 6,
+    "filepath": "src/pages/slides/Slide06Demo.tsx",
+    "title": "Live Demo",
+    "description": "Demo walkthrough — search to verified results in 3 seconds",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-e001-4000-8000-000000000007",
+    "position": 7,
+    "filepath": "src/pages/slides/Slide07Differentiators.tsx",
+    "title": "Why TeachSmart Wins",
+    "description": "Competitive comparison table vs Generic AI and Scootle",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-e001-4000-8000-000000000008",
+    "position": 8,
+    "filepath": "src/pages/slides/Slide08CurricuLLM.tsx",
+    "title": "CurricuLLM Deep Dive",
+    "description": "AC v8 wrong codes vs AC v9 correct codes comparison",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-e001-4000-8000-000000000009",
+    "position": 9,
+    "filepath": "src/pages/slides/Slide09Impact.tsx",
+    "title": "Impact and Scale",
+    "description": "200K teachers, 35K immediate market, 200+ hours saved per teacher",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-e001-4000-8000-000000000010",
+    "position": 10,
+    "filepath": "src/pages/slides/Slide10TechStack.tsx",
+    "title": "Tech Stack",
+    "description": "React, TypeScript, Express, Groq, Tavily, AC v9 JSON data",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-e001-4000-8000-000000000011",
+    "position": 11,
+    "filepath": "src/pages/slides/Slide11Team.tsx",
+    "title": "Team and Timeline",
+    "description": "Five-person team with roadmap from April 2026 to 2027",
+    "speakerNotes": ""
+  },
+  {
+    "id": "a1b2c3d4-e001-4000-8000-000000000012",
+    "position": 12,
+    "filepath": "src/pages/slides/Slide12CTA.tsx",
+    "title": "Call to Action",
+    "description": "Closing impact statement — full-bleed hero with tagline",
+    "speakerNotes": ""
+  }
+]
