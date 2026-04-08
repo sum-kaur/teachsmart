@@ -441,12 +441,19 @@ Return ONLY valid JSON, no markdown:
       .filter((r: Record<string, unknown>) => seemsSubjectRelevant(r, subject, topic));
 
     if (suggestedResources.length === 0) {
-      res.json({ resources: [], usedFallback: false, usedWebSearch: false, usedCuratedRegistry: false });
+      res.json({ resources: [], aiSuggestions: [], usedFallback: false, usedWebSearch: false, usedCuratedRegistry: false });
       return;
     }
 
-    // Do not surface AI-only suggestions as resource cards when no verified source exists.
-    res.json({ resources: [], usedFallback: false, usedWebSearch: false, usedCuratedRegistry: false });
+    // Return AI suggestions separately — frontend can show them behind an opt-in toggle
+    const markedSuggestions = suggestedResources.map((r: Record<string, unknown>, i: number) => ({
+      ...r,
+      id: r.id ?? `ai-suggestion-${i + 1}-${Date.now()}`,
+      provenance: "ai-suggestion" as const,
+      verifiedLink: false,
+      urlType: "search" as const,
+    }));
+    res.json({ resources: [], aiSuggestions: enrichWithTrust(markedSuggestions), usedFallback: false, usedWebSearch: false, usedCuratedRegistry: false });
 
   } catch (err) {
     clearTimeout(overallTimeout);

@@ -354,6 +354,8 @@ export default function Home() {
   const [alignmentResult, setAlignmentResult] = useState<AlignmentResult | null>(null);
   const [searchStep, setSearchStep] = useState<string | null>(null);
   const [resources, setResources] = useState<Resource[]>([]);
+  const [aiSuggestions, setAiSuggestions] = useState<Resource[]>([]);
+  const [showAiSuggestions, setShowAiSuggestions] = useState(false);
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const [lessonPlan, setLessonPlan] = useState<GeneratedOutput | null>(null);
   const [teacherNotes, setTeacherNotes] = useState('');
@@ -610,8 +612,10 @@ export default function Home() {
 
       setSearchStep('merging');
       await new Promise(r => setTimeout(r, 300)); // brief pause to show "Merging results"
-      const fetched = (resourcesResult as { resources: Resource[] }).resources ?? [];
-      setResources(fetched);
+      const result = resourcesResult as { resources: Resource[]; aiSuggestions?: Resource[] };
+      setResources(result.resources ?? []);
+      setAiSuggestions(result.aiSuggestions ?? []);
+      setShowAiSuggestions(false);
     } catch {
       setAlignmentResult({
         alignmentScore: 88, syllabus: `${searchParams.state} ${searchParams.subject} ${searchParams.yearLevel}`,
@@ -1383,21 +1387,50 @@ export default function Home() {
 
   const renderResults = () => (
     <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
-      {renderTopbar("Results", `Found ${resources.length} resource${resources.length !== 1 ? 's' : ''} for ${searchParams.topic}`)}
+      {renderTopbar("Results", `Found ${(showAiSuggestions && resources.length === 0 ? aiSuggestions.length : resources.length)} resource${(showAiSuggestions && resources.length === 0 ? aiSuggestions.length : resources.length) !== 1 ? 's' : ''} for ${searchParams.topic}${showAiSuggestions && resources.length === 0 ? ' (AI-generated)' : ''}`)}
       <div className="p-8 flex-1">
         {renderFirstNationsBanner()}
         {renderLocalLensTip()}
         {renderAlignmentBar()}
         <div className="flex flex-col gap-4">
-          {resources.length === 0 && (
+          {resources.length === 0 && !showAiSuggestions && (
             <div className="bg-white rounded-xl border border-border p-12 text-center">
               <div className="text-slate-300 text-4xl mb-3">📚</div>
               <div className="text-[15px] font-semibold text-slate-400 mb-1">No verified resources found</div>
-              <div className="text-[13px] text-slate-400">Try another topic, or use a curated demo topic while verified search coverage is limited.</div>
-              <button onClick={() => navigate('search')} className="mt-4 bg-primary text-white border-none px-5 py-2.5 rounded-lg text-sm font-semibold cursor-pointer hover:bg-teal-700">Back to search</button>
+              <div className="text-[13px] text-slate-400 mb-4">Try another topic, or use a curated demo topic while verified search coverage is limited.</div>
+              <div className="flex items-center justify-center gap-3">
+                <button onClick={() => navigate('search')} className="bg-primary text-white border-none px-5 py-2.5 rounded-lg text-sm font-semibold cursor-pointer hover:bg-teal-700">Back to search</button>
+                {aiSuggestions.length > 0 && (
+                  <button
+                    onClick={() => setShowAiSuggestions(true)}
+                    className="bg-gradient-to-r from-violet-500 to-indigo-500 text-white border-none px-5 py-2.5 rounded-lg text-sm font-semibold cursor-pointer hover:from-violet-600 hover:to-indigo-600 transition-all flex items-center gap-2 shadow-sm"
+                  >
+                    <Sparkles className="w-4 h-4" /> Show AI-Generated Suggestions ({aiSuggestions.length})
+                  </button>
+                )}
+              </div>
             </div>
           )}
-          {resources.map((resource) => (
+          {showAiSuggestions && aiSuggestions.length > 0 && resources.length === 0 && (
+            <div className="mb-4">
+              <div className="bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200 rounded-xl p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-violet-100 rounded-lg p-2"><Sparkles className="w-4 h-4 text-violet-600" /></div>
+                  <div>
+                    <div className="text-[14px] font-semibold text-violet-800">AI-Generated Suggestions</div>
+                    <div className="text-[12px] text-violet-600">These resources are suggested by AI and may not have verified links. Review before classroom use.</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAiSuggestions(false)}
+                  className="text-violet-400 hover:text-violet-600 bg-transparent border-none cursor-pointer p-1"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+          {(showAiSuggestions && resources.length === 0 ? aiSuggestions : resources).map((resource) => (
             <div key={resource.id} className="bg-white rounded-xl shadow-sm border border-border p-6 flex flex-col gap-4 hover:border-teal-200 hover:shadow-md transition-all" data-testid={`resource-card-${resource.id}`}>
               {getResourceReviewBanners(resource).length > 0 && (
                 <div className="flex flex-col gap-2">
