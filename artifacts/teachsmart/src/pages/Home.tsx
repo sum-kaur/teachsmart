@@ -7,7 +7,7 @@ import {
   CalendarDays, Settings2, Globe, ChevronDown, ChevronUp,
   Presentation, Library as LibraryIcon, Bookmark, BookmarkCheck, Loader2, Sparkles, ExternalLink,
   AlertTriangle, ShieldAlert, Info,
-  Plus, X, Users
+  Plus, X, Users, Menu
 } from "lucide-react";
 import { useGetDashboardStats, useGetRecentResources, useGetFeed } from "@workspace/api-client-react";
 import VoiceMic from "../components/VoiceMic";
@@ -279,6 +279,7 @@ export default function Home() {
   const navigate = useCallback((screen: Screen) => {
     window.location.hash = screen;
     setCurrentScreen(screen);
+    setMobileNavOpen(false);
   }, []);
 
   useEffect(() => {
@@ -379,6 +380,7 @@ export default function Home() {
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [expandedFeedIdx, setExpandedFeedIdx] = useState<Set<number>>(new Set());
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showAddClassForm, setShowAddClassForm] = useState(false);
   const [newClassName, setNewClassName] = useState('');
   const [newClassYearLevel, setNewClassYearLevel] = useState('Year 9');
@@ -916,7 +918,12 @@ export default function Home() {
   };
 
   const renderSidebar = () => (
-    <nav className="w-60 bg-sidebar text-sidebar-foreground flex flex-col py-7 fixed top-0 left-0 bottom-0 z-50 overflow-y-auto">
+    <>
+      <div
+        className={`fixed inset-0 z-40 bg-slate-950/50 transition-opacity lg:hidden ${mobileNavOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setMobileNavOpen(false)}
+      />
+      <nav className={`w-60 bg-sidebar text-sidebar-foreground flex flex-col py-7 fixed top-0 left-0 bottom-0 z-50 overflow-y-auto transform transition-transform duration-200 lg:translate-x-0 ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="px-6 pb-7 mb-4 flex items-center gap-3 border-b border-white/10">
         <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center">
           <BookOpen className="w-5 h-5 text-white" />
@@ -958,16 +965,26 @@ export default function Home() {
           </div>
         </div>
       </div>
-    </nav>
+      </nav>
+    </>
   );
 
   const renderTopbar = (title: string, subtitle: string, classroomUrl?: string, classroomTitle?: string) => (
-    <div className="bg-white px-8 py-4 flex items-center justify-between border-b border-border sticky top-0 z-40">
-      <div>
-        <div className="font-serif text-[22px] text-foreground tracking-tight">{title}</div>
-        {subtitle && <div className="text-[13px] text-muted-foreground mt-0.5">{subtitle}</div>}
+    <div className="bg-white px-4 py-4 sm:px-6 lg:px-8 flex items-start sm:items-center justify-between gap-3 border-b border-border sticky top-0 z-30">
+      <div className="flex items-start gap-3 min-w-0">
+        <button
+          onClick={() => setMobileNavOpen(true)}
+          className="lg:hidden inline-flex items-center justify-center rounded-xl border border-border bg-white p-2 text-slate-600"
+          aria-label="Open navigation menu"
+        >
+          <Menu className="w-4 h-4" />
+        </button>
+        <div className="min-w-0">
+          <div className="font-serif text-[22px] text-foreground tracking-tight">{title}</div>
+          {subtitle && <div className="text-[13px] text-muted-foreground mt-0.5">{subtitle}</div>}
+        </div>
       </div>
-      <div className="flex gap-2 items-center">
+      <div className="flex gap-2 items-center flex-wrap justify-end">
         {/* Google Classroom button — only when a share URL is available */}
         {classroomUrl && (
           <button
@@ -1033,9 +1050,9 @@ export default function Home() {
   const renderDashboard = () => {
     const selectedClass = myClasses.find(c => c.id === selectedClassId);
     return (
-      <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50" onClick={() => showLangMenu && setShowLangMenu(false)}>
+      <div className="flex-1 lg:ml-60 flex flex-col min-h-screen bg-slate-50" onClick={() => showLangMenu && setShowLangMenu(false)}>
         {renderTopbar("Dashboard", "")}
-        <div className="p-8 flex-1 max-w-4xl w-full">
+        <div className="p-4 sm:p-6 lg:p-8 flex-1 max-w-4xl w-full">
 
           {/* ── Hero search ─────────────────────────────────────── */}
           <div className="mb-8">
@@ -1074,7 +1091,7 @@ export default function Home() {
           </div>
 
           {/* ── CTA shortcuts ────────────────────────────────────── */}
-          <div className="grid grid-cols-3 gap-3 mb-7">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 mb-7">
             {[
               { icon: <BookOpen className="w-4 h-4" />, label: "Unit Planner", desc: "Plan a full teaching sequence", screen: 'unit-planner' as Screen, color: "text-purple-600 bg-purple-50" },
               { icon: <Compass className="w-4 h-4" />, label: "New Resource", desc: "Find curriculum-aligned materials", screen: 'search' as Screen, color: "text-primary bg-teal-50" },
@@ -1102,7 +1119,7 @@ export default function Home() {
                 </div>
               ))}
               {showAddClassForm ? (
-                <div className="bg-white border border-primary rounded-xl p-3 flex flex-col gap-2 shadow-sm w-60">
+                <div className="bg-white border border-primary rounded-xl p-3 flex flex-col gap-2 shadow-sm w-full sm:w-72">
                   <input autoFocus value={newClassName} onChange={e => setNewClassName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddClass()} placeholder="Class name (e.g. 9S History)" className="text-[12px] border border-border rounded-md px-2.5 py-1.5 outline-none focus:border-primary" />
                   <div className="flex gap-1.5">
                     <select value={newClassYearLevel} onChange={e => setNewClassYearLevel(e.target.value)} className="flex-1 text-[11px] border border-border rounded-md px-1.5 py-1 outline-none focus:border-primary bg-white">
@@ -1134,10 +1151,10 @@ export default function Home() {
               {isFeedLoading && <span className="text-[11px] text-muted-foreground animate-pulse ml-auto">📍 Detecting...</span>}
             </div>
             {isFeedLoading && (
-              <div className="grid grid-cols-3 gap-3">{[0, 1, 2].map(i => <div key={i} className="bg-white rounded-xl border border-border p-4 animate-pulse"><div className="h-3.5 bg-slate-100 rounded w-2/3 mb-2"></div><div className="h-2.5 bg-slate-100 rounded w-full mb-1.5"></div><div className="h-2.5 bg-slate-100 rounded w-4/5"></div></div>)}</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">{[0, 1, 2].map(i => <div key={i} className="bg-white rounded-xl border border-border p-4 animate-pulse"><div className="h-3.5 bg-slate-100 rounded w-2/3 mb-2"></div><div className="h-2.5 bg-slate-100 rounded w-full mb-1.5"></div><div className="h-2.5 bg-slate-100 rounded w-4/5"></div></div>)}</div>
             )}
             {!isFeedLoading && feedResult && (
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                 {feedResult.feedItems.map((item, i) => {
                   const typeColorMap: Record<string, string> = { weather: "bg-sky-50 text-sky-700", local_history: "bg-amber-50 text-amber-700", environment: "bg-green-50 text-green-700", community: "bg-purple-50 text-purple-700" };
                   const isExpanded = expandedFeedIdx.has(i);
@@ -1165,7 +1182,7 @@ export default function Home() {
               </div>
             )}
             {!isFeedLoading && !feedResult && (
-              <div className="grid grid-cols-3 gap-3 opacity-40">{['🌦', '🗺', '🌿'].map((icon, i) => <div key={i} className="bg-white rounded-xl border border-border p-4 text-center text-slate-400 text-[12px]"><div className="text-xl mb-1.5">{icon}</div>Local teaching opportunities</div>)}</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 opacity-40">{['🌦', '🗺', '🌿'].map((icon, i) => <div key={i} className="bg-white rounded-xl border border-border p-4 text-center text-slate-400 text-[12px]"><div className="text-xl mb-1.5">{icon}</div>Local teaching opportunities</div>)}</div>
             )}
           </div>
 
@@ -1174,7 +1191,7 @@ export default function Home() {
             <div className="px-5 py-3.5 border-b border-border text-[12px] font-bold uppercase tracking-wider text-slate-400">Recent Resources</div>
             <div className="divide-y divide-border">
               {(recentResources || []).map((resource, i) => (
-                <div key={resource.id} className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] px-5 py-3 items-center text-[13px] hover:bg-slate-50 transition-colors" data-testid={`recent-resource-${i}`}>
+                <div key={resource.id} className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_1fr_auto] gap-2 px-5 py-3 items-start sm:items-center text-[13px] hover:bg-slate-50 transition-colors" data-testid={`recent-resource-${i}`}>
                   <div className="font-medium text-foreground truncate">{resource.title}</div>
                   <div className="text-slate-400">{resource.subject}</div>
                   <div className="text-slate-400">{resource.yearLevel}</div>
@@ -1218,17 +1235,17 @@ export default function Home() {
         },
       ];
       return (
-        <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
+        <div className="flex-1 lg:ml-60 flex flex-col min-h-screen bg-slate-50">
           {renderTopbar("Searching Resources", `Finding resources for "${searchParams.topic}"...`)}
-          <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] gap-8">
+          <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] gap-6 px-4 sm:px-6">
             <div className="text-center">
               <div className="w-14 h-14 border-4 border-slate-200 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
               <div className="text-[17px] font-semibold text-foreground mb-1">Finding the best resources for your class...</div>
               <div className="text-[13px] text-muted-foreground">{searchParams.subject} · {searchParams.yearLevel} · {searchParams.state}</div>
             </div>
-            <div className="flex items-stretch gap-0 bg-white border border-border rounded-2xl shadow-sm overflow-hidden w-full max-w-2xl">
+            <div className="flex flex-col sm:flex-row items-stretch gap-0 bg-white border border-border rounded-2xl shadow-sm overflow-hidden w-full max-w-2xl">
               {steps.map((step, i) => (
-                <div key={step.key} className={`flex-1 flex flex-col items-center px-5 py-5 relative transition-all duration-300 ${step.done ? 'bg-emerald-50' : step.active ? 'bg-primary/5' : 'bg-white'} ${i < steps.length - 1 ? 'border-r border-border' : ''}`}>
+                <div key={step.key} className={`flex-1 flex flex-col items-center px-5 py-5 relative transition-all duration-300 ${step.done ? 'bg-emerald-50' : step.active ? 'bg-primary/5' : 'bg-white'} ${i < steps.length - 1 ? 'sm:border-r sm:border-border border-b sm:border-b-0 border-border' : ''}`}>
                   <div className={`text-2xl mb-2 transition-all ${step.active ? 'animate-pulse' : ''}`}>{step.icon}</div>
                   <div className={`text-[12px] font-bold mb-1 text-center ${step.done ? 'text-emerald-700' : step.active ? 'text-primary' : 'text-slate-400'}`}>{step.label}</div>
                   <div className="text-[10px] text-slate-400 text-center leading-tight">{step.sublabel}</div>
@@ -1254,10 +1271,10 @@ export default function Home() {
     const INTEREST_OPTIONS = ['Sport', 'Gaming', 'Music', 'Cooking', 'Technology', 'Fashion', 'Environment', 'Animals', 'Travel', 'Social Justice'];
 
     return (
-      <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
+      <div className="flex-1 lg:ml-60 flex flex-col min-h-screen bg-slate-50">
         {renderTopbar("New Resource", "Define your requirements")}
-        <div className="p-8 flex-1">
-          <div className="bg-white rounded-xl shadow-sm border border-border p-10 max-w-4xl mx-auto">
+        <div className="p-4 sm:p-6 lg:p-8 flex-1">
+          <div className="bg-white rounded-xl shadow-sm border border-border p-5 sm:p-7 lg:p-10 max-w-4xl mx-auto">
             {unitContext.unitTitle && (
               <div className="bg-primary/5 border border-primary/20 rounded-xl px-4 py-3 mb-6 flex items-center justify-between">
                 <div>
@@ -1269,7 +1286,7 @@ export default function Home() {
             )}
 
             <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">Curriculum Target</div>
-            <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[13px] font-medium text-slate-600">Year Level</label>
                 <select className="px-3.5 py-2.5 border border-border rounded-lg text-sm bg-white outline-none focus:border-primary transition-colors appearance-none cursor-pointer" value={searchParams.yearLevel} onChange={(e) => setSearchParams({ ...searchParams, yearLevel: e.target.value })} data-testid="select-year-level">
@@ -1304,7 +1321,7 @@ export default function Home() {
 
             <hr className="border-t border-border my-7" />
             <div className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">Resource Type</div>
-            <div className="grid grid-cols-4 gap-3 mb-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
               {[{ icon: "📄", label: "Lesson Plan" }, { icon: "📋", label: "Worksheet" }, { icon: "💬", label: "Discussion" }, { icon: "✏️", label: "Assessment" }].map(type => (
                 <div key={type.label} className={`border rounded-lg p-4 text-center cursor-pointer transition-colors ${searchParams.resourceType === type.label ? 'border-primary bg-teal-50' : 'border-border bg-white hover:border-primary'}`} onClick={() => setSearchParams({ ...searchParams, resourceType: type.label })} data-testid={`resource-type-${type.label.replace(/\s+/g, '-').toLowerCase()}`}>
                   <div className="text-2xl mb-2">{type.icon}</div>
@@ -1351,7 +1368,7 @@ export default function Home() {
     const suburb = feedResult?.localContext?.suburb;
     if (!country) return null;
     return (
-      <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 mb-5 flex items-center gap-3">
+      <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 sm:px-5 py-3 mb-5 flex flex-col sm:flex-row sm:items-center gap-3">
         <span className="text-xl shrink-0">🌏</span>
         <div className="flex-1">
           <span className="text-[13px] font-semibold text-amber-900">
@@ -1396,7 +1413,7 @@ export default function Home() {
     if (!tip) return null;
 
     return (
-      <div className="bg-teal-50 border-2 border-teal-200 rounded-xl px-5 py-4 mb-5 flex gap-4" data-testid="local-lens-tip">
+      <div className="bg-teal-50 border-2 border-teal-200 rounded-xl px-4 sm:px-5 py-4 mb-5 flex gap-4" data-testid="local-lens-tip">
         <div className="shrink-0 mt-0.5">
           <div className="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center text-white text-[16px] font-bold">📍</div>
         </div>
@@ -1419,9 +1436,9 @@ export default function Home() {
   };
 
   const renderResults = () => (
-    <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
+    <div className="flex-1 lg:ml-60 flex flex-col min-h-screen bg-slate-50">
       {renderTopbar("Results", `Found ${(showAiSuggestions && resources.length === 0 ? aiSuggestions.length : resources.length)} resource${(showAiSuggestions && resources.length === 0 ? aiSuggestions.length : resources.length) !== 1 ? 's' : ''} for ${searchParams.topic}${showAiSuggestions && resources.length === 0 ? ' (AI-generated)' : ''}`)}
-      <div className="p-8 flex-1">
+      <div className="p-4 sm:p-6 lg:p-8 flex-1">
         {renderFirstNationsBanner()}
         {renderLocalLensTip()}
         {renderAlignmentBar()}
@@ -1441,7 +1458,7 @@ export default function Home() {
                   {getResourceReviewBanners(resource).map(renderReviewBanner)}
                 </div>
               )}
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                     <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{resource.type}</span>
@@ -1462,7 +1479,7 @@ export default function Home() {
                     {resource.localContextTags.map(tag => <span key={tag} className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">{tag}</span>)}
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 shrink-0">
+                <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0 w-full lg:w-auto">
                   {resource.url && resource.urlType !== 'search' && resource.verifiedLink !== false && (
                     <a
                       href={resource.url}
@@ -1548,7 +1565,7 @@ export default function Home() {
                   <div className="flex flex-col gap-4">
                     {aiSuggestions.map((resource) => (
                       <div key={resource.id} className="bg-white rounded-xl shadow-sm border border-violet-200 p-6 flex flex-col gap-4 hover:border-violet-300 hover:shadow-md transition-all" data-testid={`ai-resource-card-${resource.id}`}>
-                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex flex-col lg:flex-row items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                               <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{resource.type}</span>
@@ -1565,7 +1582,7 @@ export default function Home() {
                               </div>
                             )}
                           </div>
-                          <div className="flex flex-col gap-2 shrink-0">
+                          <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0 w-full lg:w-auto">
                             <button onClick={() => handleAdaptResource(resource)} className="bg-violet-600 text-white border-none px-4 py-2 rounded-lg text-[13px] font-semibold cursor-pointer hover:bg-violet-700 transition-colors shadow-sm whitespace-nowrap">
                               {t('adaptFor')} →
                             </button>
@@ -1749,7 +1766,7 @@ export default function Home() {
     const url = shareUrl || (showFallbackShare ? fallbackUrl : '');
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowQR(false)}>
-        <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-sm w-full mx-4 flex flex-col items-center gap-5" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl p-5 sm:p-8 shadow-2xl max-w-sm w-full mx-4 flex flex-col items-center gap-5" onClick={e => e.stopPropagation()}>
           <div className="text-[18px] font-serif font-semibold text-foreground">Share via QR Code</div>
           <p className="text-[13px] text-slate-500 text-center">Colleague scans this with their phone to instantly load this {lessonPlan?.resourceType?.toLowerCase()}.</p>
           <div className="p-3 border-2 border-border rounded-xl">
@@ -1810,11 +1827,11 @@ export default function Home() {
     const lessonTitle = `${searchParams.topic} — ${searchParams.yearLevel} ${searchParams.subject}`;
     const resource = selectedResource;
     return (
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 mb-5">
         <button onClick={() => navigate('results')} className="text-[13px] font-medium text-slate-500 hover:text-primary flex items-center gap-1.5 bg-transparent border-none cursor-pointer" data-testid="btn-back-to-results">
           <ArrowLeft className="w-4 h-4" /> {t('backToResults')}
         </button>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 w-full lg:w-auto">
           {resource?.url && resource.urlType !== 'search' && resource.verifiedLink !== false && (
             <a
               href={resource.url}
@@ -2129,7 +2146,7 @@ export default function Home() {
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4 mb-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
         <div className="bg-teal-50 border border-teal-200 rounded-xl p-5">
           <div className="text-[13px] font-bold text-teal-700 mb-3">Sentence Starters</div>
           <ul className="flex flex-col gap-2">
@@ -2242,7 +2259,7 @@ export default function Home() {
     if (isGeneratingLesson) {
       const typeLabel = searchParams.resourceType;
       return (
-        <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
+        <div className="flex-1 lg:ml-60 flex flex-col min-h-screen bg-slate-50">
           {renderTopbar(`Generating ${typeLabel}`, "AI is writing your content...")}
           <div className="flex-1 flex flex-col items-center justify-center min-h-[60vh] gap-5">
             <div className="w-12 h-12 border-4 border-slate-200 border-t-primary rounded-full animate-spin"></div>
@@ -2259,7 +2276,7 @@ export default function Home() {
 
     if (!lessonPlan) {
       return (
-        <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
+        <div className="flex-1 lg:ml-60 flex flex-col min-h-screen bg-slate-50">
           {renderTopbar("Lesson Plan", "")}
           <div className="flex-1 flex flex-col items-center justify-center gap-5 min-h-[60vh]">
             <div className="text-4xl">⚠️</div>
@@ -2287,9 +2304,9 @@ export default function Home() {
     const topbarLabel = lessonPlan.resourceType === 'Lesson Plan' ? 'Lesson Plan Editor' : lessonPlan.resourceType === 'Worksheet' ? 'Worksheet' : lessonPlan.resourceType === 'Discussion' ? 'Discussion Guide' : 'Assessment Task';
 
     return (
-      <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
+      <div className="flex-1 lg:ml-60 flex flex-col min-h-screen bg-slate-50">
         {renderTopbar(topbarLabel, `${searchParams.yearLevel} ${searchParams.subject} · ${resource?.source ?? ''}`)}
-        <div className="p-8 flex-1">
+        <div className="p-4 sm:p-6 lg:p-8 flex-1">
           <div className="max-w-3xl mx-auto">
             {renderOutputActions()}
             {renderOutputHeader(lessonPlan)}
@@ -2318,9 +2335,9 @@ export default function Home() {
   };
 
   const renderMyClasses = () => (
-    <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
+    <div className="flex-1 lg:ml-60 flex flex-col min-h-screen bg-slate-50">
       {renderTopbar("My Classes", "")}
-      <div className="p-8 max-w-3xl w-full">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-3xl w-full">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="font-serif text-[24px] text-foreground font-semibold">My Classes</h2>
@@ -2422,6 +2439,13 @@ export default function Home() {
           You are offline — showing cached content. New searches will resume when connected.
         </div>
       )}
+      <button
+        onClick={() => setMobileNavOpen(true)}
+        className={`fixed left-4 z-40 lg:hidden inline-flex items-center justify-center rounded-xl border border-border bg-white/95 p-2 text-slate-600 shadow-sm ${isOffline ? 'top-14' : 'top-4'}`}
+        aria-label="Open navigation menu"
+      >
+        <Menu className="w-4 h-4" />
+      </button>
       {renderSidebar()}
       {currentScreen === 'dashboard' && renderDashboard()}
       {currentScreen === 'classes' && renderMyClasses()}

@@ -12,17 +12,17 @@ type Props = {
 };
 
 export default function Settings({ uiLanguage, onUiLanguageChange, fontSize, onFontSizeChange, highContrast, onHighContrastChange }: Props) {
-  const sectionClass = "bg-white rounded-2xl shadow-sm border border-border p-6 mb-5";
+  const sectionClass = "bg-white rounded-2xl shadow-sm border border-border p-4 sm:p-6 mb-5";
   const labelClass = "block text-[12px] font-semibold uppercase tracking-wider text-slate-500 mb-2";
 
   return (
-    <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
-      <div className="bg-white px-8 py-5 border-b border-border">
+    <div className="flex-1 lg:ml-60 flex flex-col min-h-screen bg-slate-50">
+      <div className="bg-white px-4 sm:px-6 lg:px-8 py-5 border-b border-border">
         <div className="font-serif text-[22px] text-foreground tracking-tight">Settings</div>
         <div className="text-[13px] text-muted-foreground mt-0.5">Personalise your TeachSmart experience</div>
       </div>
 
-      <div className="p-8 flex-1">
+      <div className="p-4 sm:p-6 lg:p-8 flex-1">
         <div className="max-w-2xl mx-auto">
           <div className={sectionClass}>
             <div className="flex items-center gap-2 mb-5">
@@ -30,7 +30,7 @@ export default function Settings({ uiLanguage, onUiLanguageChange, fontSize, onF
               <div className="text-[15px] font-bold text-foreground">Language & Voice</div>
             </div>
             <label className={labelClass}>Interface language</label>
-            <div className="grid grid-cols-2 gap-2 mb-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-5">
               {LANGUAGES.map(lang => (
                 <button
                   key={lang.code}
@@ -54,7 +54,7 @@ export default function Settings({ uiLanguage, onUiLanguageChange, fontSize, onF
           <div className={sectionClass}>
             <div className="text-[15px] font-bold text-foreground mb-5">Accessibility</div>
             <label className={labelClass}>Font size</label>
-            <div className="flex gap-2 mb-5">
+            <div className="flex flex-col sm:flex-row gap-2 mb-5">
               {(['small', 'medium', 'large'] as const).map(size => (
                 <button
                   key={size}

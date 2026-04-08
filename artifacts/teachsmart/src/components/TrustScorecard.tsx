@@ -146,7 +146,7 @@ export default function TrustScorecard({ scorecard, resourceTitle }: Props) {
               <div className={`text-[11px] ${tierColors.text} opacity-60 mt-1`}>{tierA.established}</div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[
                 { label: "HTTPS / Secure", value: tierA.isHttps },
                 { label: "Author attributed", value: tierA.hasAuthorAttribution },

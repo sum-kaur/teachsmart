@@ -151,6 +151,87 @@ function seemsSubjectRelevant(resource: Record<string, unknown>, subject: string
   return topicMatch || subjectMatch;
 }
 
+function extractJsonCandidate(text: string) {
+  const trimmed = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  if (!trimmed) return "";
+  try {
+    JSON.parse(trimmed);
+    return trimmed;
+  } catch {
+    const objectStart = trimmed.indexOf("{");
+    const objectEnd = trimmed.lastIndexOf("}");
+    if (objectStart !== -1 && objectEnd > objectStart) {
+      return trimmed.slice(objectStart, objectEnd + 1);
+    }
+    const arrayStart = trimmed.indexOf("[");
+    const arrayEnd = trimmed.lastIndexOf("]");
+    if (arrayStart !== -1 && arrayEnd > arrayStart) {
+      return trimmed.slice(arrayStart, arrayEnd + 1);
+    }
+    return trimmed;
+  }
+}
+
+function parseAiSuggestionPayload(text: string): Record<string, unknown>[] {
+  const jsonCandidate = extractJsonCandidate(text);
+  if (!jsonCandidate) return [];
+  const parsed = JSON.parse(jsonCandidate) as unknown;
+  if (Array.isArray(parsed)) return parsed.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null);
+  if (parsed && typeof parsed === "object" && Array.isArray((parsed as { resources?: unknown[] }).resources)) {
+    return (parsed as { resources: unknown[] }).resources.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null);
+  }
+  return [];
+}
+
+function normalizeAiSuggestion(
+  resource: Record<string, unknown>,
+  index: number,
+  subject: string,
+  yearLevel: string,
+  topic: string,
+  alignmentResult: { outcomes: { id: string }[] },
+  resourceTypeFilter?: string,
+) {
+  const title = typeof resource.title === "string" && resource.title.trim().length > 0
+    ? resource.title.trim()
+    : `${topic} resource ${index + 1}`;
+  const source = typeof resource.source === "string" && resource.source.trim().length > 0
+    ? resource.source.trim()
+    : "AI suggested source";
+  const type = typeof resource.type === "string" && resource.type.trim().length > 0
+    ? resource.type.trim()
+    : (resourceTypeFilter || "Lesson Plan");
+  const description = typeof resource.description === "string" && resource.description.trim().length > 0
+    ? resource.description.trim()
+    : `AI-suggested ${type.toLowerCase()} for ${yearLevel} ${subject} on ${topic}.`;
+  const localContextTags = Array.isArray(resource.localContextTags)
+    ? resource.localContextTags.filter((tag): tag is string => typeof tag === "string" && tag.trim().length > 0).slice(0, 4)
+    : [];
+  const outcomeIds = Array.isArray(resource.outcomeIds)
+    ? resource.outcomeIds.filter((value): value is string => typeof value === "string" && value.trim().length > 0).slice(0, 4)
+    : alignmentResult.outcomes.slice(0, 3).map((outcome) => outcome.id);
+
+  return {
+    ...resource,
+    id: typeof resource.id === "string" && resource.id.trim().length > 0 ? resource.id : `ai-suggestion-${index + 1}-${Date.now()}`,
+    title,
+    source,
+    type,
+    description,
+    alignmentScore: typeof resource.alignmentScore === "number" ? Math.max(60, Math.min(100, resource.alignmentScore)) : 78 - index * 4,
+    safetyRating: resource.safetyRating === "verified" ? "verified" : "unverified",
+    biasFlag: resource.biasFlag === "flagged" ? "flagged" : "low",
+    localContextTags: localContextTags.length > 0 ? localContextTags : [subject, yearLevel, "AI Suggestion"],
+    outcomeIds,
+    whyThisResource: typeof resource.whyThisResource === "string" && resource.whyThisResource.trim().length > 0
+      ? resource.whyThisResource.trim()
+      : `This AI suggestion was generated for ${yearLevel} ${subject} students studying ${topic}.`,
+    provenance: "ai-suggestion" as const,
+    verifiedLink: false,
+    urlType: "search" as const,
+  };
+}
+
 function getTopicTerms(topic: string) {
   return topic
     .toLowerCase()
@@ -383,17 +464,22 @@ Return ONLY valid JSON, no markdown:
           temperature: 0.5,
         });
         const text = completion.choices[0]?.message?.content ?? "";
-        const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-        const aiResult = JSON.parse(cleaned);
-        const suggested = (Array.isArray(aiResult.resources) ? aiResult.resources : [])
-          .filter((r: Record<string, unknown>) => seemsSubjectRelevant(r, subject, topic));
-        return suggested.map((r: Record<string, unknown>, i: number) => ({
-          ...r,
-          id: r.id ?? `ai-suggestion-${i + 1}-${Date.now()}`,
-          provenance: "ai-suggestion" as const,
-          verifiedLink: false,
-          urlType: "search" as const,
-        }));
+        const rawSuggestions = parseAiSuggestionPayload(text);
+        const normalizedSuggestions = rawSuggestions.map((resource, index) =>
+          normalizeAiSuggestion(resource, index, subject, yearLevel, topic, alignmentResult, resourceTypeFilter)
+        );
+        const relevantSuggestions = normalizedSuggestions.filter((resource) => seemsSubjectRelevant(resource, subject, topic));
+        const finalSuggestions = (relevantSuggestions.length > 0 ? relevantSuggestions : normalizedSuggestions).slice(0, 3);
+
+        if (finalSuggestions.length > 0) {
+          req.log.info({
+            count: finalSuggestions.length,
+            filteredCount: relevantSuggestions.length,
+            rawCount: rawSuggestions.length,
+          }, "AI suggestions generated");
+        }
+
+        return finalSuggestions;
       } catch (err) {
         lastErr = err;
         const isRateLimit = err && typeof err === "object" && "status" in err && (err as { status?: number }).status === 429;

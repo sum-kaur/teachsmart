@@ -148,21 +148,21 @@ export default function SemesterPlanner({ subject, yearLevel, state, preferredLa
   const labelClass = "block text-[12px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5";
 
   return (
-    <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
-      <div className="bg-white px-8 py-5 border-b border-border">
+    <div className="flex-1 lg:ml-60 flex flex-col min-h-screen bg-slate-50">
+      <div className="bg-white px-4 sm:px-6 lg:px-8 py-5 border-b border-border">
         <div className="font-serif text-[22px] text-foreground tracking-tight">Semester Planner</div>
         <div className="text-[13px] text-muted-foreground mt-0.5">
           AI generates your full 10-week plan instantly — then click any week topic to edit it inline
         </div>
       </div>
 
-      <div className="p-8 flex-1">
+      <div className="p-4 sm:p-6 lg:p-8 flex-1">
         <div className="max-w-5xl mx-auto">
 
           {/* ── Setup form ── */}
-          <div className="bg-white rounded-2xl shadow-sm border border-border p-6 mb-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-border p-4 sm:p-6 mb-6">
             <div className="text-[15px] font-bold text-foreground mb-5">Plan details</div>
-            <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
               <div>
                 <label className={labelClass}>School term</label>
                 <select value={term} onChange={e => setTerm(e.target.value)} className={selectClass} aria-label="School term">
@@ -229,7 +229,7 @@ export default function SemesterPlanner({ subject, yearLevel, state, preferredLa
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 {semesterData.weeks.map(week => {
                   const isEditing = editingWeek === week.weekNumber;
                   return (

@@ -30,16 +30,16 @@ export default function Library({ onLoadResource, onLoadLesson }: Props) {
   const formatDate = (iso: string) => new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
 
   return (
-    <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
-      <div className="bg-white px-8 py-5 border-b border-border">
+    <div className="flex-1 lg:ml-60 flex flex-col min-h-screen bg-slate-50">
+      <div className="bg-white px-4 sm:px-6 lg:px-8 py-5 border-b border-border">
         <div className="font-serif text-[22px] text-foreground tracking-tight">My Library</div>
         <div className="text-[13px] text-muted-foreground mt-0.5">Your saved resources and lesson plans</div>
       </div>
 
-      <div className="p-8 flex-1">
+      <div className="p-4 sm:p-6 lg:p-8 flex-1">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+            <div className="flex flex-wrap gap-2">
               <button className={tabClass('resources')} onClick={() => setActiveTab('resources')} aria-label="Saved resources tab">
                 <span className="flex items-center gap-2"><BookOpen className="w-3.5 h-3.5" /> Saved Resources ({resources.length})</span>
               </button>
@@ -77,7 +77,7 @@ export default function Library({ onLoadResource, onLoadLesson }: Props) {
               ) : (
                 <div className="flex flex-col gap-4">
                   {resources.map(r => (
-                    <div key={r.id} className="bg-white rounded-2xl border border-border shadow-sm p-5 flex items-center justify-between gap-4 hover:border-teal-200 transition-colors">
+                    <div key={r.id} className="bg-white rounded-2xl border border-border shadow-sm p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-teal-200 transition-colors">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{r.type}</span>
@@ -86,7 +86,7 @@ export default function Library({ onLoadResource, onLoadLesson }: Props) {
                         <div className="text-[15px] font-bold text-foreground truncate">{r.title}</div>
                         <div className="text-[12px] text-slate-400">{r.source} · {r.yearLevel} {r.subject} · Saved {formatDate(r.savedAt)}</div>
                       </div>
-                      <div className="flex gap-2 shrink-0">
+                      <div className="flex gap-2 shrink-0 w-full sm:w-auto">
                         <button onClick={() => onLoadResource(r)} className="bg-primary text-white border-none px-4 py-2 rounded-lg text-[12px] font-semibold cursor-pointer hover:bg-teal-700 transition-colors" aria-label={`Load ${r.title}`}>Load</button>
                         <button onClick={() => handleDeleteResource(r.id)} className="bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-500 border-none px-3 py-2 rounded-lg cursor-pointer transition-colors" aria-label={`Delete ${r.title}`}><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
@@ -108,13 +108,13 @@ export default function Library({ onLoadResource, onLoadLesson }: Props) {
               ) : (
                 <div className="flex flex-col gap-4">
                   {lessons.map(l => (
-                    <div key={l.id} className="bg-white rounded-2xl border border-border shadow-sm p-5 flex items-center justify-between gap-4 hover:border-teal-200 transition-colors">
+                    <div key={l.id} className="bg-white rounded-2xl border border-border shadow-sm p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-teal-200 transition-colors">
                       <div className="flex-1 min-w-0">
                         <div className="text-[15px] font-bold text-foreground truncate">{l.title || l.topic}</div>
                         <div className="text-[12px] text-slate-400">{l.yearLevel} {l.subject} · {l.duration} · Saved {formatDate(l.savedAt)}</div>
                         <div className="text-[13px] text-slate-500 mt-1 leading-relaxed line-clamp-2">{l.objective}</div>
                       </div>
-                      <div className="flex gap-2 shrink-0">
+                      <div className="flex gap-2 shrink-0 w-full sm:w-auto">
                         <button onClick={() => onLoadLesson(l)} className="bg-primary text-white border-none px-4 py-2 rounded-lg text-[12px] font-semibold cursor-pointer hover:bg-teal-700 transition-colors" aria-label={`Load ${l.title || l.topic} lesson`}>Load</button>
                         <button onClick={() => handleDeleteLesson(l.id)} className="bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-500 border-none px-3 py-2 rounded-lg cursor-pointer transition-colors" aria-label={`Delete ${l.title || l.topic} lesson`}><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>

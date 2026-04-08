@@ -146,7 +146,7 @@ function SlideContent({ slide, fullscreen = false }: { slide: Slide; fullscreen?
       )}
 
       {slide.keyTerms && slide.keyTerms.length > 0 && (
-        <div className="grid grid-cols-2 gap-2 mt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
           {slide.keyTerms.map((kt, i) => (
             <div key={i} className="bg-white/10 rounded-xl p-3 border border-white/20">
               <div className={`${termHeadSize} font-bold mb-1 ${THEME_TEXT[th]}`}>{kt.term}</div>
@@ -383,7 +383,7 @@ export default function Slideshow({ data, onClose, subject, yearLevel, topic }: 
   }
 
   return (
-    <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-900">
+    <div className="flex-1 lg:ml-60 flex flex-col min-h-screen bg-slate-900">
       <div className="bg-slate-800 px-6 py-3 flex items-center justify-between border-b border-slate-700 shrink-0">
         <div>
           <div className="font-serif text-[18px] text-white tracking-tight leading-tight">{data.title}</div>
@@ -433,7 +433,7 @@ export default function Slideshow({ data, onClose, subject, yearLevel, topic }: 
           })}
         </div>
 
-        <div className="flex-1 flex flex-col items-center justify-start p-6 gap-4 overflow-y-auto">
+        <div className="flex-1 flex flex-col items-center justify-start p-4 sm:p-6 gap-4 overflow-y-auto">
           <div className="w-full flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-widest bg-slate-700 text-slate-300 px-2 py-0.5 rounded">{typeLabel}</span>
@@ -447,7 +447,7 @@ export default function Slideshow({ data, onClose, subject, yearLevel, topic }: 
           </div>
 
           <div className={`w-full rounded-2xl shadow-2xl overflow-hidden ${THEME_BG[th]} ${THEME_TEXT[th]}`} style={{ minHeight: 380 }}>
-            <div className="p-8 flex flex-col gap-4" style={{ minHeight: 380 }}>
+            <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-4" style={{ minHeight: 380 }}>
               <SlideContent slide={slide} />
             </div>
           </div>

@@ -24,8 +24,8 @@ export default function UnitPlanner({ unitContext, onUpdate, onContinue, onSkip,
   const labelClass = "block text-[12px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5";
 
   return (
-    <div className="flex-1 ml-60 flex flex-col min-h-screen bg-slate-50">
-      <div className="bg-white px-8 py-5 border-b border-border flex items-center justify-between">
+    <div className="flex-1 lg:ml-60 flex flex-col min-h-screen bg-slate-50">
+      <div className="bg-white px-4 sm:px-6 lg:px-8 py-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="font-serif text-[22px] text-foreground tracking-tight">Unit Planner</div>
           <div className="text-[13px] text-muted-foreground mt-0.5">Tell us about your teaching sequence — optional but makes every output better</div>
@@ -35,7 +35,7 @@ export default function UnitPlanner({ unitContext, onUpdate, onContinue, onSkip,
         </button>
       </div>
 
-      <div className="p-8 flex-1">
+      <div className="p-4 sm:p-6 lg:p-8 flex-1">
         <div className="max-w-3xl mx-auto">
           <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5 mb-7 flex items-start gap-3">
             <BookOpen className="w-5 h-5 text-primary mt-0.5 shrink-0" />
@@ -45,9 +45,9 @@ export default function UnitPlanner({ unitContext, onUpdate, onContinue, onSkip,
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-border p-7 mb-5">
+          <div className="bg-white rounded-2xl shadow-sm border border-border p-5 sm:p-7 mb-5">
             <div className="text-[15px] font-bold text-foreground mb-5">Unit Overview</div>
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="col-span-2">
                 <label className={labelClass}>Unit title *</label>
                 <div className="flex gap-2">
