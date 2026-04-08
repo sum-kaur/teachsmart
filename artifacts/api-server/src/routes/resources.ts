@@ -329,66 +329,10 @@ router.post("/resources", async (req, res): Promise<void> => {
     }
   }, TIMEOUT_MS);
 
-  try {
-    const curatedResources = findCuratedResources(subject, yearLevel, topic, resourceTypeFilter);
-    req.log.info({ subject, yearLevel, topic, state, resourceTypeFilter, curatedCount: curatedResources.length }, "Resource search started");
-    if (curatedResources.length > 0) {
-      clearTimeout(overallTimeout);
-      res.json({ resources: enrichWithTrust(curatedResources), usedFallback: false, usedWebSearch: false, usedCuratedRegistry: true });
-      return;
-    }
-
-    // Step 1: Brave real web search on trusted Australian domains
-    const braveQuery = `${yearLevel} ${subject} "${topic}" Australian curriculum teaching resources ${state}`;
-    let webResults: BraveResult[] = [];
+  // Helper: fetch AI suggestions from Groq (runs in parallel, never blocks verified results)
+  async function fetchAiSuggestions(): Promise<any[]> {
     try {
-      const rawWebResults = await searchEducationalResources(braveQuery, 15, {
-        subject,
-        yearLevel,
-        topic,
-        state,
-        resourceType: resourceTypeFilter,
-      });
-      req.log.info({
-        braveQuery,
-        rawCount: rawWebResults.length,
-        rawTop: rawWebResults.slice(0, 5).map((r) => ({ title: r.title, url: r.url })),
-      }, "Brave search returned candidates");
-      webResults = filterRelevantWebResults(rawWebResults, subject, topic);
-      req.log.info({
-        filteredCount: webResults.length,
-        filteredTop: webResults.slice(0, 5).map((r) => ({ title: r.title, url: r.url })),
-      }, "Relevant Brave results after filtering");
-    } catch (braveErr) {
-      req.log.warn({ braveErr }, "Brave search failed, falling back to curated-only / no-resource path");
-    }
-
-    if (webResults.length >= 1) {
-      // Step 2: Groq scores the real web results → preserves real URLs
-      const scored = await scoreWebResultsWithGroq(
-        webResults, subject, yearLevel, topic, state,
-        outcomesText, interests, unitNote, langNote,
-      );
-
-      if (scored.length > 0) {
-        clearTimeout(overallTimeout);
-        const top3 = scored.slice(0, 3);
-        res.json({ resources: enrichWithTrust(top3), usedFallback: false, usedWebSearch: true, usedCuratedRegistry: false });
-        return;
-      }
-
-      clearTimeout(overallTimeout);
-      const deterministicResources = buildDeterministicResourcesFromWebResults(
-        webResults,
-        alignmentResult,
-        resourceTypeFilter,
-      );
-      res.json({ resources: enrichWithTrust(deterministicResources), usedFallback: false, usedWebSearch: true, usedCuratedRegistry: false });
-      return;
-    }
-
-    // Step 3: Groq-only fallback (resource suggestions only — no direct URLs)
-    const groqPrompt = `You are an Australian curriculum resource expert. Suggest 3 likely useful Australian educational resources for ${yearLevel} ${subject} students studying "${topic}" in ${state}.
+      const groqPrompt = `You are an Australian curriculum resource expert. Suggest 3 likely useful Australian educational resources for ${yearLevel} ${subject} students studying "${topic}" in ${state}.
 
 Relevant curriculum outcomes:
 ${outcomesText}
@@ -424,42 +368,104 @@ Return ONLY valid JSON, no markdown:
     ]
   }]
 }`;
+      const completion = await groq.chat.completions.create({
+        model: GROQ_MODEL,
+        messages: [{ role: "user", content: groqPrompt }],
+        max_tokens: 2800,
+        temperature: 0.5,
+      });
+      const text = completion.choices[0]?.message?.content ?? "";
+      const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      const aiResult = JSON.parse(cleaned);
+      const suggested = (Array.isArray(aiResult.resources) ? aiResult.resources : [])
+        .filter((r: Record<string, unknown>) => seemsSubjectRelevant(r, subject, topic));
+      return suggested.map((r: Record<string, unknown>, i: number) => ({
+        ...r,
+        id: r.id ?? `ai-suggestion-${i + 1}-${Date.now()}`,
+        provenance: "ai-suggestion" as const,
+        verifiedLink: false,
+        urlType: "search" as const,
+      }));
+    } catch {
+      return [];
+    }
+  }
 
-    const completion = await groq.chat.completions.create({
-      model: GROQ_MODEL,
-      messages: [{ role: "user", content: groqPrompt }],
-      max_tokens: 2800,
-      temperature: 0.5,
-    });
+  try {
+    const curatedResources = findCuratedResources(subject, yearLevel, topic, resourceTypeFilter);
+    req.log.info({ subject, yearLevel, topic, state, resourceTypeFilter, curatedCount: curatedResources.length }, "Resource search started");
 
-    clearTimeout(overallTimeout);
-    const text = completion.choices[0]?.message?.content ?? "";
-    const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    const aiResult = JSON.parse(cleaned);
+    // Always kick off AI suggestions in parallel
+    const aiSuggestionsPromise = fetchAiSuggestions();
 
-    const suggestedResources = (Array.isArray(aiResult.resources) ? aiResult.resources : [])
-      .filter((r: Record<string, unknown>) => seemsSubjectRelevant(r, subject, topic));
-
-    if (suggestedResources.length === 0) {
-      res.json({ resources: [], aiSuggestions: [], usedFallback: false, usedWebSearch: false, usedCuratedRegistry: false });
+    if (curatedResources.length > 0) {
+      const aiSuggestions = enrichWithTrust(await aiSuggestionsPromise);
+      clearTimeout(overallTimeout);
+      res.json({ resources: enrichWithTrust(curatedResources), aiSuggestions, usedFallback: false, usedWebSearch: false, usedCuratedRegistry: true });
       return;
     }
 
-    // Return AI suggestions separately — frontend can show them behind an opt-in toggle
-    const markedSuggestions = suggestedResources.map((r: Record<string, unknown>, i: number) => ({
-      ...r,
-      id: r.id ?? `ai-suggestion-${i + 1}-${Date.now()}`,
-      provenance: "ai-suggestion" as const,
-      verifiedLink: false,
-      urlType: "search" as const,
-    }));
-    res.json({ resources: [], aiSuggestions: enrichWithTrust(markedSuggestions), usedFallback: false, usedWebSearch: false, usedCuratedRegistry: false });
+    // Step 1: Brave real web search on trusted Australian domains
+    const braveQuery = `${yearLevel} ${subject} "${topic}" Australian curriculum teaching resources ${state}`;
+    let webResults: BraveResult[] = [];
+    try {
+      const rawWebResults = await searchEducationalResources(braveQuery, 15, {
+        subject,
+        yearLevel,
+        topic,
+        state,
+        resourceType: resourceTypeFilter,
+      });
+      req.log.info({
+        braveQuery,
+        rawCount: rawWebResults.length,
+        rawTop: rawWebResults.slice(0, 5).map((r) => ({ title: r.title, url: r.url })),
+      }, "Brave search returned candidates");
+      webResults = filterRelevantWebResults(rawWebResults, subject, topic);
+      req.log.info({
+        filteredCount: webResults.length,
+        filteredTop: webResults.slice(0, 5).map((r) => ({ title: r.title, url: r.url })),
+      }, "Relevant Brave results after filtering");
+    } catch (braveErr) {
+      req.log.warn({ braveErr }, "Brave search failed, falling back to curated-only / no-resource path");
+    }
+
+    if (webResults.length >= 1) {
+      // Step 2: Groq scores the real web results → preserves real URLs
+      const scored = await scoreWebResultsWithGroq(
+        webResults, subject, yearLevel, topic, state,
+        outcomesText, interests, unitNote, langNote,
+      );
+
+      const aiSuggestions = enrichWithTrust(await aiSuggestionsPromise);
+
+      if (scored.length > 0) {
+        clearTimeout(overallTimeout);
+        const top3 = scored.slice(0, 3);
+        res.json({ resources: enrichWithTrust(top3), aiSuggestions, usedFallback: false, usedWebSearch: true, usedCuratedRegistry: false });
+        return;
+      }
+
+      clearTimeout(overallTimeout);
+      const deterministicResources = buildDeterministicResourcesFromWebResults(
+        webResults,
+        alignmentResult,
+        resourceTypeFilter,
+      );
+      res.json({ resources: enrichWithTrust(deterministicResources), aiSuggestions, usedFallback: false, usedWebSearch: true, usedCuratedRegistry: false });
+      return;
+    }
+
+    // Step 3: No verified results — AI suggestions are the only option
+    const aiSuggestions = enrichWithTrust(await aiSuggestionsPromise);
+    clearTimeout(overallTimeout);
+    res.json({ resources: [], aiSuggestions, usedFallback: false, usedWebSearch: false, usedCuratedRegistry: false });
 
   } catch (err) {
     clearTimeout(overallTimeout);
     if (!res.headersSent) {
       req.log.warn({ err }, "Resources pipeline failed, returning no verified resources");
-      res.json({ resources: [], usedFallback: true, usedWebSearch: false, usedCuratedRegistry: false });
+      res.json({ resources: [], aiSuggestions: [], usedFallback: true, usedWebSearch: false, usedCuratedRegistry: false });
     }
   }
 });

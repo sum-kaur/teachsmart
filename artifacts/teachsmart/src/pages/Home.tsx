@@ -589,6 +589,8 @@ export default function Home() {
     if (!searchParams.topic) return;
     setIsSearching(true);
     setSearchStep(null);
+    setShowAiSuggestions(false);
+    setAiSuggestions([]);
     navigate('search');
 
     try {
@@ -624,6 +626,8 @@ export default function Home() {
         notes: "Fallback alignment data.", usedFallback: true,
       });
       setResources([]);
+      setAiSuggestions([]);
+      setShowAiSuggestions(false);
     } finally {
       setIsSearching(false);
       setSearchStep(null);
@@ -1393,44 +1397,15 @@ export default function Home() {
         {renderLocalLensTip()}
         {renderAlignmentBar()}
         <div className="flex flex-col gap-4">
-          {resources.length === 0 && !showAiSuggestions && (
+          {resources.length === 0 && aiSuggestions.length === 0 && (
             <div className="bg-white rounded-xl border border-border p-12 text-center">
               <div className="text-slate-300 text-4xl mb-3">📚</div>
-              <div className="text-[15px] font-semibold text-slate-400 mb-1">No verified resources found</div>
-              <div className="text-[13px] text-slate-400 mb-4">Try another topic, or use a curated demo topic while verified search coverage is limited.</div>
-              <div className="flex items-center justify-center gap-3">
-                <button onClick={() => navigate('search')} className="bg-primary text-white border-none px-5 py-2.5 rounded-lg text-sm font-semibold cursor-pointer hover:bg-teal-700">Back to search</button>
-                {aiSuggestions.length > 0 && (
-                  <button
-                    onClick={() => setShowAiSuggestions(true)}
-                    className="bg-gradient-to-r from-violet-500 to-indigo-500 text-white border-none px-5 py-2.5 rounded-lg text-sm font-semibold cursor-pointer hover:from-violet-600 hover:to-indigo-600 transition-all flex items-center gap-2 shadow-sm"
-                  >
-                    <Sparkles className="w-4 h-4" /> Show AI-Generated Suggestions ({aiSuggestions.length})
-                  </button>
-                )}
-              </div>
+              <div className="text-[15px] font-semibold text-slate-400 mb-1">No resources found</div>
+              <div className="text-[13px] text-slate-400 mb-4">Try another topic, or use a curated demo topic while search coverage is limited.</div>
+              <button onClick={() => navigate('search')} className="bg-primary text-white border-none px-5 py-2.5 rounded-lg text-sm font-semibold cursor-pointer hover:bg-teal-700">Back to search</button>
             </div>
           )}
-          {showAiSuggestions && aiSuggestions.length > 0 && resources.length === 0 && (
-            <div className="mb-4">
-              <div className="bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200 rounded-xl p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-violet-100 rounded-lg p-2"><Sparkles className="w-4 h-4 text-violet-600" /></div>
-                  <div>
-                    <div className="text-[14px] font-semibold text-violet-800">AI-Generated Suggestions</div>
-                    <div className="text-[12px] text-violet-600">These resources are suggested by AI and may not have verified links. Review before classroom use.</div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowAiSuggestions(false)}
-                  className="text-violet-400 hover:text-violet-600 bg-transparent border-none cursor-pointer p-1"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
-          {(showAiSuggestions && resources.length === 0 ? aiSuggestions : resources).map((resource) => (
+          {resources.map((resource) => (
             <div key={resource.id} className="bg-white rounded-xl shadow-sm border border-border p-6 flex flex-col gap-4 hover:border-teal-200 hover:shadow-md transition-all" data-testid={`resource-card-${resource.id}`}>
               {getResourceReviewBanners(resource).length > 0 && (
                 <div className="flex flex-col gap-2">
@@ -1506,8 +1481,79 @@ export default function Home() {
               )}
             </div>
           ))}
+
+          {/* AI-Generated Suggestions toggle — always shown when available */}
+          {aiSuggestions.length > 0 && (
+            <div className="mt-2">
+              {!showAiSuggestions ? (
+                <button
+                  onClick={() => setShowAiSuggestions(true)}
+                  className="w-full bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200 rounded-xl p-4 flex items-center justify-between cursor-pointer hover:border-violet-300 transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="bg-violet-100 rounded-lg p-2 group-hover:bg-violet-200 transition-colors"><Sparkles className="w-4 h-4 text-violet-600" /></div>
+                    <div className="text-left">
+                      <div className="text-[14px] font-semibold text-violet-800">Also show AI-Generated Suggestions</div>
+                      <div className="text-[12px] text-violet-500">{aiSuggestions.length} additional resource{aiSuggestions.length !== 1 ? 's' : ''} suggested by AI — may not have verified links</div>
+                    </div>
+                  </div>
+                  <ChevronDown className="w-5 h-5 text-violet-400 group-hover:text-violet-600 transition-colors" />
+                </button>
+              ) : (
+                <>
+                  <div className="bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200 rounded-xl p-4 flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-violet-100 rounded-lg p-2"><Sparkles className="w-4 h-4 text-violet-600" /></div>
+                      <div>
+                        <div className="text-[14px] font-semibold text-violet-800">AI-Generated Suggestions</div>
+                        <div className="text-[12px] text-violet-600">These resources are suggested by AI and may not have verified links. Review before classroom use.</div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowAiSuggestions(false)}
+                      className="text-violet-400 hover:text-violet-600 bg-transparent border-none cursor-pointer p-1 flex items-center gap-1"
+                    >
+                      <ChevronUp className="w-4 h-4" /> <span className="text-[12px] font-medium">Hide</span>
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-4">
+                    {aiSuggestions.map((resource) => (
+                      <div key={resource.id} className="bg-white rounded-xl shadow-sm border border-violet-200 p-6 flex flex-col gap-4 hover:border-violet-300 hover:shadow-md transition-all" data-testid={`ai-resource-card-${resource.id}`}>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                              <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{resource.type}</span>
+                              <span className="bg-teal-50 text-teal-800 text-[11px] font-semibold px-2 py-0.5 rounded">{resource.alignmentScore}% match</span>
+                              <span className="bg-violet-100 text-violet-700 text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"><Sparkles className="w-3 h-3" /> AI Suggested</span>
+                              {resource.safetyRating === 'unverified' && <span className="bg-amber-100 text-amber-700 text-[11px] font-semibold px-2 py-0.5 rounded-full">Unverified</span>}
+                            </div>
+                            <div className="text-[17px] font-bold text-foreground mb-0.5">{resource.title}</div>
+                            <div className="text-[13px] text-slate-400 font-medium mb-2">{resource.source}</div>
+                            <div className="text-[14px] text-slate-600 leading-relaxed mb-3">{resource.description}</div>
+                            {resource.whyThisResource && (
+                              <div className="bg-violet-50 border border-violet-100 rounded-xl px-4 py-3 text-[13px] text-violet-800 leading-relaxed">
+                                <span className="font-bold">Why this resource? </span>{resource.whyThisResource}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-2 shrink-0">
+                            <button onClick={() => handleAdaptResource(resource)} className="bg-violet-600 text-white border-none px-4 py-2 rounded-lg text-[13px] font-semibold cursor-pointer hover:bg-violet-700 transition-colors shadow-sm whitespace-nowrap">
+                              {t('adaptFor')} →
+                            </button>
+                          </div>
+                        </div>
+                        {resource.trustScorecard && (
+                          <TrustScorecard scorecard={resource.trustScorecard} resourceTitle={resource.title} />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
-        {resources.length > 0 && (
+        {(resources.length > 0 || aiSuggestions.length > 0) && (
           <div className="mt-5 flex justify-start">
             <button onClick={() => navigate('search')} className="text-[13px] font-medium text-slate-500 hover:text-primary flex items-center gap-1.5 bg-transparent border-none cursor-pointer">
               <ArrowLeft className="w-4 h-4" /> Back to search
