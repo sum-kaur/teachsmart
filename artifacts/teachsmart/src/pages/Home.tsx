@@ -96,6 +96,15 @@ const EMPTY_UNIT: UnitContext = { unitTitle: '', textbook: '', totalLessons: '',
 
 export default function Home() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const onOnline = () => setIsOffline(false);
+    const onOffline = () => setIsOffline(true);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => { window.removeEventListener('online', onOnline); window.removeEventListener('offline', onOffline); };
+  }, []);
 
   // Browser back/forward support via hash (avoids conflict with wouter's pushState wrapper)
   const navigate = useCallback((screen: Screen) => {
@@ -1573,6 +1582,11 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans">
+      {isOffline && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-amber-500 text-white text-[13px] font-medium text-center py-2 px-4">
+          You are offline — showing cached content. New searches will resume when connected.
+        </div>
+      )}
       {renderSidebar()}
       {currentScreen === 'dashboard' && renderDashboard()}
       {currentScreen === 'classes' && renderMyClasses()}
