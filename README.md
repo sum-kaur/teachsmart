@@ -18,7 +18,6 @@ An AI-powered curriculum resource finder for Australian teachers (Years 7–12).
 - **Multilingual UI** — 8 interface languages: English, Mandarin, Arabic, Hindi, Vietnamese, Greek, Italian, Punjabi
 - **Accessibility** — Font size control and high contrast mode
 - **Live Local Feed** — "This Week in Your Area" cards using live BOM weather data and AI-generated location-specific teaching opportunities
-- **Demo Scenarios** — 5 instant pre-built responses for reliable demos (no API call required)
 - **Graceful Fallback** — If the AI times out, the app returns quality mock data automatically
 
 ---
@@ -31,65 +30,45 @@ An AI-powered curriculum resource finder for Australian teachers (Years 7–12).
 - [pnpm](https://pnpm.io/) — install with `npm install -g pnpm`
 - A free [Groq API key](https://console.groq.com) (takes ~30 seconds to create)
 
-### Installation
+### Installation & Setup
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/teachsmart.git
+# 1. Clone the repository
+git clone https://github.com/sum-kaur/teachsmart.git
 cd teachsmart
 
-# Install all dependencies
+# 2. Install all dependencies
 pnpm install
-```
 
-### Environment Variables
-
-Copy `.env.example` to `.env` and fill in your values (never commit `.env`):
-
-```bash
+# 3. Set up environment variables
 cp .env.example .env        # Mac / Linux
 copy .env.example .env      # Windows
 ```
 
+Open `.env` and fill in your values:
+
 ```
 GROQ_API_KEY=your_groq_api_key_here
 SESSION_SECRET=any-random-string-here
+PORT=8080
 ```
 
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `GROQ_API_KEY` | Yes | Powers all AI features. Get a free key at [console.groq.com](https://console.groq.com) |
-| `SESSION_SECRET` | Yes | Signs session cookies. Any random string works. Generate one with: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
-
-> **No API key?** The app still works — it returns built-in mock data for every request. The 5 demo scenarios always work without any API key.
+| `SESSION_SECRET` | Yes | Any random string. Generate one: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `PORT` | Yes | Must be `8080` — the API server port |
 
 ### Running Locally
 
-Start both servers in separate terminals:
-
 ```bash
-# Terminal 1 — API server (runs on port 8080 by default)
-pnpm --filter @workspace/api-server run dev
-
-# Terminal 2 — Frontend
-pnpm --filter @workspace/teachsmart run dev
+# Start both frontend and API server together
+pnpm run dev
 ```
 
-Open the URL shown in the frontend terminal (e.g. `http://localhost:5173`).
+Then open **http://localhost:5173** in your browser.
 
----
-
-## Demo Scenarios
-
-These 5 combinations return instant pre-built results (~400ms) without calling the AI — ideal for demos and offline use:
-
-| Year | State | Subject | Topic |
-|------|-------|---------|-------|
-| Year 9 | NSW | Science | `Climate Change` |
-| Year 9 | NSW | Mathematics | `Algebra` |
-| Year 8 | VIC | English | `Romeo and Juliet` |
-| Year 10 | QLD | History | `Rights and Freedoms` |
-| Year 7 | NSW | Geography | `Ecosystems` |
+> The API server runs on port 8080 and the frontend on port 5173. Both start with the single command above.
 
 ---
 
@@ -167,7 +146,7 @@ teachsmart/
 |-------|-----------|
 | Frontend | React 18, Vite, Tailwind CSS |
 | Backend | Node.js, Express 5, TypeScript |
-| AI | Groq (`llama3-70b-8192`) via Groq SDK |
+| AI | Groq (`openai/gpt-oss-120b`) via Groq SDK |
 | Curriculum Data | Australian Curriculum v9 JSON (8 learning areas) |
 | API Contract | OpenAPI 3.1, Orval codegen |
 | Type Safety | TypeScript, Zod |
