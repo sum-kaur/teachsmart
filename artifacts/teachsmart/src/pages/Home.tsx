@@ -6,6 +6,7 @@ import {
   CheckCircle, Home as HomeIcon, FileStack, BarChart3, MapPin,
   CalendarDays, Settings2, Globe, ChevronDown, ChevronUp,
   Presentation, Library as LibraryIcon, Bookmark, BookmarkCheck, Loader2, Sparkles, ExternalLink,
+  AlertTriangle, ShieldAlert, Info,
   Plus, X, Users
 } from "lucide-react";
 import { useGetDashboardStats, useGetRecentResources, useGetFeed } from "@workspace/api-client-react";
@@ -29,6 +30,8 @@ type Resource = {
   id: string; title: string; url?: string; urlType?: 'direct' | 'search'; source: string; type: string; description: string;
   alignmentScore: number; safetyRating: string; biasFlag: string;
   localContextTags: string[]; outcomeIds: string[]; whyThisResource: string;
+  provenance?: 'curated' | 'verified-web' | 'ai-suggestion';
+  verifiedLink?: boolean;
   trustScorecard?: import("../components/TrustScorecard").TrustScorecardData;
 };
 
@@ -42,9 +45,14 @@ type OutcomeHeader = {
 type LessonPlan = OutcomeHeader & {
   resourceType: 'Lesson Plan';
   objective: string; duration: string;
-  activities: { label: string; text: string }[];
+  materials?: string[];
+  teacherPrep?: string[];
+  activities: { label: string; text: string; teacherTip?: string; assessmentIndicator?: string }[];
   localExample: { title: string; body: string };
+  differentiationTips?: { level: string; suggestion: string }[];
+  crossCurriculumLinks?: string[];
   questions: { q: string; difficulty: string }[];
+  reflectionPrompt?: string;
 };
 
 type WorksheetOutput = OutcomeHeader & {
@@ -85,6 +93,14 @@ type FeedResult = {
 
 type MyClass = { id: string; code: string; name: string; yearLevel: string; subject: string; state: string };
 
+type ReviewBanner = {
+  key: string;
+  title: string;
+  body: string;
+  tone: "amber" | "red" | "blue";
+  icon: "risk" | "cultural" | "info";
+};
+
 type SharePayload = {
   rType: GeneratedOutput['resourceType'];
   oc: string;
@@ -122,6 +138,7 @@ const MOCK_RECENT = [
 type Screen = 'dashboard' | 'unit-planner' | 'classes' | 'search' | 'results' | 'lesson' | 'slideshow' | 'library' | 'semester' | 'settings';
 
 const EMPTY_UNIT: UnitContext = { unitTitle: '', textbook: '', totalLessons: '', currentLesson: '', prevSummary: '', learningIntention: '', successCriteria: '', assessmentType: 'exam' };
+const FIRST_NATIONS_PATTERN = /\b(first nations|aboriginal|torres strait|indigenous|country|custodian|darug|burramattagal|palawa|yolngu|noongar|kaurna|wiradjuri)\b/i;
 
 const base64UrlEncode = (bytes: Uint8Array) =>
   btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
@@ -224,6 +241,22 @@ const fetchJsonFromApi = async (path: string, init?: RequestInit) => {
   }
   throw lastError instanceof Error ? lastError : new Error('API request failed');
 };
+
+const hasFirstNationsContent = (...parts: Array<string | string[] | undefined>) =>
+  parts.some((part) => {
+    const text = Array.isArray(part) ? part.join(" ") : part;
+    return typeof text === "string" && FIRST_NATIONS_PATTERN.test(text);
+  });
+
+const getBannerStyles = (tone: ReviewBanner["tone"]) =>
+  tone === "red"
+    ? "border-red-200 bg-red-50 text-red-900"
+    : tone === "amber"
+      ? "border-amber-200 bg-amber-50 text-amber-900"
+      : "border-blue-200 bg-blue-50 text-blue-900";
+
+const getBannerIcon = (icon: ReviewBanner["icon"]) =>
+  icon === "cultural" ? ShieldAlert : icon === "risk" ? AlertTriangle : Info;
 
 export default function Home() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
@@ -353,6 +386,123 @@ export default function Home() {
   const preferredLanguage = voiceLang;
   const t = useTranslation(uiLanguage);
 
+  const getResourceReviewBanners = useCallback((resource: Resource): ReviewBanner[] => {
+    const banners: ReviewBanner[] = [];
+    const scorecard = resource.trustScorecard;
+    const culturalFlag = scorecard?.tierC.find(flag => flag.type === 'cultural' && flag.severity !== 'low');
+    const hasSensitiveContent = hasFirstNationsContent(
+      searchParams.topic,
+      resource.title,
+      resource.description,
+      resource.whyThisResource,
+      resource.localContextTags,
+    );
+
+    if (culturalFlag || hasSensitiveContent) {
+      banners.push({
+        key: 'cultural-review',
+        title: 'Cultural review recommended',
+        body: culturalFlag?.note ?? 'This resource may include First Nations content or local cultural context. Teachers should verify community appropriateness, terminology, and whether local voices or Elders should be consulted before classroom use.',
+        tone: culturalFlag?.severity === 'high' ? 'red' : 'amber',
+        icon: 'cultural',
+      });
+    }
+
+    if (resource.alignmentScore < 70 || scorecard?.tierB.alignmentStrength === 'weak' || scorecard?.tierB.alignmentStrength === 'none') {
+      banners.push({
+        key: 'alignment-review',
+        title: 'Low-confidence curriculum match',
+        body: 'This resource may only partially match the selected curriculum outcomes. Check outcome codes, year-level suitability, and assessment fit before adapting it for class.',
+        tone: resource.alignmentScore < 55 ? 'red' : 'amber',
+        icon: 'risk',
+      });
+    }
+
+    if (scorecard?.tierA.domainTier === 4) {
+      banners.push({
+        key: 'source-review',
+        title: 'Independent source verification needed',
+        body: 'This source is not yet in the trusted registry. Confirm authorship, publication date, and classroom suitability before sharing it with students.',
+        tone: 'amber',
+        icon: 'risk',
+      });
+    }
+
+    return banners;
+  }, [searchParams.topic]);
+
+  const getOutputReviewBanners = useCallback((output: GeneratedOutput): ReviewBanner[] => {
+    const banners: ReviewBanner[] = [];
+    const selectedBanners = selectedResource ? getResourceReviewBanners(selectedResource) : [];
+
+    if (output.usedFallback) {
+      banners.push({
+        key: 'fallback-output',
+        title: 'Estimated AI draft',
+        body: 'This output was created using fallback content because live AI or curriculum services were unavailable. Review facts, outcome alignment, and examples carefully before using it in class.',
+        tone: 'amber',
+        icon: 'risk',
+      });
+    }
+
+    if (alignmentResult?.usedFallback || (alignmentResult?.alignmentScore ?? 100) < 70) {
+      banners.push({
+        key: 'alignment-check',
+        title: 'Double-check curriculum alignment',
+        body: alignmentResult?.usedFallback
+          ? 'Curriculum alignment was estimated rather than fully verified. Check outcome codes and syllabus language before export or sharing.'
+          : 'The selected topic has a weaker curriculum match than usual. Confirm year-level fit and success criteria before classroom use.',
+        tone: alignmentResult?.usedFallback ? 'red' : 'amber',
+        icon: 'risk',
+      });
+    }
+
+    if (
+      hasFirstNationsContent(
+        searchParams.topic,
+        output.outcomeDescription,
+        output.successCriteria,
+        selectedResource?.title,
+        selectedResource?.description,
+      ) || selectedBanners.some(b => b.key === 'cultural-review')
+    ) {
+      banners.push({
+        key: 'cultural-safety',
+        title: 'Local cultural safety check',
+        body: 'This output touches First Nations histories, cultures, or Country. Review local terminology, representation, and whether community-approved sources or local consultation are needed.',
+        tone: 'amber',
+        icon: 'cultural',
+      });
+    }
+
+    return banners;
+  }, [alignmentResult, getResourceReviewBanners, searchParams.topic, selectedResource]);
+
+  const renderReviewBanner = (banner: ReviewBanner) => {
+    const Icon = getBannerIcon(banner.icon);
+    return (
+      <div key={banner.key} className={`rounded-xl border px-4 py-3 ${getBannerStyles(banner.tone)}`}>
+        <div className="flex items-start gap-3">
+          <Icon className="w-4 h-4 mt-0.5 shrink-0" />
+          <div>
+            <div className="text-[13px] font-bold">{banner.title}</div>
+            <div className="text-[13px] leading-relaxed opacity-90 mt-0.5">{banner.body}</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderResourceProvenance = (resource: Resource) => {
+    if (resource.provenance === 'curated') {
+      return <span className="bg-emerald-100 text-emerald-700 text-[11px] font-semibold px-2 py-0.5 rounded-full">Curated verified link</span>;
+    }
+    if (resource.provenance === 'verified-web') {
+      return <span className="bg-sky-100 text-sky-700 text-[11px] font-semibold px-2 py-0.5 rounded-full">Verified web result</span>;
+    }
+    return <span className="bg-amber-100 text-amber-700 text-[11px] font-semibold px-2 py-0.5 rounded-full">AI suggestion only</span>;
+  };
+
   useEffect(() => {
     localStorage.setItem('teachsmart_language', uiLanguage);
   }, [uiLanguage]);
@@ -433,52 +583,6 @@ export default function Home() {
     });
   };
 
-  const buildClientFallbackResources = (topic: string, subject: string, yearLevel: string, state: string): Resource[] => {
-    const sq = (suffix: string) => `https://www.scootle.edu.au/ec/search?q=${encodeURIComponent(`${topic} ${suffix} ${yearLevel}`)}`;
-    const ts = Date.now();
-    return [
-      {
-        id: `scootle-${ts}-1`,
-        title: `${topic} — Curriculum-Aligned Teaching Resources`,
-        url: sq(subject),
-        urlType: 'search',
-        source: "Scootle — Education Services Australia",
-        type: "Lesson Plan",
-        description: `Curated collection of ${state}-curriculum-aligned teaching resources from Scootle's 22,000+ library for ${yearLevel} ${subject} students studying ${topic}. Includes teacher notes, student activities, and tasks mapped to Australian Curriculum v9.`,
-        alignmentScore: 88, safetyRating: "verified", biasFlag: "low",
-        localContextTags: ["Scootle", "Curriculum Aligned", `${state} Curriculum`, yearLevel],
-        outcomeIds: [`AC9-${subject.replace(/\s/g,'').slice(0,3).toUpperCase()}`],
-        whyThisResource: `Scootle is Australia's national repository of curriculum-aligned digital learning resources, reviewed and tagged against Australian Curriculum v9 outcomes for ${subject}.`,
-      },
-      {
-        id: `scootle-${ts}-2`,
-        title: `${topic} — Worksheets and Student Activities`,
-        url: sq(`${subject} worksheet activity`),
-        urlType: 'search',
-        source: "Scootle — Education Services Australia",
-        type: "Worksheet",
-        description: `Student worksheets and inquiry activities for ${yearLevel} ${subject} students exploring ${topic} in ${state}. All resources are tagged to Australian Curriculum v9 outcomes and reviewed for quality.`,
-        alignmentScore: 84, safetyRating: "verified", biasFlag: "low",
-        localContextTags: ["Scootle", "Student Activities", `${state} Curriculum`, yearLevel],
-        outcomeIds: [`AC9-${subject.replace(/\s/g,'').slice(0,3).toUpperCase()}`],
-        whyThisResource: `Scootle's worksheet collection is peer-reviewed and directly tagged to AC v9 outcomes, making it ideal for classroom-ready activities on ${topic}.`,
-      },
-      {
-        id: `scootle-${ts}-3`,
-        title: `${topic} — Assessment and Evaluation Resources`,
-        url: sq(`${subject} assessment`),
-        urlType: 'search',
-        source: "Scootle — Education Services Australia",
-        type: "Assessment",
-        description: `Assessment tasks and evaluation resources for ${yearLevel} ${subject} students in ${state} studying ${topic}. Mapped to Australian Curriculum v9 with marking guidance included.`,
-        alignmentScore: 81, safetyRating: "verified", biasFlag: "low",
-        localContextTags: ["Scootle", "Assessment", `${state} Curriculum`, yearLevel],
-        outcomeIds: [`AC9-${subject.replace(/\s/g,'').slice(0,3).toUpperCase()}`],
-        whyThisResource: `Scootle's assessment resources are curriculum-mapped and include teacher notes, making them ready to use for ${yearLevel} ${subject} evaluation tasks on ${topic}.`,
-      },
-    ] as Resource[];
-  };
-
   const handleSearch = async () => {
     if (!searchParams.topic) return;
     setIsSearching(true);
@@ -507,7 +611,7 @@ export default function Home() {
       setSearchStep('merging');
       await new Promise(r => setTimeout(r, 300)); // brief pause to show "Merging results"
       const fetched = (resourcesResult as { resources: Resource[] }).resources ?? [];
-      setResources(fetched.length > 0 ? fetched : buildClientFallbackResources(searchParams.topic, searchParams.subject, searchParams.yearLevel, searchParams.state));
+      setResources(fetched);
     } catch {
       setAlignmentResult({
         alignmentScore: 88, syllabus: `${searchParams.state} ${searchParams.subject} ${searchParams.yearLevel}`,
@@ -515,7 +619,7 @@ export default function Home() {
         outcomes: [{ id: "AC9-FALLBACK", description: `Core ${searchParams.subject} outcome for ${searchParams.yearLevel} students studying ${searchParams.topic}.` }],
         notes: "Fallback alignment data.", usedFallback: true,
       });
-      setResources(buildClientFallbackResources(searchParams.topic, searchParams.subject, searchParams.yearLevel, searchParams.state));
+      setResources([]);
     } finally {
       setIsSearching(false);
       setSearchStep(null);
@@ -545,13 +649,16 @@ export default function Home() {
         const o = outcomes[0] ?? { id: "AC9-UNKNOWN", description: `Core ${searchParams.subject} outcome` };
         const t = searchParams.topic || 'this topic';
         const rType = searchParams.resourceType;
+        const rTitle = resource.title;
+        const rSource = resource.source;
+        const rDesc = resource.description;
         const common = {
           outcomeCode: o.id,
           outcomeDescription: o.description,
           successCriteria: [
-            `Identify and explain the key concepts of ${t}`,
-            `Apply knowledge to an Australian context`,
-            `Evaluate evidence and form a reasoned conclusion`,
+            `Identify and explain key concepts from "${rTitle}" by ${rSource}`,
+            `Apply knowledge from the resource to an Australian context`,
+            `Evaluate evidence from the resource and form a reasoned conclusion`,
           ],
           usedFallback: true as const,
         };
@@ -560,87 +667,149 @@ export default function Home() {
             ...common,
             resourceType: 'Worksheet' as const,
             sections: [
-              { title: 'Knowledge and Understanding', instructions: 'Answer each question using full sentences.', questions: [
-                { q: `Define the term '${t}' in your own words.`, lines: 3, marks: 2 },
-                { q: `List two key facts about ${t} in an Australian context.`, lines: 4, marks: 4 },
+              { title: 'Knowledge and Understanding', instructions: `Using "${rTitle}" from ${rSource}, answer each question in full sentences.`, questions: [
+                { q: `What is the main topic or argument presented in "${rTitle}" by ${rSource}?`, lines: 3, marks: 2 },
+                { q: `List two key facts or pieces of evidence from the resource about ${t}.`, lines: 4, marks: 4 },
               ]},
-              { title: 'Application', instructions: 'Use your knowledge to answer the following questions.', questions: [
-                { q: `Describe how ${t} is relevant to Australian students today.`, lines: 5, marks: 5 },
-                { q: `Give one real-world example of ${t} from Australia.`, lines: 4, marks: 3 },
+              { title: 'Application', instructions: `Use your reading of "${rTitle}" to answer the following.`, questions: [
+                { q: `How does the information in "${rTitle}" connect to ${t} for Australian students today?`, lines: 5, marks: 5 },
+                { q: `Give one real-world Australian example that supports or extends what you read in the resource.`, lines: 4, marks: 3 },
               ]},
-              { title: 'Analysis and Evaluation', instructions: 'Think critically and justify your answers with evidence.', questions: [
-                { q: `Analyse two different perspectives on ${t}. Which do you find more convincing, and why?`, lines: 8, marks: 8 },
+              { title: 'Analysis and Evaluation', instructions: `Think critically about "${rTitle}" and justify your answers with evidence from the resource.`, questions: [
+                { q: `Analyse the perspective presented in "${rTitle}" by ${rSource}. Does the resource present a balanced view of ${t}? Explain with at least two references to the resource.`, lines: 8, marks: 8 },
               ]},
             ],
-            extensionTask: `Research a recent Australian news story related to ${t}. Write a 150-word response explaining how it connects to what you have learned.`,
-            wordBank: [t, searchParams.subject, 'evidence', 'analysis', 'perspective', 'outcome'],
+            extensionTask: `Find a second source on ${t} and write a 150-word comparison explaining how it agrees or disagrees with "${rTitle}" by ${rSource}.`,
+            wordBank: [t, searchParams.subject, rSource, 'evidence', 'analysis', 'perspective'],
           });
         } else if (rType === 'Discussion') {
           setLessonPlan({
             ...common,
             resourceType: 'Discussion' as const,
-            discussionPrompt: `To what extent has ${t} shaped modern Australia, and what challenges remain?`,
-            backgroundContext: `${t} is a significant issue in Australian society, connecting to history, culture, and contemporary debates.`,
+            discussionPrompt: `Based on "${rTitle}" from ${rSource}: To what extent does this resource capture the full picture of ${t} in Australia?`,
+            backgroundContext: `${rDesc} This resource from ${rSource} provides one perspective on ${t} that students should critically examine.`,
             perspectives: [
-              { viewpoint: 'Supporter', keyArguments: [`${t} has brought positive change`, 'Evidence supports its value', 'It connects to Australian values'] },
-              { viewpoint: 'Critic', keyArguments: [`${t} has unresolved challenges`, 'Not all Australians benefit equally', 'Change is still needed'] },
+              { viewpoint: `The ${rSource} perspective`, keyArguments: [`The resource presents ${t} as described in "${rTitle}"`, `${rSource} is a trusted Australian source`, 'The evidence presented supports this view'] },
+              { viewpoint: 'Alternative perspective', keyArguments: [`Other sources may present ${t} differently`, 'Not all stakeholders are represented in a single resource', 'Additional voices should be considered'] },
             ],
-            sentenceStarters: ['I believe...', 'The evidence suggests...', 'A counterargument might be...', 'From an Australian perspective...', 'On the other hand...', 'What this shows is...'],
-            reflectionQuestions: [`What surprised you most about ${t}?`, `Whose voice is most important in this debate?`, `What would you want changed?`],
-            teacherFacilitationNotes: `Ensure all students have a chance to speak. Monitor for respectful disagreement. Connect discussion to the ${searchParams.subject} outcomes.`,
+            sentenceStarters: ['According to the resource...', 'The evidence in the resource suggests...', 'A different perspective might be...', 'From an Australian perspective...', 'I agree/disagree with the resource because...', 'What the resource doesn\'t address is...'],
+            reflectionQuestions: [`What was the most compelling point in "${rTitle}"?`, 'Whose voice is most important in this debate and was it represented?', 'What would you want to investigate further?'],
+            teacherFacilitationNotes: `Ground the discussion in the specific content of "${rTitle}" from ${rSource}. Ensure students reference the resource rather than making unsupported claims.`,
           });
         } else if (rType === 'Assessment') {
-          setLessonPlan({
-            ...common,
-            resourceType: 'Assessment' as const,
-            taskType: 'Extended Response',
-            duration: '60 minutes',
-            totalMarks: 25,
-            studentSections: [
-              { section: 'Section A: Short Answer', instructions: 'Answer all questions using full sentences.', questions: [
-                { number: 1, q: `Define the term '${t}' in your own words.`, marks: 2, lines: 4 },
-                { number: 2, q: `List two key facts about ${t} in an Australian context.`, marks: 4, lines: 5 },
-              ]},
-              { section: 'Section B: Structured Response', instructions: 'Answer both questions using specific evidence.', questions: [
-                { number: 3, q: `Explain how ${t} has affected Australian society. Use at least one specific example.`, marks: 5, lines: 8 },
-                { number: 4, q: `Describe the role of Australian governments in shaping ${t}. Refer to at least two actions or policies.`, marks: 6, lines: 10 },
-              ]},
-              { section: 'Section C: Extended Response', instructions: 'Write a detailed response. Use evidence to support your argument.', questions: [
-                { number: 5, q: `To what extent has ${t} shaped modern Australia? In your response, evaluate the significance of at least two key events or developments and explain their ongoing impact on Australian society.`, marks: 8, lines: 20 },
-              ]},
-            ],
-            markingCriteria: [
-              { criterion: 'Knowledge and Understanding', excellent: 'Demonstrates thorough, accurate knowledge with specific detail', satisfactory: 'Shows adequate knowledge with some accuracy', developing: 'Shows limited knowledge with some inaccuracy', marks: 8 },
-              { criterion: 'Analysis and Evaluation', excellent: 'Insightful analysis with well-reasoned evaluation', satisfactory: 'Some analysis present but reasoning could be stronger', developing: 'Limited analysis; mostly descriptive', marks: 8 },
-              { criterion: 'Use of Evidence', excellent: 'Consistently uses specific evidence to support all claims', satisfactory: 'Uses evidence at times but not consistently', developing: 'Little evidence used; claims mostly unsupported', marks: 6 },
-              { criterion: 'Communication', excellent: 'Clear, fluent, well-structured response throughout', satisfactory: 'Generally clear with some structure', developing: 'Unclear or poorly structured', marks: 3 },
-            ],
-            teacherMarkingGuide: `Reward students who use specific evidence from Australian contexts. Accept any well-reasoned position as long as it is supported by evidence.`,
-          });
+          const isStem = /math|science|physics|chemistry|biology/i.test(searchParams.subject);
+          if (isStem) {
+            setLessonPlan({
+              ...common,
+              successCriteria: [
+                `Demonstrate understanding of key ${t} concepts from "${rTitle}"`,
+                `Apply ${t} methods and procedures to solve problems`,
+                `Communicate reasoning clearly with correct notation`,
+              ],
+              resourceType: 'Assessment' as const,
+              taskType: 'Problem-Solving Task',
+              duration: '60 minutes',
+              totalMarks: 25,
+              studentSections: [
+                { section: 'Section A: Skills and Procedures', instructions: `Apply the concepts from "${rTitle}" (${rSource}). Show all working.`, questions: [
+                  { number: 1, q: `Define the key ${t} terms or concepts covered in "${rTitle}". Give an example for each.`, marks: 3, lines: 5 },
+                  { number: 2, q: `Using the method from "${rTitle}", solve a similar problem. Show each step of your working.`, marks: 4, lines: 6 },
+                ]},
+                { section: 'Section B: Application', instructions: `Apply your understanding of ${t}. Show full working and reasoning.`, questions: [
+                  { number: 3, q: `A real-world scenario involves ${t}. Using the approach from "${rTitle}" by ${rSource}, set up the problem, show your method, and solve it.`, marks: 5, lines: 8 },
+                  { number: 4, q: `Explain how the ${t} concepts from "${rTitle}" connect to a real-world Australian context. Provide a worked example.`, marks: 5, lines: 8 },
+                ]},
+                { section: 'Section C: Analysis and Reasoning', instructions: 'Show extended reasoning and justify your approach.', questions: [
+                  { number: 5, q: `Compare two different approaches to solving a ${t} problem. When would the method from "${rTitle}" be most efficient? Justify with worked examples.`, marks: 8, lines: 14 },
+                ]},
+              ],
+              markingCriteria: [
+                { criterion: 'Knowledge of Concepts', excellent: `Thorough understanding of ${t} concepts with correct definitions and examples`, satisfactory: 'Adequate understanding with mostly correct terminology', developing: 'Limited understanding; key concepts incorrect or missing', marks: 7 },
+                { criterion: 'Problem-Solving', excellent: 'Correct method, logical steps, accurate calculations throughout', satisfactory: 'Appropriate method but some errors in working', developing: 'Incorrect method or significant errors; incomplete working', marks: 8 },
+                { criterion: 'Application and Reasoning', excellent: 'Clear application to real-world contexts with justified reasoning', satisfactory: 'Some application but reasoning could be more detailed', developing: 'Limited application; reasoning unclear', marks: 7 },
+                { criterion: 'Communication and Notation', excellent: 'Clear notation, well-structured responses', satisfactory: 'Generally clear with some notation errors', developing: 'Poor notation; difficult to follow working', marks: 3 },
+              ],
+              teacherMarkingGuide: `Award method marks even if the final answer is incorrect. Look for correct application of ${t} concepts from "${rTitle}". Accept alternative valid methods.`,
+            });
+          } else {
+            setLessonPlan({
+              ...common,
+              resourceType: 'Assessment' as const,
+              taskType: 'Source Analysis',
+              duration: '60 minutes',
+              totalMarks: 25,
+              studentSections: [
+                { section: 'Section A: Short Answer', instructions: `Using "${rTitle}" from ${rSource}, answer all questions in full sentences.`, questions: [
+                  { number: 1, q: `What is the main argument or information presented in "${rTitle}" by ${rSource}?`, marks: 2, lines: 4 },
+                  { number: 2, q: `Identify two key facts or pieces of evidence about ${t} from the resource.`, marks: 4, lines: 5 },
+                ]},
+                { section: 'Section B: Structured Response', instructions: `Answer both questions using specific evidence from "${rTitle}".`, questions: [
+                  { number: 3, q: `Explain how the information in "${rTitle}" helps us understand ${t} in the Australian context. Use at least one specific example from the resource.`, marks: 5, lines: 8 },
+                  { number: 4, q: `Analyse the perspective presented by ${rSource}. What strengths and limitations does this resource have for understanding ${t}?`, marks: 6, lines: 10 },
+                ]},
+                { section: 'Section C: Extended Response', instructions: 'Write a detailed response using evidence from the resource and your own knowledge.', questions: [
+                  { number: 5, q: `Using "${rTitle}" from ${rSource} as your primary source, evaluate the significance of ${t} in modern Australia. How effectively does the resource present this topic?`, marks: 8, lines: 20 },
+                ]},
+              ],
+              markingCriteria: [
+                { criterion: 'Knowledge and Understanding', excellent: 'Thorough understanding of the resource with accurate, specific references', satisfactory: 'Adequate understanding with some references', developing: 'Limited understanding; few references to resource content', marks: 8 },
+                { criterion: 'Analysis and Evaluation', excellent: "Insightful analysis of the resource's perspective", satisfactory: 'Some analysis present but could be stronger', developing: 'Limited analysis; mostly descriptive', marks: 8 },
+                { criterion: 'Use of Evidence', excellent: 'Consistently cites specific details from the resource', satisfactory: 'Uses resource evidence at times', developing: 'Little evidence from the resource', marks: 6 },
+                { criterion: 'Communication', excellent: 'Clear, fluent, well-structured throughout', satisfactory: 'Generally clear with some structure', developing: 'Unclear or poorly structured', marks: 3 },
+              ],
+              teacherMarkingGuide: `Reward students who cite specific content from "${rTitle}" by ${rSource}.`,
+            });
+          }
         } else {
+          const isStem = /math|science|physics|chemistry|biology/i.test(searchParams.subject);
           setLessonPlan({
             ...common,
+            successCriteria: isStem
+              ? [`Understand ${t} concepts from "${rTitle}"`, `Apply methods from the resource to solve problems`, `Explain reasoning with correct notation`]
+              : common.successCriteria,
             resourceType: 'Lesson Plan' as const,
-            objective: `Students explore ${t} using Australian curriculum-aligned resources.`,
+            objective: isStem
+              ? `Students develop ${t} skills by working through "${rTitle}" from ${rSource}. ${rDesc}`
+              : `Students explore ${t} by engaging with "${rTitle}" from ${rSource}. ${rDesc}`,
             duration: '60 minutes',
-            activities: [
-              { label: 'Hook (5 min)', text: `Engage students with a thought-provoking question about ${t}.` },
-              { label: 'Explore (20 min)', text: 'Students investigate core concepts through guided inquiry.' },
-              { label: 'Analyse (15 min)', text: 'Groups discuss findings, connecting concepts to Australian contexts.' },
-              { label: 'Evaluate (15 min)', text: 'Class discussion evaluates evidence and forms conclusions.' },
-              { label: 'Reflect (5 min)', text: 'Exit ticket: one key learning and one remaining question.' },
+            materials: [
+              `"${rTitle}" from ${rSource}${resource.url ? ` (${resource.url})` : ''} — printed or digital`,
+              isStem ? 'Calculators (if applicable)' : 'Student notebooks or lined paper',
+              'Whiteboard and markers',
             ],
-            localExample: { title: 'Australian Context', body: `Connect ${t} to examples relevant to ${searchParams.state || 'Australian'} students.` },
-            questions: [
-              { q: `Define the key concepts of ${t}.`, difficulty: 'foundation' },
-              { q: `Explain two ways ${t} is relevant to Australians.`, difficulty: 'foundation' },
-              { q: `Analyse the evidence and explain how it supports understanding of ${t}.`, difficulty: 'core' },
-              { q: `Compare different perspectives on ${t}.`, difficulty: 'core' },
-              { q: `Critically evaluate the significance of ${t} for contemporary Australia.`, difficulty: 'extension' },
+            activities: isStem ? [
+              { label: 'Hook (5 min)', text: `Present a real-world problem related to ${t}. Ask: 'How would you approach this?' Connect to "${rTitle}" from ${rSource}.`, teacherTip: 'Let students attempt informally first.' },
+              { label: 'Explore (20 min)', text: `Students work through "${rTitle}" from ${rSource}, following explanations and worked examples. Record key concepts, formulas, and methods.`, teacherTip: 'Pause at key points to check understanding.' },
+              { label: 'Practice (15 min)', text: `Students apply the methods from "${rTitle}" to practice problems. Start guided, then independent. Pair work to discuss strategies.`, teacherTip: 'Provide worked solutions for the first problem for self-checking.' },
+              { label: 'Apply (15 min)', text: `Challenge: students tackle a real-world application that requires ${t} concepts from "${rTitle}". Set up, choose method, solve, and explain reasoning.`, teacherTip: 'Encourage diagrams or tables to organise thinking.' },
+              { label: 'Reflect (5 min)', text: `Exit ticket: solve one quick problem using the method from "${rTitle}" and write when you would use this approach.`, teacherTip: 'Use to identify who needs revision.' },
+            ] : [
+              { label: 'Hook (5 min)', text: `Introduce "${rTitle}" from ${rSource}. Share a key point and ask: 'What does this tell us about ${t}?'`, teacherTip: 'Use think-pair-share for broad participation.' },
+              { label: 'Explore (20 min)', text: `Students read/engage with "${rTitle}" and complete guided note-taking on the main ideas and evidence.`, teacherTip: 'Provide a structured template for scaffolding.' },
+              { label: 'Analyse (15 min)', text: `In groups, analyse aspects of "${rTitle}": What perspective does ${rSource} present? What evidence supports it?`, teacherTip: 'Assign roles (scribe, presenter, questioner).' },
+              { label: 'Evaluate (15 min)', text: `Whole-class discussion: Using evidence from "${rTitle}", evaluate how well ${rSource} covers ${t}.`, teacherTip: 'Use sentence starters for verbal support.' },
+              { label: 'Reflect (5 min)', text: `Exit ticket: one key idea from "${rTitle}", one Australian connection, one remaining question.`, teacherTip: 'Read a few anonymously next lesson.' },
             ],
+            localExample: { title: isStem ? `${t} in the Australian Context` : `Connecting "${rTitle}" to Local Context`, body: `${rDesc} Teachers should connect this to ${isStem ? 'real-world Australian applications' : 'local examples'} from ${searchParams.state || 'Australia'}.` },
+            questions: isStem ? [
+              { q: `What are the key ${t} concepts or formulas in "${rTitle}"? Define each.`, difficulty: 'foundation' },
+              { q: `Using the method from "${rTitle}", solve a similar problem. Show all working.`, difficulty: 'foundation' },
+              { q: `Explain why the method in "${rTitle}" works. What is the reasoning behind each step?`, difficulty: 'core' },
+              { q: `Apply the ${t} concepts from "${rTitle}" to a new real-world scenario.`, difficulty: 'core' },
+              { q: `Compare two approaches to a ${t} problem. When is the method from "${rTitle}" most efficient?`, difficulty: 'extension' },
+            ] : [
+              { q: `What is the main idea presented in "${rTitle}" by ${rSource}?`, difficulty: 'foundation' },
+              { q: `Identify two specific pieces of evidence from the resource about ${t}.`, difficulty: 'foundation' },
+              { q: `Analyse the perspective in "${rTitle}". What strengths and limitations does it have?`, difficulty: 'core' },
+              { q: `Compare what you learned from "${rTitle}" with your own knowledge of ${t}.`, difficulty: 'core' },
+              { q: `Critically evaluate whether "${rTitle}" provides a balanced view of ${t}.`, difficulty: 'extension' },
+            ],
+            reflectionPrompt: isStem
+              ? `What real-world situation would use the ${t} skills from "${rTitle}"?`
+              : `After engaging with "${rTitle}", what is the most important thing to understand about ${t}?`,
           });
         }
-        setTeacherNotes(`Ensure students understand the key concepts of ${t} before starting.`);
+        setTeacherNotes(`Review "${rTitle}" from ${rSource} before the lesson. Identify 2-3 key discussion points that connect to ${t}.`);
       } catch {
         // If even the fallback fails, keep lessonPlan null — renderLessonPlan will show a retry prompt
       }
@@ -1223,18 +1392,24 @@ export default function Home() {
           {resources.length === 0 && (
             <div className="bg-white rounded-xl border border-border p-12 text-center">
               <div className="text-slate-300 text-4xl mb-3">📚</div>
-              <div className="text-[15px] font-semibold text-slate-400 mb-1">No resources found</div>
-              <div className="text-[13px] text-slate-400">Try adjusting your search topic or year level.</div>
+              <div className="text-[15px] font-semibold text-slate-400 mb-1">No verified resources found</div>
+              <div className="text-[13px] text-slate-400">Try another topic, or use a curated demo topic while verified search coverage is limited.</div>
               <button onClick={() => navigate('search')} className="mt-4 bg-primary text-white border-none px-5 py-2.5 rounded-lg text-sm font-semibold cursor-pointer hover:bg-teal-700">Back to search</button>
             </div>
           )}
           {resources.map((resource) => (
             <div key={resource.id} className="bg-white rounded-xl shadow-sm border border-border p-6 flex flex-col gap-4 hover:border-teal-200 hover:shadow-md transition-all" data-testid={`resource-card-${resource.id}`}>
+              {getResourceReviewBanners(resource).length > 0 && (
+                <div className="flex flex-col gap-2">
+                  {getResourceReviewBanners(resource).map(renderReviewBanner)}
+                </div>
+              )}
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                     <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{resource.type}</span>
                     <span className="bg-teal-50 text-teal-800 text-[11px] font-semibold px-2 py-0.5 rounded">{resource.alignmentScore}% match</span>
+                    {renderResourceProvenance(resource)}
                     {resource.safetyRating === 'verified' && <span className="bg-green-100 text-green-700 text-[11px] font-semibold px-2 py-0.5 rounded-full">✓ Verified</span>}
                     {resource.biasFlag === 'low' && <span className="bg-blue-100 text-blue-700 text-[11px] font-semibold px-2 py-0.5 rounded-full">Bias: low</span>}
                   </div>
@@ -1251,18 +1426,23 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 shrink-0">
-                  {resource.url && (
+                  {resource.url && resource.urlType !== 'search' && resource.verifiedLink !== false && (
                     <a
                       href={resource.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors no-underline ${resource.urlType === 'search' ? 'bg-teal-50 text-teal-700 hover:bg-teal-100' : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700'}`}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors no-underline bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700"
                       aria-label={`Open ${resource.title} in new tab`}
-                      title={resource.urlType === 'search' ? 'Search Scootle for curriculum-aligned resources on this topic' : 'Opens the resource directly'}
+                      title="Open the original resource in a new tab"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
-                      {resource.urlType === 'search' ? 'Search on Scootle' : 'Open resource'}
+                      Open resource
                     </a>
+                  )}
+                  {!resource.url && (
+                    <div className="px-3 py-2 rounded-lg text-[12px] font-medium bg-amber-50 text-amber-800 border border-amber-200 max-w-[180px] text-center">
+                      No verified direct link available
+                    </div>
                   )}
                   <button
                     onClick={() => handleSaveResource(resource)}
@@ -1273,7 +1453,7 @@ export default function Home() {
                     {savedResourceIds.has(resource.id) ? <><BookmarkCheck className="w-3.5 h-3.5" /> Saved</> : <><Bookmark className="w-3.5 h-3.5" /> Save</>}
                   </button>
                   <button
-                    onClick={() => handleShareToClassroom(resource.url, resource.title)}
+                    onClick={() => handleShareToClassroom(resource.urlType !== 'search' && resource.verifiedLink !== false ? resource.url : undefined, resource.title)}
                     className="flex items-center gap-1.5 bg-[#1a73e8] hover:bg-[#1557b0] text-white border-none px-3 py-1.5 rounded-lg text-[12px] font-semibold cursor-pointer transition-colors whitespace-nowrap"
                     title={t('googleClassroom')}
                     aria-label={`Share ${resource.title} to Google Classroom`}
@@ -1306,22 +1486,25 @@ export default function Home() {
   );
 
   const renderOutputHeader = (output: GeneratedOutput) => (
-    <div className="bg-gradient-to-r from-teal-700 to-teal-600 rounded-xl p-6 mb-5 shadow-sm text-white">
-      <div className="flex items-center gap-2.5 mb-2">
-        <span className="bg-white/20 text-white text-[12px] font-bold px-3 py-1 rounded-full tracking-wide">{output.outcomeCode}</span>
-        {output.usedFallback && <span className="bg-amber-400/30 text-amber-100 text-[11px] font-semibold px-2.5 py-1 rounded-full">Estimated</span>}
-      </div>
-      <p className="text-[14px] text-teal-100 leading-relaxed mb-4">{output.outcomeDescription}</p>
-      <div className="border-t border-white/20 pt-4">
-        <div className="text-[12px] font-bold text-white/70 uppercase tracking-wider mb-2.5">By the end of this {output.resourceType.toLowerCase()}, students will be able to:</div>
-        <ul className="flex flex-col gap-1.5">
-          {(output.successCriteria ?? []).map((sc, i) => (
-            <li key={i} className="flex items-start gap-2 text-[13px] text-white leading-relaxed">
-              <CheckCircle className="w-3.5 h-3.5 text-teal-200 mt-0.5 shrink-0" />
-              {sc.replace(/^Students will be able to /i, '')}
-            </li>
-          ))}
-        </ul>
+    <div className="flex flex-col gap-3 mb-5">
+      {getOutputReviewBanners(output).map(renderReviewBanner)}
+      <div className="bg-gradient-to-r from-teal-700 to-teal-600 rounded-xl p-6 shadow-sm text-white">
+        <div className="flex items-center gap-2.5 mb-2">
+          <span className="bg-white/20 text-white text-[12px] font-bold px-3 py-1 rounded-full tracking-wide">{output.outcomeCode}</span>
+          {output.usedFallback && <span className="bg-amber-400/30 text-amber-100 text-[11px] font-semibold px-2.5 py-1 rounded-full">Estimated</span>}
+        </div>
+        <p className="text-[14px] text-teal-100 leading-relaxed mb-4">{output.outcomeDescription}</p>
+        <div className="border-t border-white/20 pt-4">
+          <div className="text-[12px] font-bold text-white/70 uppercase tracking-wider mb-2.5">By the end of this {output.resourceType.toLowerCase()}, students will be able to:</div>
+          <ul className="flex flex-col gap-1.5">
+            {(output.successCriteria ?? []).map((sc, i) => (
+              <li key={i} className="flex items-start gap-2 text-[13px] text-white leading-relaxed">
+                <CheckCircle className="w-3.5 h-3.5 text-teal-200 mt-0.5 shrink-0" />
+                {sc.replace(/^Students will be able to /i, '')}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );
@@ -1507,12 +1690,30 @@ export default function Home() {
 
   const renderOutputActions = () => {
     const lessonTitle = `${searchParams.topic} — ${searchParams.yearLevel} ${searchParams.subject}`;
+    const resource = selectedResource;
     return (
       <div className="flex items-center justify-between mb-5">
         <button onClick={() => navigate('results')} className="text-[13px] font-medium text-slate-500 hover:text-primary flex items-center gap-1.5 bg-transparent border-none cursor-pointer" data-testid="btn-back-to-results">
           <ArrowLeft className="w-4 h-4" /> {t('backToResults')}
         </button>
         <div className="flex gap-2">
+          {resource?.url && resource.urlType !== 'search' && resource.verifiedLink !== false && (
+            <a
+              href={resource.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold border transition-colors no-underline bg-white text-slate-600 border-border hover:border-primary hover:text-primary"
+              title="Open the original resource in a new tab"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Open resource
+            </a>
+          )}
+          {!resource?.url && (
+            <div className="flex items-center px-4 py-2 rounded-lg text-[13px] font-medium bg-amber-50 text-amber-800 border border-amber-200">
+              No verified direct link
+            </div>
+          )}
           <button
             onClick={handleSaveLesson}
             disabled={lessonSaved}
@@ -1563,41 +1764,180 @@ export default function Home() {
   const renderLessonPlanContent = (plan: LessonPlan) => {
     const getDifficultyColor = (d: string) => d === 'foundation' ? 'bg-green-100 text-green-700' : d === 'core' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
     const getDifficultyLabel = (d: string) => d === 'foundation' ? 'Foundation' : d === 'core' ? 'Core' : 'Extension';
+    const activityColors = ['bg-teal-500', 'bg-blue-500', 'bg-indigo-500', 'bg-violet-500', 'bg-slate-500'];
+    const parseMinutes = (label: string) => { const m = label.match(/(\d+)\s*min/i); return m ? parseInt(m[1], 10) : 0; };
+    const totalMinutes = plan.activities.reduce((s, a) => s + parseMinutes(a.label), 0) || 60;
+
     return (
       <>
+        {/* Overview card */}
         <div className="bg-white rounded-xl shadow-sm border border-border p-7 mb-5">
-          <div className="flex items-center gap-3 mb-5 pb-5 border-b border-border">
+          <div className="flex items-center gap-3 mb-5 pb-5 border-b border-border flex-wrap">
             <span className="bg-slate-100 text-slate-700 text-[13px] font-semibold px-3.5 py-1.5 rounded-full">{plan.duration}</span>
             <span className="bg-slate-100 text-slate-700 text-[13px] font-semibold px-3.5 py-1.5 rounded-full">{searchParams.classContext.length > 0 ? searchParams.classContext.join(', ') : 'Standard Class'}</span>
+            <span className="bg-teal-50 text-teal-700 text-[13px] font-semibold px-3.5 py-1.5 rounded-full">{searchParams.yearLevel} {searchParams.subject}</span>
+            <span className="bg-blue-50 text-blue-700 text-[13px] font-semibold px-3.5 py-1.5 rounded-full">{searchParams.state}</span>
           </div>
-          <div className="text-[15px] text-slate-700 leading-relaxed mb-6">{plan.objective}</div>
-          <div className="flex flex-col gap-3.5">
-            {plan.activities.map((activity, i) => (
-              <div key={i} className="flex gap-3.5 items-start">
-                <div className="w-2 h-2 rounded-full bg-primary mt-[7px] shrink-0"></div>
-                <div>
-                  <div className="text-[14px] font-semibold text-foreground mb-0.5">{activity.label}</div>
-                  <div className="text-[14px] text-slate-600 leading-relaxed">{activity.text}</div>
+          <div className="font-serif text-[18px] text-foreground mb-2">Learning Objective</div>
+          <div className="text-[15px] text-slate-700 leading-relaxed mb-0">{plan.objective}</div>
+        </div>
+
+        {/* Materials & Preparation */}
+        {((plan.materials && plan.materials.length > 0) || (plan.teacherPrep && plan.teacherPrep.length > 0)) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+            {plan.materials && plan.materials.length > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
+                <div className="text-[13px] font-bold text-amber-700 mb-3 flex items-center gap-2">
+                  <FileStack className="w-4 h-4" /> Materials Needed
                 </div>
+                <ul className="flex flex-col gap-1.5">
+                  {plan.materials.map((m, i) => (
+                    <li key={i} className="flex items-start gap-2 text-[13px] text-slate-700">
+                      <CheckCircle className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" /> {m}
+                    </li>
+                  ))}
+                </ul>
               </div>
-            ))}
+            )}
+            {plan.teacherPrep && plan.teacherPrep.length > 0 && (
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
+                <div className="text-[13px] font-bold text-slate-700 mb-3 flex items-center gap-2">
+                  <Settings2 className="w-4 h-4" /> Teacher Preparation
+                </div>
+                <ul className="flex flex-col gap-1.5">
+                  {plan.teacherPrep.map((p, i) => (
+                    <li key={i} className="flex items-start gap-2 text-[13px] text-slate-700">
+                      <span className="text-slate-400 font-bold shrink-0">{i + 1}.</span> {p}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Timing bar */}
+        <div className="bg-white rounded-xl shadow-sm border border-border p-5 mb-5">
+          <div className="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-3">Lesson Timeline</div>
+          <div className="flex rounded-lg overflow-hidden h-3 mb-2">
+            {plan.activities.map((a, i) => {
+              const mins = parseMinutes(a.label);
+              return <div key={i} className={`${activityColors[i % activityColors.length]} transition-all`} style={{ width: `${(mins / totalMinutes) * 100}%` }} title={a.label} />;
+            })}
+          </div>
+          <div className="flex justify-between text-[11px] text-slate-400">
+            <span>0 min</span>
+            <span>{totalMinutes} min</span>
           </div>
         </div>
+
+        {/* Activities */}
+        <div className="bg-white rounded-xl shadow-sm border border-border p-7 mb-5">
+          <div className="font-serif text-[20px] text-foreground mb-5">Lesson Activities</div>
+          <div className="flex flex-col gap-0">
+            {plan.activities.map((activity, i) => {
+              const mins = parseMinutes(activity.label);
+              return (
+                <div key={i} className="relative pl-10 pb-6 last:pb-0">
+                  {/* Timeline connector */}
+                  {i < plan.activities.length - 1 && <div className="absolute left-[15px] top-8 bottom-0 w-0.5 bg-slate-200" />}
+                  {/* Timeline dot */}
+                  <div className={`absolute left-1.5 top-1 w-6 h-6 rounded-full ${activityColors[i % activityColors.length]} flex items-center justify-center`}>
+                    <span className="text-white text-[10px] font-bold">{i + 1}</span>
+                  </div>
+                  {/* Content */}
+                  <div className="border border-border rounded-lg p-4 hover:border-primary/30 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-[15px] font-semibold text-foreground">{activity.label}</div>
+                      {mins > 0 && <span className="text-[11px] font-medium text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">{mins} min</span>}
+                    </div>
+                    <div className="text-[14px] text-slate-600 leading-relaxed">{activity.text}</div>
+                    {activity.teacherTip && (
+                      <div className="mt-3 bg-teal-50 border border-teal-200 rounded-lg p-3 flex items-start gap-2">
+                        <Info className="w-3.5 h-3.5 text-teal-600 mt-0.5 shrink-0" />
+                        <div className="text-[12px] text-teal-700 leading-relaxed"><span className="font-bold">Teacher Tip:</span> {activity.teacherTip}</div>
+                      </div>
+                    )}
+                    {activity.assessmentIndicator && (
+                      <div className="mt-2 flex items-center gap-1.5">
+                        <BarChart3 className="w-3 h-3 text-indigo-400" />
+                        <span className="text-[11px] text-indigo-500 font-medium">{activity.assessmentIndicator}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Local context */}
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-5 shadow-sm">
           <div className="text-[14px] font-bold text-blue-700 mb-2 flex items-center gap-2"><Compass className="w-4 h-4" /> Local Australian Context: {plan.localExample.title}</div>
           <div className="text-[14px] text-slate-700 leading-relaxed">{plan.localExample.body}</div>
         </div>
+
+        {/* Differentiation & Cross-curriculum row */}
+        {((plan.differentiationTips && plan.differentiationTips.length > 0) || (plan.crossCurriculumLinks && plan.crossCurriculumLinks.length > 0)) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+            {plan.differentiationTips && plan.differentiationTips.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-border p-5">
+                <div className="text-[13px] font-bold text-foreground mb-3 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-violet-500" /> Differentiation Strategies
+                </div>
+                <div className="flex flex-col gap-2.5">
+                  {plan.differentiationTips.map((tip, i) => {
+                    const levelColor = tip.level.toLowerCase().includes('extend') || tip.level.toLowerCase().includes('high')
+                      ? 'bg-purple-100 text-purple-700'
+                      : tip.level.toLowerCase().includes('support') || tip.level.toLowerCase().includes('low')
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-blue-100 text-blue-700';
+                    return (
+                      <div key={i} className="flex items-start gap-2.5">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${levelColor}`}>{tip.level}</span>
+                        <span className="text-[13px] text-slate-600 leading-relaxed">{tip.suggestion}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {plan.crossCurriculumLinks && plan.crossCurriculumLinks.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-border p-5">
+                <div className="text-[13px] font-bold text-foreground mb-3 flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-blue-500" /> Cross-Curriculum Links
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {plan.crossCurriculumLinks.map((link, i) => (
+                    <span key={i} className="bg-blue-50 text-blue-700 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-blue-100">{link}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Questions */}
         <div className="bg-white rounded-xl shadow-sm border border-border p-7 mb-5">
-          <div className="font-serif text-[20px] text-foreground mb-4">Differentiated Questions</div>
+          <div className="font-serif text-[20px] text-foreground mb-1">Differentiated Questions</div>
+          <div className="text-[12px] text-slate-400 mb-4">Tiered questions to support all learners in your classroom</div>
           <div className="flex flex-col gap-3">
             {plan.questions.map((q, i) => (
-              <div key={i} className="p-3.5 border border-border rounded-lg flex items-start gap-3">
+              <div key={i} className="p-3.5 border border-border rounded-lg flex items-start gap-3 hover:border-primary/30 transition-colors">
                 <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0 mt-0.5 ${getDifficultyColor(q.difficulty)}`}>{getDifficultyLabel(q.difficulty)}</span>
                 <div className="text-[14px] text-slate-700 leading-relaxed pt-0.5">{q.q}</div>
               </div>
             ))}
           </div>
         </div>
+
+        {/* Reflection */}
+        {plan.reflectionPrompt && (
+          <div className="bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200 rounded-xl p-5 mb-5">
+            <div className="text-[13px] font-bold text-violet-700 mb-2 flex items-center gap-2"><Sparkles className="w-4 h-4" /> End-of-Lesson Reflection</div>
+            <div className="text-[14px] text-slate-700 leading-relaxed italic">"{plan.reflectionPrompt}"</div>
+          </div>
+        )}
       </>
     );
   };

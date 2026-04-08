@@ -2,10 +2,53 @@ import { Router, type IRouter } from "express";
 import { GetResourcesBody, GetRecentResourcesResponse, GetDashboardStatsResponse } from "@workspace/api-zod";
 import { groq, GROQ_MODEL } from "../lib/groq";
 import { getTierAScore } from "../lib/trustedSources";
-import { searchEducationalResources, type TavilyResult } from "../lib/tavily";
+import { searchEducationalResources, type BraveResult } from "../lib/brave";
+import { findCuratedResources } from "../lib/curatedResources";
 
 const router: IRouter = Router();
 const TIMEOUT_MS = 18000;
+const SUBJECT_HINTS: Record<string, string[]> = {
+  science: ["science", "chemistry", "biology", "physics", "experiment", "laboratory", "compound", "reaction"],
+  mathematics: ["mathematics", "maths", "math", "equation", "algebra", "number", "graph", "function"],
+  math: ["mathematics", "maths", "math", "equation", "algebra", "number", "graph", "function"],
+  maths: ["mathematics", "maths", "math", "equation", "algebra", "number", "graph", "function"],
+  english: ["english", "text", "novel", "poem", "poetry", "language", "shakespeare", "literature"],
+  history: ["history", "historical", "rights", "freedoms", "source", "colonial", "society"],
+  geography: ["geography", "environment", "place", "ecosystem", "climate", "landscape", "spatial"],
+};
+
+function isHttpUrl(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function isDirectResourceUrl(value: unknown): value is string {
+  if (!isHttpUrl(value)) return false;
+
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+    const path = url.pathname.toLowerCase();
+    const hasSearchQuery = url.searchParams.has("q") || url.searchParams.has("query") || url.searchParams.has("search");
+
+    if (host.includes("scootle.edu.au") && (path.includes("/search") || hasSearchQuery)) {
+      return false;
+    }
+
+    if (path.includes("/search") || path.includes("/results")) {
+      return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function enrichWithTrust(resources: any[]): any[] {
   return resources.map((r) => ({
@@ -31,6 +74,135 @@ function enrichWithTrust(resources: any[]): any[] {
   }));
 }
 
+function inferSourceLabel(urlString: string) {
+  try {
+    const hostname = new URL(urlString).hostname.toLowerCase();
+    if (hostname.includes("abc.net.au")) return "ABC Education";
+    if (hostname.includes("scootle.edu.au")) return "Scootle";
+    if (hostname.includes("educationstandards.nsw.edu.au")) return "NSW Education Standards Authority";
+    if (hostname.includes("education.nsw.gov.au")) return "NSW Department of Education";
+    if (hostname.includes("acara.edu.au")) return "ACARA";
+    if (hostname.includes("aiatsis.gov.au")) return "Australian Institute of Aboriginal and Torres Strait Islander Studies";
+    if (hostname.includes("csiro.au")) return "CSIRO";
+    if (hostname.includes("bom.gov.au")) return "Bureau of Meteorology";
+    return hostname.replace(/^www\./, "");
+  } catch {
+    return "Verified web source";
+  }
+}
+
+function inferResourceKind(urlString: string, title: string, resourceTypeFilter?: string) {
+  const lowerTitle = title.toLowerCase();
+  const lowerUrl = urlString.toLowerCase();
+  if (lowerUrl.endsWith(".pdf") || lowerTitle.includes("worksheet")) return "Worksheet";
+  if (lowerTitle.includes("video")) return "Video";
+  if (lowerTitle.includes("interactive")) return "Interactive";
+  if (lowerTitle.includes("assessment")) return "Assessment";
+  return "Lesson Plan";
+}
+
+function buildDeterministicResourcesFromWebResults(
+  webResults: BraveResult[],
+  alignmentResult: { alignmentScore: number; outcomes: { id: string }[] },
+  resourceTypeFilter?: string,
+) {
+  return webResults.slice(0, 3).map((result, index) => ({
+    id: `verified-web-${index + 1}-${Date.now()}`,
+    title: result.title || "Verified classroom resource",
+    url: result.url,
+    urlType: "direct" as const,
+    provenance: "verified-web" as const,
+    verifiedLink: true,
+    source: inferSourceLabel(result.url),
+    type: inferResourceKind(result.url, result.title, resourceTypeFilter),
+    description: result.content || "Verified resource retrieved from a trusted Australian education source.",
+    alignmentScore: Math.max(70, alignmentResult.alignmentScore - index * 4),
+    safetyRating: "verified",
+    biasFlag: "low",
+    localContextTags: ["Verified Web Result"],
+    outcomeIds: alignmentResult.outcomes.slice(0, 3).map((o) => o.id),
+    whyThisResource: "This resource was retrieved directly from a trusted Australian education domain and can be reviewed before classroom use.",
+  }));
+}
+
+function normalizeText(value: unknown) {
+  return typeof value === "string" ? value.toLowerCase() : "";
+}
+
+function getSubjectHints(subject: string) {
+  const normalized = subject.toLowerCase().trim();
+  return SUBJECT_HINTS[normalized] ?? [normalized];
+}
+
+function seemsSubjectRelevant(resource: Record<string, unknown>, subject: string, topic: string) {
+  const haystack = [
+    normalizeText(resource.title),
+    normalizeText(resource.description),
+    normalizeText(resource.whyThisResource),
+    normalizeText(resource.source),
+    ...(Array.isArray(resource.localContextTags) ? resource.localContextTags.map(normalizeText) : []),
+  ].join(" ");
+
+  const topicWords = topic.toLowerCase().split(/\s+/).filter((word) => word.length > 3);
+  const subjectHints = getSubjectHints(subject);
+  const topicMatch = topicWords.some((word) => haystack.includes(word));
+  const subjectMatch = subjectHints.some((hint) => haystack.includes(hint));
+
+  return topicMatch || subjectMatch;
+}
+
+function getTopicTerms(topic: string) {
+  return topic
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .map((term) => term.trim())
+    .filter((term) => term.length >= 4);
+}
+
+function getWebResultRelevance(result: BraveResult, subject: string, topic: string) {
+  const text = `${result.title} ${result.content} ${result.url}`.toLowerCase();
+  const topicTerms = getTopicTerms(topic);
+  const subjectHints = getSubjectHints(subject);
+  const exactTopic = topic.toLowerCase().trim();
+
+  let score = 0;
+
+  for (const term of topicTerms) {
+    if (text.includes(term)) score += 4;
+  }
+
+  for (const hint of subjectHints) {
+    if (text.includes(hint)) score += 2;
+  }
+
+  if (text.includes(exactTopic)) score += 10;
+  if (text.includes("search |") || text.includes("/search") || text.includes("topic collection")) score -= 12;
+  if (text.includes("subjects-and-topics") || text.includes("teaching and learning")) score -= 10;
+  if (text.includes("curriculum target") || text.includes("version 8.4")) score -= 6;
+  if (text.includes("version 8.4") || text.includes("version 8")) score -= 3;
+
+  return score;
+}
+
+function filterRelevantWebResults(webResults: BraveResult[], subject: string, topic: string) {
+  const exactTopic = topic.toLowerCase().trim();
+  const topicTerms = getTopicTerms(topic);
+  const subjectHints = getSubjectHints(subject);
+  return webResults
+    .map((result) => ({ result, relevance: getWebResultRelevance(result, subject, topic) }))
+    .filter(({ relevance, result }) => {
+      if (!isDirectResourceUrl(result.url)) return false;
+      const text = `${result.title} ${result.content}`.toLowerCase();
+      const exactMatch = exactTopic.length >= 6 && text.includes(exactTopic);
+      const someTopicTermsMatch = topicTerms.length > 0 && topicTerms.some((term) => text.includes(term));
+      const subjectMatch = subjectHints.some((hint) => text.includes(hint));
+      // Accept if: high relevance score, OR topic match + subject match, OR exact topic match
+      return relevance >= 4 || exactMatch || (someTopicTermsMatch && subjectMatch);
+    })
+    .sort((a, b) => b.relevance - a.relevance)
+    .map(({ result }) => result);
+}
+
 const MOCK_RECENT_RESOURCES = [
   { id: "csiro-climate-1", title: "Australia's Changing Climate", subject: "Science", yearLevel: "Year 9", topic: "Climate Change", alignmentScore: 96, searchedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString() },
   { id: "abc-climate-2", title: "Pythagoras in the Real World", subject: "Mathematics", yearLevel: "Year 8", topic: "Geometry", alignmentScore: 91, searchedAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() },
@@ -38,7 +210,7 @@ const MOCK_RECENT_RESOURCES = [
 ];
 
 async function scoreWebResultsWithGroq(
-  webResults: TavilyResult[],
+  webResults: BraveResult[],
   subject: string,
   yearLevel: string,
   topic: string,
@@ -47,7 +219,6 @@ async function scoreWebResultsWithGroq(
   interests: string[],
   unitNote: string,
   langNote: string,
-  resourceTypeFilter?: string,
 ): Promise<any[]> {
   const resultsBlock = webResults.map((r, i) =>
     `[${i + 1}] Title: ${r.title}\nURL: ${r.url}\nSnippet: ${r.content.slice(0, 400)}`
@@ -56,19 +227,12 @@ async function scoreWebResultsWithGroq(
   const interestsNote = interests.length > 0
     ? `\nStudent interests: ${interests.join(", ")}. Connect resources to these where relevant.`
     : "";
-  const resourceTypeNote = resourceTypeFilter
-    ? `\nIMPORTANT: Every result must have "type": "${resourceTypeFilter}".`
-    : "";
-
-  const typeField = resourceTypeFilter
-    ? `"type": "${resourceTypeFilter}" (required — do not change this value),`
-    : `"type": string (one of: Lesson Plan, Worksheet, Assessment, Interactive, Video, Article),`;
 
   const prompt = `You are an Australian curriculum alignment expert. Below are ${webResults.length} real web pages found from trusted Australian educational sources. Score and describe each one for ${yearLevel} ${subject} students studying "${topic}" in ${state}.
 
 Curriculum outcomes:
 ${outcomesText}
-${unitNote}${interestsNote}${resourceTypeNote}${langNote}
+${unitNote}${interestsNote}${langNote}
 
 Web pages to score:
 ${resultsBlock}
@@ -78,7 +242,7 @@ For EACH web page, return a JSON object. Return ONLY a JSON array, no markdown:
   "index": number (1-based, matching the [N] above),
   "title": string (improve the title if needed, keep it descriptive),
   "source": string (organisation name, e.g. "CSIRO", "ABC Education", "Bureau of Meteorology"),
-  ${typeField}
+  "type": string (one of: Lesson Plan, Worksheet, Assessment, Interactive, Video, Article),
   "description": string (2-3 sentences describing what the resource contains and how it can be used),
   "alignmentScore": number between 50-100,
   "safetyRating": "verified" or "unverified",
@@ -116,9 +280,11 @@ For trustFlags: geographic = Australian-focused or US/UK-centric? cultural = Fir
         id: `web-${s.index}-${Date.now()}`,
         url: original?.url ?? "",
         urlType: "direct",   // Tavily URLs are real verified web pages
+        provenance: "verified-web",
+        verifiedLink: true,
         title: s.title,
         source: s.source,
-        type: resourceTypeFilter || s.type,
+        type: s.type,
         description: s.description,
         alignmentScore: s.alignmentScore,
         safetyRating: s.safetyRating,
@@ -164,47 +330,84 @@ router.post("/resources", async (req, res): Promise<void> => {
   }, TIMEOUT_MS);
 
   try {
-    // Step 1: Tavily real web search on trusted Australian domains
-    const tavilyTypeKeyword = resourceTypeFilter ? ` ${resourceTypeFilter.toLowerCase()}` : "";
-    const tavilyQuery = `${yearLevel} ${subject} "${topic}" Australian curriculum${tavilyTypeKeyword} teaching resources ${state}`;
-    let webResults: TavilyResult[] = [];
-    try {
-      webResults = await searchEducationalResources(tavilyQuery, 5);
-    } catch (tavilyErr) {
-      req.log.warn({ tavilyErr }, "Tavily search failed, falling back to Groq-only");
+    const curatedResources = findCuratedResources(subject, yearLevel, topic, resourceTypeFilter);
+    req.log.info({ subject, yearLevel, topic, state, resourceTypeFilter, curatedCount: curatedResources.length }, "Resource search started");
+    if (curatedResources.length > 0) {
+      clearTimeout(overallTimeout);
+      res.json({ resources: enrichWithTrust(curatedResources), usedFallback: false, usedWebSearch: false, usedCuratedRegistry: true });
+      return;
     }
 
-    if (webResults.length >= 2) {
+    // Step 1: Brave real web search on trusted Australian domains
+    const braveQuery = `${yearLevel} ${subject} "${topic}" Australian curriculum teaching resources ${state}`;
+    let webResults: BraveResult[] = [];
+    try {
+      const rawWebResults = await searchEducationalResources(braveQuery, 15, {
+        subject,
+        yearLevel,
+        topic,
+        state,
+        resourceType: resourceTypeFilter,
+      });
+      req.log.info({
+        braveQuery,
+        rawCount: rawWebResults.length,
+        rawTop: rawWebResults.slice(0, 5).map((r) => ({ title: r.title, url: r.url })),
+      }, "Brave search returned candidates");
+      webResults = filterRelevantWebResults(rawWebResults, subject, topic);
+      req.log.info({
+        filteredCount: webResults.length,
+        filteredTop: webResults.slice(0, 5).map((r) => ({ title: r.title, url: r.url })),
+      }, "Relevant Brave results after filtering");
+    } catch (braveErr) {
+      req.log.warn({ braveErr }, "Brave search failed, falling back to curated-only / no-resource path");
+    }
+
+    if (webResults.length >= 1) {
       // Step 2: Groq scores the real web results → preserves real URLs
       const scored = await scoreWebResultsWithGroq(
         webResults, subject, yearLevel, topic, state,
-        outcomesText, interests, unitNote, langNote, resourceTypeFilter,
+        outcomesText, interests, unitNote, langNote,
       );
 
       if (scored.length > 0) {
         clearTimeout(overallTimeout);
         const top3 = scored.slice(0, 3);
-        res.json({ resources: enrichWithTrust(top3), usedFallback: false, usedWebSearch: true });
+        res.json({ resources: enrichWithTrust(top3), usedFallback: false, usedWebSearch: true, usedCuratedRegistry: false });
         return;
       }
+
+      clearTimeout(overallTimeout);
+      const deterministicResources = buildDeterministicResourcesFromWebResults(
+        webResults,
+        alignmentResult,
+        resourceTypeFilter,
+      );
+      res.json({ resources: enrichWithTrust(deterministicResources), usedFallback: false, usedWebSearch: true, usedCuratedRegistry: false });
+      return;
     }
 
-    // Step 3: Groq-only fallback (no real URLs, but same format)
-    const groqPrompt = `You are an Australian curriculum resource expert. Find 3 real, existing, publicly accessible Australian educational resources for ${yearLevel} ${subject} students studying "${topic}" in ${state}.
+    // Step 3: Groq-only fallback (resource suggestions only — no direct URLs)
+    const groqPrompt = `You are an Australian curriculum resource expert. Suggest 3 likely useful Australian educational resources for ${yearLevel} ${subject} students studying "${topic}" in ${state}.
 
 Relevant curriculum outcomes:
 ${outcomesText}
 ${unitNote}${resourceTypeNote}${langNote}
 
 Only suggest resources from trusted Australian sources like CSIRO, ABC Education, Bureau of Meteorology, Khan Academy, Scootle, state education departments, or universities.
-IMPORTANT: For the "url" field you MUST provide a real, existing URL for the resource on that organisation's website.
+CRITICAL CONSTRAINTS:
+- Every resource must be clearly about the requested subject: ${subject}.
+- Every resource must be clearly suitable for ${yearLevel} students.
+- Do not mix in other subjects. For example, if the subject is Science, do not mention Mathematics unless it is genuinely a minor supporting skill.
+- Keep descriptions factually consistent with the title, source, year level, and requested topic.
+- If you are unsure of an exact outcome code, prefer using the supplied outcomes only when they genuinely fit.
+- If the requested topic is narrow, do not broaden it into a different topic just to fill the list.
 
 Return ONLY valid JSON, no markdown:
 {
   "resources": [{
     "id": string (slug),
     "title": string,
-    "url": string (real publicly accessible URL),
     "source": string,
     "type": string (one of: Lesson Plan, Worksheet, Assessment, Interactive, Video),
     "description": string (2-3 sentences),
@@ -234,75 +437,22 @@ Return ONLY valid JSON, no markdown:
     const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const aiResult = JSON.parse(cleaned);
 
-    // AI-generated URLs are unreliable (often resolve to homepages or 404s).
-    // Always replace with a verified Scootle title-specific search so teachers
-    // land on a page with real, curated results — not a dead link.
-    const reliableResources = aiResult.resources.map((r: Record<string, unknown>) => {
-      const title = typeof r.title === 'string' ? r.title : topic;
-      const scootleUrl = `https://www.scootle.edu.au/ec/search?q=${encodeURIComponent(`${title} ${yearLevel}`)}`;
-      return {
-        ...r,
-        url: scootleUrl,
-        urlType: 'search' as const,
-        // Enforce the requested resource type if one was specified
-        ...(resourceTypeFilter ? { type: resourceTypeFilter } : {}),
-      };
-    });
+    const suggestedResources = (Array.isArray(aiResult.resources) ? aiResult.resources : [])
+      .filter((r: Record<string, unknown>) => seemsSubjectRelevant(r, subject, topic));
 
-    if (reliableResources.length === 0) {
-      // AI returned no resources — use topic-specific static fallback
-      throw new Error("AI returned empty resources list");
+    if (suggestedResources.length === 0) {
+      res.json({ resources: [], usedFallback: false, usedWebSearch: false, usedCuratedRegistry: false });
+      return;
     }
 
-    res.json({ resources: enrichWithTrust(reliableResources), usedFallback: false, usedWebSearch: false });
+    // Do not surface AI-only suggestions as resource cards when no verified source exists.
+    res.json({ resources: [], usedFallback: false, usedWebSearch: false, usedCuratedRegistry: false });
 
   } catch (err) {
     clearTimeout(overallTimeout);
     if (!res.headersSent) {
-      req.log.warn({ err }, "Resources pipeline failed, using static fallback");
-      const sq = (suffix: string) => `https://www.scootle.edu.au/ec/search?q=${encodeURIComponent(`${topic} ${suffix} ${yearLevel}`)}`;
-      const fallbackResources = enrichWithTrust([
-        {
-          id: `scootle-${subject.toLowerCase()}-1`,
-          title: `${topic} — Curriculum-Aligned Teaching Resources`,
-          url: sq(subject),
-          urlType: "search",
-          source: "Scootle — Education Services Australia",
-          type: "Lesson Plan",
-          description: `Curated collection of ${state}-curriculum-aligned teaching resources from Scootle's 22,000+ library for ${yearLevel} ${subject} students studying ${topic}. Includes teacher notes, student activities, and tasks mapped to Australian Curriculum v9.`,
-          alignmentScore: 87, safetyRating: "verified", biasFlag: "low",
-          localContextTags: ["Scootle", "Curriculum Aligned", `${state} Curriculum`, yearLevel],
-          outcomeIds: alignmentResult.outcomes.slice(0, 2).map((o: { id: string }) => o.id),
-          whyThisResource: `Scootle is Australia's national repository of curriculum-aligned digital learning resources, reviewed and tagged against Australian Curriculum v9 outcomes for ${subject}.`,
-        },
-        {
-          id: `scootle-${subject.toLowerCase()}-2`,
-          title: `${topic} — Worksheets and Student Activities`,
-          url: sq(`${subject} worksheet activity`),
-          urlType: "search",
-          source: "Scootle — Education Services Australia",
-          type: "Worksheet",
-          description: `Student worksheets and inquiry activities for ${yearLevel} ${subject} students exploring ${topic} in ${state}. All resources are tagged to Australian Curriculum v9 outcomes and reviewed for quality.`,
-          alignmentScore: 83, safetyRating: "verified", biasFlag: "low",
-          localContextTags: ["Scootle", "Student Activities", `${state} Curriculum`, yearLevel],
-          outcomeIds: alignmentResult.outcomes.slice(0, 2).map((o: { id: string }) => o.id),
-          whyThisResource: `Scootle's worksheet collection is peer-reviewed and directly tagged to AC v9 outcomes, making it ideal for classroom-ready activities on ${topic}.`,
-        },
-        {
-          id: `scootle-${subject.toLowerCase()}-3`,
-          title: `${topic} — Assessment and Evaluation Resources`,
-          url: sq(`${subject} assessment`),
-          urlType: "search",
-          source: "Scootle — Education Services Australia",
-          type: "Assessment",
-          description: `Assessment tasks and evaluation resources for ${yearLevel} ${subject} students in ${state} studying ${topic}. Mapped to Australian Curriculum v9 with marking guidance included.`,
-          alignmentScore: 79, safetyRating: "verified", biasFlag: "low",
-          localContextTags: ["Scootle", "Assessment", `${state} Curriculum`, yearLevel],
-          outcomeIds: alignmentResult.outcomes.map((o: { id: string }) => o.id),
-          whyThisResource: `Scootle's assessment resources are curriculum-mapped and include teacher notes, making them ready to use for ${yearLevel} ${subject} evaluation tasks on ${topic}.`,
-        },
-      ]);
-      res.json({ resources: fallbackResources, usedFallback: true });
+      req.log.warn({ err }, "Resources pipeline failed, returning no verified resources");
+      res.json({ resources: [], usedFallback: true, usedWebSearch: false, usedCuratedRegistry: false });
     }
   }
 });

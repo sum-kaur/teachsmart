@@ -8,7 +8,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 loadEnv({ path: join(__dirname, "../../../.env"), override: true });
 import app from "./app";
 import { logger } from "./lib/logger";
-import { TAVILY_AVAILABLE } from "./lib/tavily";
+import { isBraveSearchAvailable } from "./lib/brave";
 
 const port = Number(process.env["PORT"] ?? "8080");
 
@@ -20,9 +20,9 @@ app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
   logger.info("Groq API ready");
-  if (TAVILY_AVAILABLE) {
-    logger.info("Tavily web search ready");
+  if (isBraveSearchAvailable()) {
+    logger.info("Brave web search ready");
   } else {
-    logger.warn("TAVILY_API_KEY not set — web search disabled, using Groq-only fallback");
+    logger.warn("BRAVE_SEARCH_API_KEY not set — verified web search disabled");
   }
 });
