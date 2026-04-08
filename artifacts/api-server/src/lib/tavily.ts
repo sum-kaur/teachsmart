@@ -1,6 +1,12 @@
 import { tavily } from "@tavily/core";
 
-const client = tavily({ apiKey: process.env.TAVILY_API_KEY ?? "" });
+const TAVILY_KEY = process.env.TAVILY_API_KEY;
+
+// Only create the client if a real key is present.
+// When running locally without the key the app falls back to Groq-only mode.
+const client = TAVILY_KEY ? tavily({ apiKey: TAVILY_KEY }) : null;
+
+export const TAVILY_AVAILABLE = !!client;
 
 export const TRUSTED_AU_DOMAINS = [
   "csiro.au",
@@ -40,6 +46,11 @@ export async function searchEducationalResources(
   query: string,
   maxResults = 5
 ): Promise<TavilyResult[]> {
+  if (!client) {
+    // No API key — silently skip, caller will use Groq-only path
+    return [];
+  }
+
   const response = await client.search(query, {
     maxResults,
     includeDomains: TRUSTED_AU_DOMAINS,

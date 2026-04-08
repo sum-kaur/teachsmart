@@ -35,3 +35,9 @@ id = "b7yAS3xeR43s4fEds_X65"
 uri = "file://TEACHSMART_DEMO_GUIDE.md"
 type = "text"
 title = "TeachSmart — Demo & Testing Guide"
+
+[[outputs]]
+id = "pBEaFBoDnV71lPwAYNYWE"
+uri = "file://.local/outputs/Teach-Smart.pdf"
+type = "pdf"
+title = "Teach Smart.pdf"

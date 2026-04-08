@@ -7,6 +7,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 loadEnv({ path: join(__dirname, "../../../.env") });
 import app from "./app";
 import { logger } from "./lib/logger";
+import { TAVILY_AVAILABLE } from "./lib/tavily";
 
 const port = Number(process.env["PORT"] ?? "8080");
 
@@ -18,4 +19,9 @@ app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
   logger.info("Groq API ready");
+  if (TAVILY_AVAILABLE) {
+    logger.info("Tavily web search ready");
+  } else {
+    logger.warn("TAVILY_API_KEY not set — web search disabled, using Groq-only fallback");
+  }
 });
