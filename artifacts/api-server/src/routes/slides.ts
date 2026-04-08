@@ -4,6 +4,14 @@ import { groq, GROQ_MODEL } from "../lib/groq";
 const router: IRouter = Router();
 const TIMEOUT_MS = 30000;
 
+type SlideResourceContext = {
+  title?: string;
+  source?: string;
+  description?: string;
+  url?: string;
+  type?: string;
+};
+
 // ─── Dynamic fallback ────────────────────────────────────────────────────────
 // Build a topic-specific slide deck directly from the lesson plan data so that
 // if the Groq API is unavailable (rate-limit, timeout, etc.) users still see
@@ -13,13 +21,21 @@ function buildDynamicFallback(
   subject: string,
   yearLevel: string,
   topic: string,
-  state: string
+  state: string,
+  selectedResource?: SlideResourceContext
 ) {
   const objective = (lessonPlan.objective as string) || `Students will understand key concepts related to ${topic}.`;
   const duration  = (lessonPlan.duration as string) || "60 minutes";
   const activities = (lessonPlan.activities as Array<{ label: string; text: string }>) || [];
   const localEx = (lessonPlan.localExample as { title: string; body: string }) || { title: `${topic} in ${state}`, body: `Explore how ${topic} is relevant in ${state}.` };
   const questions = (lessonPlan.questions as Array<{ q: string; difficulty: string }>) || [];
+  const resourceTitle = selectedResource?.title?.trim() || `${topic} source text`;
+  const resourceSource = selectedResource?.source?.trim() || "the selected classroom resource";
+  const resourceDescription = selectedResource?.description?.trim() || `This source has been selected to support student understanding of ${topic} in ${yearLevel} ${subject}.`;
+  const resourceLabel = selectedResource?.title?.trim()
+    ? `"${resourceTitle}" from ${resourceSource}`
+    : `the selected classroom resource from ${resourceSource}`;
+  const resourceLinkNote = selectedResource?.url ? ` Open the original source here: ${selectedResource.url}.` : "";
 
   const title = `${topic} — ${yearLevel} ${subject}`;
 
@@ -27,11 +43,11 @@ function buildDynamicFallback(
     {
       slideNumber: 1, type: "title",
       heading: title,
-      subheading: `${yearLevel} ${subject} · ${state} Curriculum`,
+      subheading: `${yearLevel} ${subject} · ${state} Curriculum · Source: ${resourceSource}`,
       bodyText: "",
       bulletPoints: [],
       keyTerms: [], workedExample: null, table: null, activitySteps: [],
-      teacherNote: `Welcome students and introduce the topic: ${topic}. Ask students what they already know about this subject before displaying today's learning objectives.`,
+      teacherNote: `Welcome students and introduce the topic: ${topic}. Tell students that today's lesson is anchored in ${resourceLabel}. Briefly explain why this source was selected and ask students what they already know about the topic before displaying the learning objectives.${resourceLinkNote}`,
       backgroundTheme: "teal", emoji: "📚", timeMinutes: 2,
     },
     {
@@ -53,12 +69,12 @@ function buildDynamicFallback(
       slideNumber: 3, type: "engage",
       heading: `Hook: Why Does ${topic} Matter?`,
       subheading: "Engage — Activate prior knowledge",
-      bodyText: `${topic} is one of the most significant areas of study in ${yearLevel} ${subject}. Understanding this topic equips students with knowledge and skills relevant to everyday life, further study, and informed citizenship in Australia. Today's lesson connects directly to real Australian contexts in ${state} and the broader national curriculum.`,
+      bodyText: `${topic} is one of the most significant areas of study in ${yearLevel} ${subject}. Today's lesson is anchored in ${resourceLabel}, which gives students a concrete Australian source to analyse rather than relying on generic summaries. ${resourceDescription} This helps students connect curriculum ideas to real evidence, authorship, and audience.`,
       bulletPoints: [
-        `${topic} connects to Australian Curriculum v9 outcomes for ${yearLevel} ${subject}.`,
-        `Students in ${state} encounter this topic in everyday life, community, and future careers.`,
-        `Today's lesson uses real Australian data and examples to ground the theory in practice.`,
-        `Understanding ${topic} supports critical thinking, evidence evaluation, and scientific/analytical literacy.`,
+        `${topic} connects to Australian Curriculum v9 outcomes for ${yearLevel} ${subject} and is explored today through ${resourceLabel}.`,
+        `Using a named source helps students evaluate authorship, purpose, and evidence instead of treating information as context-free facts.`,
+        `${resourceSource} provides an Australian reference point that can be compared with classroom discussion, teacher explanation, and additional sources.`,
+        `Understanding ${topic} through a real source strengthens critical reading, evidence evaluation, and disciplinary literacy in ${subject}.`,
       ],
       keyTerms: [], workedExample: null, table: null, activitySteps: [],
       teacherNote: `Start with a provocative question: "Where do you see ${topic} in your life or community?" Allow 2 minutes Think-Pair-Share before presenting the lesson objectives. Cold-call 3–4 students to share their partner's response.`,
@@ -122,15 +138,15 @@ function buildDynamicFallback(
       subheading: `Explain — Using evidence to support claims about ${topic}`,
       bodyText: activities[2]?.text
         ? activities[2].text
-        : `Strong claims about ${topic} in ${yearLevel} ${subject} must be supported by credible, specific evidence. Australian research organisations including the Bureau of Meteorology, CSIRO, the Australian Bureau of Statistics, and relevant state authorities publish data that students can cite when constructing arguments. Using named sources with specific statistics distinguishes sophisticated analysis from unsupported opinion.`,
+        : `Strong claims about ${topic} in ${yearLevel} ${subject} must be supported by credible, specific evidence. Today's source text is ${resourceLabel}, and students should examine what evidence, examples, terminology, and claims it actually presents. ${resourceDescription} Using named sources with specific statistics, examples, or quotations distinguishes sophisticated analysis from unsupported opinion.`,
       bulletPoints: [
-        `Evidence about ${topic} in Australia is collected by independent research bodies whose data is publicly accessible and widely used in ${yearLevel} assessments.`,
-        `Evaluating the reliability and relevance of evidence is a core analytical skill assessed in ${yearLevel} ${subject} across all Australian states.`,
-        `Students should practise citing specific statistics, named sources, and dated findings when making claims about ${topic} in written tasks.`,
-        `Convergent evidence — multiple independent sources pointing to the same conclusion — provides stronger support for claims than any single data point alone.`,
+        `Students should identify the strongest evidence inside ${resourceLabel} and explain how that evidence supports the source's key ideas about ${topic}.`,
+        `Evaluating the reliability, relevance, and limitations of ${resourceSource} is a core analytical skill assessed in ${yearLevel} ${subject}.`,
+        `Students should practise citing specific examples, dated findings, or direct details from the chosen source when making claims about ${topic}.`,
+        `Comparing the selected source with at least one additional Australian reference helps students test whether the source's claims are well supported.`,
       ],
       keyTerms: [], workedExample: null, table: null, activitySteps: [],
-      teacherNote: `Show students a real piece of evidence (a graph, table, or quote from an Australian source) related to ${topic}. Ask: "What does this evidence tell us? What are its limitations? What would make this evidence stronger?" Model how to embed a statistic into a sentence: "According to [source], [statistic], which suggests [conclusion]."`,
+      teacherNote: `Project ${resourceLabel} and model how to extract evidence from it. Highlight one sentence, image, table, or example from the source and ask: "What claim is being made here? What evidence supports it? What is missing?" Then model a sentence frame such as: "According to ${resourceSource}, ___, which suggests ___." Ask extension students to identify a limitation or unanswered question in the source.${resourceLinkNote}`,
       backgroundTheme: "white" as const, emoji: "📊", timeMinutes: 6,
     },
     {
@@ -154,7 +170,7 @@ function buildDynamicFallback(
       slideNumber: 9, type: "local_context",
       heading: localEx.title || `${topic} in ${state}`,
       subheading: `Local Context — ${state} Australian example`,
-      bodyText: localEx.body || `${state} provides a compelling local context for studying ${topic}. By examining examples close to home, students can connect abstract concepts to lived experience and community relevance.`,
+      bodyText: localEx.body || `${state} provides a compelling local context for studying ${topic}. By linking the topic to ${resourceLabel}, students can connect the selected source to lived experience, local evidence, and community relevance.`,
       bulletPoints: [
         `${state} provides specific, relevant examples that bring ${topic} to life for local students.`,
         `Connecting curriculum content to local context improves engagement and long-term retention.`,
@@ -166,31 +182,31 @@ function buildDynamicFallback(
     },
     {
       slideNumber: 10, type: "activity",
-      heading: `Student Activity: Explore ${topic}`,
+      heading: `Student Activity: Analyse ${resourceTitle}`,
       subheading: "Elaborate — Hands-on investigation",
-      bodyText: `You will now apply what you've learned about ${topic} through an independent investigation. This activity helps consolidate your understanding and develops skills in analysis, evidence evaluation, and written communication.`,
+      bodyText: `You will now apply what you've learned about ${topic} by working closely with ${resourceLabel}. This activity helps consolidate content knowledge while also developing source analysis, evidence selection, and written communication.`,
       bulletPoints: [],
       keyTerms: [], workedExample: null,  table: null,
       activitySteps: [
-        `Review your notes from today's lesson on ${topic} and identify three key ideas.`,
-        `Find one real-world Australian example related to ${topic} using the resources provided.`,
-        `Record your example: What is it? Where does it occur? Why does it relate to ${topic}?`,
-        `Evaluate the example: What does it tell us about ${topic}? What are its limitations?`,
-        `Write a 3-sentence summary connecting your example to the curriculum learning intentions.`,
-        `Share your example with a partner — compare: are your examples similar or different?`,
+        `Read or scan ${resourceLabel} and identify three details that seem most important for understanding ${topic}.`,
+        `Record one claim, one example, and one piece of evidence from the source using your own words.`,
+        `Explain how each detail connects to the lesson objective and to the wider ${yearLevel} ${subject} curriculum.`,
+        `Evaluate the source: What does ${resourceSource} explain well, and what perspective or information may be missing?`,
+        `Find one additional Australian example, experiment, case study, or data point that supports or challenges the source.`,
+        `Write a 3-sentence paragraph explaining how the original source and your extra example together deepen understanding of ${topic}.`,
       ],
-      teacherNote: `Allow 12–15 minutes. Circulate to support students. Foundation students: provide a structured template with sentence starters. Extension students: ask them to find a counterexample or critique a claim about ${topic}.`,
+      teacherNote: `Allow 12–15 minutes. Keep the selected resource visible on screen or in print. Foundation students can use a retrieval scaffold with columns labelled "claim", "evidence", and "meaning". Extension students should evaluate the source's perspective, compare it to another Australian source, and comment on how authorship shapes the message.${resourceLinkNote}`,
       backgroundTheme: "highlight" as const, emoji: "💻", timeMinutes: 15,
     },
     {
       slideNumber: 11, type: "discussion",
       heading: "Discussion Questions",
       subheading: "Evaluate — Three levels of thinking",
-      bodyText: `Use evidence from today's lesson to support your responses. These questions are designed to push your thinking beyond recall and into analysis and evaluation — the skills most valued in ${yearLevel} ${subject} assessment.`,
+      bodyText: `Use evidence from ${resourceLabel} and today's lesson to support your responses. These questions are designed to push your thinking beyond recall and into analysis and evaluation — the skills most valued in ${yearLevel} ${subject} assessment.`,
       bulletPoints: [
-        questions[0] ? `🟢 Foundation: ${questions[0].q}` : `🟢 Foundation: Describe two key concepts you learned about ${topic} today. Use specific vocabulary in your answer.`,
-        questions[1] ? `🟡 Core: ${questions[1].q}` : `🟡 Core: Explain how ${topic} connects to real life in Australia. Use at least one specific example and evaluate its significance.`,
-        questions[2] ? `🔴 Extension: ${questions[2].q}` : `🔴 Extension: Evaluate the claim that understanding ${topic} is essential for all Australians. Construct a reasoned argument using evidence from today's lesson and your own knowledge.`,
+        questions[0] ? `🟢 Foundation: ${questions[0].q}` : `🟢 Foundation: What are two important ideas about ${topic} that ${resourceSource} helps us understand clearly?`,
+        questions[1] ? `🟡 Core: ${questions[1].q}` : `🟡 Core: Which part of ${resourceLabel} is most useful for understanding ${topic}, and why? Support your answer with source evidence.`,
+        questions[2] ? `🔴 Extension: ${questions[2].q}` : `🔴 Extension: Evaluate the strengths and limitations of ${resourceLabel} as a source for studying ${topic}. What additional perspectives are needed?`,
       ],
       keyTerms: [], workedExample: null, table: null, activitySteps: [],
       teacherNote: `Assign questions by readiness group or allow student choice. After 5 minutes, use fishbowl structure: place 3–4 students in the centre to discuss the extension question while others observe and take notes. Debrief by asking: "What was the strongest piece of evidence you heard?"`,
@@ -200,13 +216,13 @@ function buildDynamicFallback(
       slideNumber: 12, type: "summary",
       heading: "Lesson Summary",
       subheading: "Consolidation — The big ideas from today",
-      bodyText: `Today's lesson covered the core concepts, evidence, and applications of ${topic} within ${yearLevel} ${subject}. You have built knowledge that connects to the ${state} curriculum, real Australian examples, and future assessment tasks. Return to your learning intentions and rate your confidence again.`,
+      bodyText: `Today's lesson covered the core concepts, evidence, and applications of ${topic} within ${yearLevel} ${subject}. You used ${resourceLabel} as a concrete anchor for analysis, then connected it to the ${state} curriculum, real Australian examples, and future assessment tasks. Return to your learning intentions and rate your confidence again.`,
       bulletPoints: [
         `${topic} is a significant area of study in ${yearLevel} ${subject} with real-world relevance to ${state} and Australia.`,
-        `Key vocabulary — including terms from today's Key Terms slide — must be used accurately in assessments.`,
-        `Evidence-based analysis and evaluation are the core skills assessed in this topic.`,
-        `Local Australian examples help connect abstract concepts to real community and national contexts.`,
-        `Today's learning connects to broader themes across ${yearLevel} ${subject} and future study pathways.`,
+        `${resourceLabel} gave us a concrete source to analyse rather than relying on abstract summaries alone.`,
+        `Evidence-based reading, comparison, and evaluation are core skills when working with classroom resources on this topic.`,
+        `Local Australian examples help students test, extend, or question the claims made in the selected source.`,
+        `Today's learning connects to broader themes across ${yearLevel} ${subject} and future assessment tasks.`,
       ],
       keyTerms: [], workedExample: null, table: null, activitySteps: [],
       teacherNote: `Return to the confidence ratings from Slide 2. Ask: "Has your confidence in any learning intention changed? What is the one thing you are most confident about? What is one question you still have?" Collect exit tickets.`,
@@ -221,8 +237,8 @@ function buildDynamicFallback(
       keyTerms: [], workedExample: null, table: null,
       activitySteps: [
         `RECALL: Name two key concepts or vocabulary terms from today's lesson on ${topic} and write a definition for each.`,
-        `EXPLAIN: In two sentences, explain how ${topic} connects to a real Australian example. Use subject-specific vocabulary.`,
-        `REFLECT: Rate your confidence in each learning intention from Slide 2 (1–5). Write one question you still have about ${topic}.`,
+        `EXPLAIN: In two sentences, explain one important idea from ${resourceLabel} and how it connects to a real Australian example.`,
+        `REFLECT: Rate your confidence in each learning intention from Slide 2 (1–5). Write one question you still have about ${topic} or about the source.`,
       ],
       teacherNote: `Collect exit tickets at the door. Sort into three piles: confident, developing, needs support. Use these to form targeted groups for the following lesson's opening activity or to plan a brief misconception-busting starter.`,
       backgroundTheme: "teal" as const, emoji: "📝", timeMinutes: 4,
@@ -560,10 +576,11 @@ router.post("/slides", async (req, res): Promise<void> => {
     lessonPlan?: Record<string, unknown>;
     unitContext?: Record<string, string>;
     alignmentResult?: Record<string, unknown>;
+    selectedResource?: SlideResourceContext;
     subject?: string; yearLevel?: string; topic?: string; state?: string;
   };
 
-  const { lessonPlan, unitContext, alignmentResult, subject, yearLevel, topic, state } = body;
+  const { lessonPlan, unitContext, alignmentResult, selectedResource, subject, yearLevel, topic, state } = body;
 
   if (!lessonPlan) {
     res.status(400).json({ error: "lessonPlan is required" });
@@ -573,6 +590,15 @@ router.post("/slides", async (req, res): Promise<void> => {
   const lessonJson = JSON.stringify(lessonPlan, null, 2);
   const unitNote = unitContext?.unitTitle
     ? `Unit: "${unitContext.unitTitle}" — Lesson ${unitContext.currentLesson || "?"} of ${unitContext.totalLessons || "?"}. Learning intention: ${unitContext.learningIntention || "not specified"}.`
+    : "";
+  const resourceNote = selectedResource?.title
+    ? `PRIMARY CLASSROOM RESOURCE:
+- Title: ${selectedResource.title}
+- Source: ${selectedResource.source || "Unknown source"}
+- Type: ${selectedResource.type || "Resource"}
+- Description: ${selectedResource.description || "No description provided"}
+- URL: ${selectedResource.url || "No direct link provided"}
+`
     : "";
 
   const prompt = `You are an expert Australian secondary school educator creating a polished, classroom-ready slide deck on "${topic}" for ${yearLevel} ${subject} students in ${state}.
@@ -584,6 +610,7 @@ LESSON CONTEXT:
 - State: ${state}
 - Curriculum alignment: ${JSON.stringify(alignmentResult || {})}
 ${unitNote}
+${resourceNote}
 
 SOURCE LESSON PLAN (use as context only — do NOT copy its pedagogical stage labels into slide headings):
 ${lessonJson}
@@ -619,6 +646,9 @@ workedExample must show a complete worked solution with 5 explicit numbered step
 
 RULE 8 — ACTIVITY STEPS ARE STUDENT-ACTIONABLE
 activitySteps must be numbered, concrete, and specific enough that a student can follow each step independently without clarification.
+
+RULE 9 — USE THE SELECTED RESOURCE AS THE ANCHOR TEXT
+If a primary classroom resource is provided, the slide deck must be clearly anchored in that source. Refer to its title, source, evidence, examples, and likely classroom use throughout the deck. Do not write generic slides that could apply to any resource. If the provided description is limited, stay faithful to the metadata we have and do not invent direct quotations or inaccessible details.
 
 SLIDE SCHEMA — return this exact structure for every slide:
 {
@@ -706,7 +736,8 @@ Return ONLY valid JSON — no markdown fences, no code blocks, no commentary:
     subject   ?? "General",
     yearLevel ?? "Secondary",
     topic     ?? "This Topic",
-    state     ?? "Australia"
+    state     ?? "Australia",
+    selectedResource
   ));
 });
 
