@@ -1,7 +1,6 @@
 import { Router, type IRouter } from "express";
 import { GenerateLessonBody } from "@workspace/api-zod";
 import { groq, GROQ_MODEL } from "../lib/groq";
-import { getDemoScenario } from "../lib/demoScenarios";
 
 const router: IRouter = Router();
 const TIMEOUT_MS = 14000;
@@ -120,9 +119,21 @@ function buildFallbackAssessment(topic: string, subject: string, yearLevel: stri
       `Apply understanding to structured tasks at the appropriate level`,
       `Evaluate and synthesise information about ${topic}`,
     ],
-    taskDescription: `Students will demonstrate their understanding of ${topic} through a structured ${yearLevel} ${subject} assessment task.`,
     taskType: "Extended Response",
-    duration: "50 minutes",
+    duration: "60 minutes",
+    studentSections: [
+      { section: "Section A: Short Answer", instructions: "Answer all questions using full sentences.", questions: [
+        { number: 1, q: `Define the term '${topic}' in your own words.`, marks: 2, lines: 4 },
+        { number: 2, q: `List two key facts about ${topic} in an Australian context.`, marks: 4, lines: 5 },
+      ]},
+      { section: "Section B: Structured Response", instructions: "Answer both questions using specific evidence.", questions: [
+        { number: 3, q: `Explain how ${topic} has affected Australian society. Use at least one specific example.`, marks: 5, lines: 8 },
+        { number: 4, q: `Describe the role of Australian governments in relation to ${topic}. Refer to at least two actions or policies.`, marks: 6, lines: 10 },
+      ]},
+      { section: "Section C: Extended Response", instructions: "Write a detailed response. Use evidence to support your argument.", questions: [
+        { number: 5, q: `To what extent has ${topic} shaped modern Australia? Evaluate the significance of at least two key events or developments and explain their ongoing impact on Australian society.`, marks: 8, lines: 20 },
+      ]},
+    ],
     markingCriteria: [
       { criterion: "Knowledge and Understanding", excellent: "Demonstrates thorough, accurate knowledge with specific detail", satisfactory: "Shows adequate knowledge with some accuracy", developing: "Shows limited knowledge with some inaccuracy", marks: 8 },
       { criterion: "Analysis and Evaluation", excellent: "Insightful analysis with well-reasoned evaluation", satisfactory: "Some analysis present but reasoning could be stronger", developing: "Limited analysis; mostly descriptive", marks: 8 },
@@ -235,7 +246,7 @@ Include 3-4 perspectives representing a genuine range of views on "${topic}" in 
 }
 
 function buildAssessmentPrompt(topic: string, subject: string, yearLevel: string, state: string, outcomesText: string, contextText: string, langNote: string, resourceTitle: string) {
-  return `You are an expert Australian curriculum designer. Create a formal assessment task for ${yearLevel} ${subject} students in ${state} studying "${topic}", based on "${resourceTitle}".
+  return `You are an expert Australian curriculum designer. Create a complete, ready-to-use formal assessment for ${yearLevel} ${subject} students in ${state} studying "${topic}", based on "${resourceTitle}".
 
 Curriculum outcomes:
 ${outcomesText}
@@ -249,23 +260,35 @@ Return ONLY valid JSON, no markdown:
   "outcomeCode": string (first outcome code),
   "outcomeDescription": string (full description),
   "successCriteria": string[] (exactly 3, starting with "Students will be able to..."),
-  "taskDescription": string (clear, specific task instructions for students, 3-4 sentences),
-  "taskType": string (e.g. "Extended Response", "Source Analysis", "Data Investigation"),
-  "duration": string (e.g. "50 minutes"),
+  "taskType": string (e.g. "Source Analysis", "Extended Response", "Data Investigation"),
+  "duration": string (e.g. "80 minutes"),
+  "totalMarks": number (20-30),
+  "studentSections": [
+    {
+      "section": string (e.g. "Section A: Short Answer"),
+      "instructions": string (1-2 sentences for students),
+      "questions": [
+        { "number": number, "q": string (full question text, specific to ${topic}), "marks": number, "lines": number (answer lines, 3-10) }
+      ]
+    }
+  ],
   "markingCriteria": [
     {
       "criterion": string,
-      "excellent": string (what A-level work looks like),
-      "satisfactory": string (what C-level work looks like),
-      "developing": string (what D/E-level work looks like),
+      "excellent": string (A-level descriptor),
+      "satisfactory": string (C-level descriptor),
+      "developing": string (D/E-level descriptor),
       "marks": number
     }
   ],
-  "totalMarks": number,
-  "teacherMarkingGuide": string (1-2 sentences of guidance for marking consistency)
+  "teacherMarkingGuide": string (2-3 sentences of marking guidance)
 }
 
-Include 4 marking criteria. Total marks should be 20-30. Criteria must be specific to "${topic}" and directly linked to the curriculum outcomes.`;
+Requirements:
+- Include 3 sections: Section A (2-3 short answer questions, 2-4 marks each), Section B (1-2 structured questions, 4-6 marks each), Section C (1 extended response, 8-10 marks)
+- All questions must be specific to "${topic}" in an Australian context
+- Total marks across all questions must match totalMarks
+- Include exactly 4 marking criteria linked directly to the outcomes`;
 }
 
 // ── Route ────────────────────────────────────────────────────────────────────
@@ -278,24 +301,6 @@ router.post("/lesson", async (req, res): Promise<void> => {
   const unitContext = (req.body as Record<string, unknown>).unitContext as Record<string, string> | undefined;
   const preferredLanguage = (req.body as Record<string, unknown>).preferredLanguage as string | undefined;
   const resourceType = ((req.body as Record<string, unknown>).resourceType as string | undefined) ?? "Lesson Plan";
-
-  const demo = getDemoScenario({ yearLevel, state, subject, topic });
-  if (demo && resourceType === "Lesson Plan") {
-    await new Promise(r => setTimeout(r, 600));
-    const o = demo.alignment.outcomes[0] ?? { id: "AC9-UNKNOWN", description: "Core outcome" };
-    res.json({
-      ...demo.lesson,
-      resourceType: "Lesson Plan",
-      outcomeCode: o.id,
-      outcomeDescription: o.description,
-      successCriteria: [
-        `Identify and explain the key concepts of ${topic}`,
-        `Apply knowledge of ${topic} to interpret evidence and sources`,
-        `Evaluate the significance of ${topic} for Australian society`,
-      ],
-    });
-    return;
-  }
 
   const outcomesText = alignmentResult.outcomes.map((o) => `${o.id}: ${o.description}`).join("\n");
   const contextText = classContext && classContext.length > 0 ? classContext.join(", ") : "Mixed Ability";

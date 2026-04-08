@@ -3,8 +3,9 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
 // Load .env from workspace root (3 levels up from dist/)
+// override: true ensures .env values always win over inherited shell env vars
 const __dirname = dirname(fileURLToPath(import.meta.url));
-loadEnv({ path: join(__dirname, "../../../.env") });
+loadEnv({ path: join(__dirname, "../../../.env"), override: true });
 import app from "./app";
 import { logger } from "./lib/logger";
 import { TAVILY_AVAILABLE } from "./lib/tavily";

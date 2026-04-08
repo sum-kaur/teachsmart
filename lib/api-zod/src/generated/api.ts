@@ -49,6 +49,7 @@ export const GetResourcesBody = zod.object({
   yearLevel: zod.string(),
   topic: zod.string(),
   state: zod.string(),
+  resourceType: zod.string().optional(),
   alignmentResult: zod.object({
     alignmentScore: zod.number(),
     syllabus: zod.string(),

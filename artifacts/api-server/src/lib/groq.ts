@@ -1,14 +1,26 @@
 import Groq from "groq-sdk";
 
-// Use a placeholder key if not set — Groq will fail at call time (not startup)
-// Demo scenarios work without any API key
-export const groq = new Groq({ apiKey: process.env.GROQ_API_KEY ?? "missing-key" });
+export const GROQ_MODEL = "openai/gpt-oss-120b";
 
-export const GROQ_MODEL = "llama-3.3-70b-versatile";
+// Lazy singleton — created on first use so dotenv has already run by then
+let _groq: Groq | null = null;
+export function getGroq(): Groq {
+  if (!_groq) {
+    _groq = new Groq({ apiKey: process.env.GROQ_API_KEY ?? "missing-key" });
+  }
+  return _groq;
+}
+
+// Keep `groq` export for backward compat — proxy to lazy getter
+export const groq = new Proxy({} as Groq, {
+  get(_target, prop) {
+    return (getGroq() as any)[prop];
+  },
+});
 
 export async function callAI(prompt: string, maxTokens = 1000): Promise<string | null> {
   try {
-    const response = await groq.chat.completions.create({
+    const response = await getGroq().chat.completions.create({
       model: GROQ_MODEL,
       messages: [{ role: "user", content: prompt }],
       max_tokens: maxTokens,

@@ -64,7 +64,8 @@ type DiscussionOutput = OutcomeHeader & {
 
 type AssessmentOutput = OutcomeHeader & {
   resourceType: 'Assessment';
-  taskDescription: string; taskType: string; duration: string;
+  taskType: string; duration: string;
+  studentSections: { section: string; instructions: string; questions: { number: number; q: string; marks: number; lines: number }[] }[];
   markingCriteria: { criterion: string; excellent: string; satisfactory: string; developing: string; marks: number }[];
   totalMarks: number;
   teacherMarkingGuide: string;
@@ -95,6 +96,22 @@ const EMPTY_UNIT: UnitContext = { unitTitle: '', textbook: '', totalLessons: '',
 
 export default function Home() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
+
+  // Browser back/forward support via hash (avoids conflict with wouter's pushState wrapper)
+  const navigate = useCallback((screen: Screen) => {
+    window.location.hash = screen;
+    setCurrentScreen(screen);
+  }, []);
+
+  useEffect(() => {
+    window.history.replaceState(null, '', '#dashboard');
+    const onHashChange = () => {
+      const screen = (window.location.hash.slice(1) || 'dashboard') as Screen;
+      setCurrentScreen(screen as Screen);
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
   const [searchParams, setSearchParams] = useState({ yearLevel: 'Year 9', state: 'NSW', subject: 'History', topic: 'Rights and Freedoms', resourceType: 'Lesson Plan', classContext: [] as string[], postcode: '2150' });
   const [isSearching, setIsSearching] = useState(false);
   const [isGeneratingLesson, setIsGeneratingLesson] = useState(false);
@@ -272,7 +289,7 @@ export default function Home() {
     if (!searchParams.topic) return;
     setIsSearching(true);
     setSearchStep(null);
-    setCurrentScreen('search');
+    navigate('search');
 
     try {
       // Step 1: CurricuLLM alignment
@@ -290,7 +307,7 @@ export default function Home() {
         subject: searchParams.subject, yearLevel: searchParams.yearLevel,
         topic: searchParams.topic, state: searchParams.state,
         alignmentResult: alignment, unitContext, preferredLanguage,
-        studentInterests,
+        studentInterests, resourceType: searchParams.resourceType,
       });
 
       setSearchStep('merging');
@@ -308,7 +325,7 @@ export default function Home() {
     } finally {
       setIsSearching(false);
       setSearchStep(null);
-      setCurrentScreen('results');
+      navigate('results');
     }
   };
 
@@ -316,7 +333,7 @@ export default function Home() {
     if (!alignmentResult) return;
     setSelectedResource(resource);
     setIsGeneratingLesson(true);
-    setCurrentScreen('lesson');
+    navigate('lesson');
     setLessonSaved(false);
 
     try {
@@ -382,16 +399,28 @@ export default function Home() {
           setLessonPlan({
             ...common,
             resourceType: 'Assessment' as const,
-            taskDescription: `Students will demonstrate their understanding of ${t} through a structured ${searchParams.yearLevel} ${searchParams.subject} assessment task.`,
             taskType: 'Extended Response',
-            duration: '50 minutes',
+            duration: '60 minutes',
+            totalMarks: 25,
+            studentSections: [
+              { section: 'Section A: Short Answer', instructions: 'Answer all questions using full sentences.', questions: [
+                { number: 1, q: `Define the term '${t}' in your own words.`, marks: 2, lines: 4 },
+                { number: 2, q: `List two key facts about ${t} in an Australian context.`, marks: 4, lines: 5 },
+              ]},
+              { section: 'Section B: Structured Response', instructions: 'Answer both questions using specific evidence.', questions: [
+                { number: 3, q: `Explain how ${t} has affected Australian society. Use at least one specific example.`, marks: 5, lines: 8 },
+                { number: 4, q: `Describe the role of Australian governments in shaping ${t}. Refer to at least two actions or policies.`, marks: 6, lines: 10 },
+              ]},
+              { section: 'Section C: Extended Response', instructions: 'Write a detailed response. Use evidence to support your argument.', questions: [
+                { number: 5, q: `To what extent has ${t} shaped modern Australia? In your response, evaluate the significance of at least two key events or developments and explain their ongoing impact on Australian society.`, marks: 8, lines: 20 },
+              ]},
+            ],
             markingCriteria: [
               { criterion: 'Knowledge and Understanding', excellent: 'Demonstrates thorough, accurate knowledge with specific detail', satisfactory: 'Shows adequate knowledge with some accuracy', developing: 'Shows limited knowledge with some inaccuracy', marks: 8 },
               { criterion: 'Analysis and Evaluation', excellent: 'Insightful analysis with well-reasoned evaluation', satisfactory: 'Some analysis present but reasoning could be stronger', developing: 'Limited analysis; mostly descriptive', marks: 8 },
               { criterion: 'Use of Evidence', excellent: 'Consistently uses specific evidence to support all claims', satisfactory: 'Uses evidence at times but not consistently', developing: 'Little evidence used; claims mostly unsupported', marks: 6 },
               { criterion: 'Communication', excellent: 'Clear, fluent, well-structured response throughout', satisfactory: 'Generally clear with some structure', developing: 'Unclear or poorly structured', marks: 3 },
             ],
-            totalMarks: 25,
             teacherMarkingGuide: `Reward students who use specific evidence from Australian contexts. Accept any well-reasoned position as long as it is supported by evidence.`,
           });
         } else {
@@ -434,7 +463,7 @@ export default function Home() {
         topic: searchParams.topic, state: searchParams.state,
       });
       setSlidedeckData(data);
-      setCurrentScreen('slideshow');
+      navigate('slideshow');
     } catch {
       const t = searchParams.topic;
       const sy = searchParams.yearLevel;
@@ -461,7 +490,7 @@ export default function Home() {
         ],
         usedFallback: true,
       });
-      setCurrentScreen('slideshow');
+      navigate('slideshow');
     } finally { setIsGeneratingSlides(false); }
   };
 
@@ -495,28 +524,28 @@ export default function Home() {
         <span className="font-serif text-white text-xl tracking-tight">TeachSmart</span>
       </div>
 
-      <button onClick={() => setCurrentScreen('dashboard')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'dashboard' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-dashboard">
+      <button onClick={() => navigate('dashboard')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'dashboard' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-dashboard">
         <HomeIcon className="w-4 h-4" /> {t('dashboard')}
       </button>
 
-      <button onClick={() => setCurrentScreen('classes')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'classes' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-my-classes">
+      <button onClick={() => navigate('classes')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'classes' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-my-classes">
         <Users className="w-4 h-4" /> {t('myClasses')}
         {myClasses.length > 0 && <span className="ml-auto bg-primary/20 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">{myClasses.length}</span>}
       </button>
 
-      <button onClick={() => setCurrentScreen('search')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${['search', 'results', 'lesson'].includes(currentScreen) ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-new-resource">
+      <button onClick={() => navigate('search')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${['search', 'results', 'lesson'].includes(currentScreen) ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-new-resource">
         <Compass className="w-4 h-4" /> {t('newResource')}
       </button>
 
-      <button onClick={() => setCurrentScreen('library')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'library' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-library">
+      <button onClick={() => navigate('library')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'library' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-library">
         <FileStack className="w-4 h-4" /> {t('myLibrary')}
       </button>
 
-      <button onClick={() => setCurrentScreen('semester')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'semester' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-semester">
+      <button onClick={() => navigate('semester')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'semester' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-semester">
         <CalendarDays className="w-4 h-4" /> {t('semesterPlan')}
       </button>
 
-      <button onClick={() => setCurrentScreen('settings')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'settings' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-settings">
+      <button onClick={() => navigate('settings')} className={`flex items-center gap-3 px-6 py-2.5 text-sm font-medium cursor-pointer transition-colors border-l-4 border-none w-full text-left ${currentScreen === 'settings' ? 'text-primary border-primary bg-primary/10' : 'text-slate-400 border-transparent hover:text-white hover:bg-white/5'}`} data-testid="nav-settings">
         <Settings2 className="w-4 h-4" /> {t('settings')}
       </button>
 
@@ -651,7 +680,7 @@ export default function Home() {
               { icon: <Compass className="w-4 h-4" />, label: "New Resource", desc: "Find curriculum-aligned materials", screen: 'search' as Screen, color: "text-primary bg-teal-50" },
               { icon: <CalendarDays className="w-4 h-4" />, label: "Semester Plan", desc: "Map your whole term with AI", screen: 'semester' as Screen, color: "text-amber-600 bg-amber-50" },
             ].map(card => (
-              <div key={card.label} onClick={() => setCurrentScreen(card.screen)} className="bg-white rounded-xl border border-border px-4 py-3.5 cursor-pointer hover:border-primary hover:shadow-sm transition-all flex items-center gap-3 group" data-testid={`card-${card.label.replace(/\s+/g, '-').toLowerCase()}`}>
+              <div key={card.label} onClick={() => navigate(card.screen)} className="bg-white rounded-xl border border-border px-4 py-3.5 cursor-pointer hover:border-primary hover:shadow-sm transition-all flex items-center gap-3 group" data-testid={`card-${card.label.replace(/\s+/g, '-').toLowerCase()}`}>
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${card.color} group-hover:scale-110 transition-transform`}>{card.icon}</div>
                 <div>
                   <div className="text-[13px] font-bold text-foreground">{card.label}</div>
@@ -835,7 +864,7 @@ export default function Home() {
                   <div className="text-[11px] font-bold uppercase tracking-wider text-primary mb-0.5">Unit Context Active</div>
                   <div className="text-[13px] text-slate-700">{unitContext.unitTitle} — Lesson {unitContext.currentLesson || '?'} of {unitContext.totalLessons || '?'}</div>
                 </div>
-                <button onClick={() => setCurrentScreen('unit-planner')} className="text-[12px] text-primary hover:underline bg-transparent border-none cursor-pointer">Edit</button>
+                <button onClick={() => navigate('unit-planner')} className="text-[12px] text-primary hover:underline bg-transparent border-none cursor-pointer">Edit</button>
               </div>
             )}
 
@@ -905,7 +934,7 @@ export default function Home() {
             )}
 
             <div className="flex justify-end gap-3">
-              <button onClick={() => setCurrentScreen('dashboard')} className="bg-white text-slate-600 border border-border px-5 py-2.5 rounded-lg text-sm font-medium hover:border-primary hover:text-primary transition-colors flex items-center gap-2 cursor-pointer" data-testid="btn-cancel">Cancel</button>
+              <button onClick={() => navigate('dashboard')} className="bg-white text-slate-600 border border-border px-5 py-2.5 rounded-lg text-sm font-medium hover:border-primary hover:text-primary transition-colors flex items-center gap-2 cursor-pointer" data-testid="btn-cancel">Cancel</button>
               <button onClick={handleSearch} disabled={!searchParams.topic} className="bg-primary text-white border-none px-7 py-2.5 rounded-lg text-[15px] font-semibold hover:bg-teal-700 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-[1px] shadow-sm" data-testid="btn-search">
                 <Search className="w-4 h-4" /> Find Resources
               </button>
@@ -1002,7 +1031,7 @@ export default function Home() {
               <div className="text-slate-300 text-4xl mb-3">📚</div>
               <div className="text-[15px] font-semibold text-slate-400 mb-1">No resources found</div>
               <div className="text-[13px] text-slate-400">Try adjusting your search topic or year level.</div>
-              <button onClick={() => setCurrentScreen('search')} className="mt-4 bg-primary text-white border-none px-5 py-2.5 rounded-lg text-sm font-semibold cursor-pointer hover:bg-teal-700">Back to search</button>
+              <button onClick={() => navigate('search')} className="mt-4 bg-primary text-white border-none px-5 py-2.5 rounded-lg text-sm font-semibold cursor-pointer hover:bg-teal-700">Back to search</button>
             </div>
           )}
           {resources.map((resource) => (
@@ -1073,7 +1102,7 @@ export default function Home() {
         </div>
         {resources.length > 0 && (
           <div className="mt-5 flex justify-start">
-            <button onClick={() => setCurrentScreen('search')} className="text-[13px] font-medium text-slate-500 hover:text-primary flex items-center gap-1.5 bg-transparent border-none cursor-pointer">
+            <button onClick={() => navigate('search')} className="text-[13px] font-medium text-slate-500 hover:text-primary flex items-center gap-1.5 bg-transparent border-none cursor-pointer">
               <ArrowLeft className="w-4 h-4" /> Back to search
             </button>
           </div>
@@ -1107,7 +1136,7 @@ export default function Home() {
     const lessonTitle = `${searchParams.topic} — ${searchParams.yearLevel} ${searchParams.subject}`;
     return (
       <div className="flex items-center justify-between mb-5">
-        <button onClick={() => setCurrentScreen('results')} className="text-[13px] font-medium text-slate-500 hover:text-primary flex items-center gap-1.5 bg-transparent border-none cursor-pointer" data-testid="btn-back-to-results">
+        <button onClick={() => navigate('results')} className="text-[13px] font-medium text-slate-500 hover:text-primary flex items-center gap-1.5 bg-transparent border-none cursor-pointer" data-testid="btn-back-to-results">
           <ArrowLeft className="w-4 h-4" /> {t('backToResults')}
         </button>
         <div className="flex gap-2">
@@ -1288,15 +1317,46 @@ export default function Home() {
 
   const renderAssessmentContent = (assess: AssessmentOutput) => (
     <>
+      {/* Header */}
       <div className="bg-white rounded-xl shadow-sm border border-border p-7 mb-5">
-        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
+        <div className="flex items-center gap-3 mb-3">
           <span className="bg-slate-100 text-slate-700 text-[13px] font-semibold px-3.5 py-1.5 rounded-full">{assess.taskType}</span>
           <span className="bg-slate-100 text-slate-700 text-[13px] font-semibold px-3.5 py-1.5 rounded-full">{assess.duration}</span>
           <span className="bg-teal-50 text-teal-700 text-[13px] font-semibold px-3.5 py-1.5 rounded-full">{assess.totalMarks} marks total</span>
         </div>
-        <div className="font-serif text-[16px] text-foreground mb-2">Task Instructions</div>
-        <div className="text-[14px] text-slate-700 leading-relaxed">{assess.taskDescription}</div>
+        <div className="text-[13px] text-slate-500">Complete all sections. Write your answers in the spaces provided.</div>
       </div>
+
+      {/* Student Question Paper */}
+      {assess.studentSections?.map((sec, si) => (
+        <div key={si} className="bg-white rounded-xl shadow-sm border border-border p-7 mb-5">
+          <div className="flex items-center justify-between mb-3 pb-3 border-b border-border">
+            <div className="font-serif text-[17px] font-semibold text-foreground">{sec.section}</div>
+            <div className="text-[13px] text-slate-500">{sec.questions.reduce((s, q) => s + q.marks, 0)} marks</div>
+          </div>
+          <div className="text-[13px] text-slate-600 italic mb-5">{sec.instructions}</div>
+          <div className="flex flex-col gap-6">
+            {sec.questions.map((q, qi) => (
+              <div key={qi}>
+                <div className="flex items-start gap-3 mb-2">
+                  <span className="text-[13px] font-bold text-foreground min-w-[22px]">{q.number}.</span>
+                  <div className="flex-1">
+                    <span className="text-[14px] text-foreground leading-relaxed">{q.q}</span>
+                    <span className="ml-2 text-[12px] text-slate-400">({q.marks} {q.marks === 1 ? 'mark' : 'marks'})</span>
+                  </div>
+                </div>
+                <div className="ml-7 flex flex-col gap-1 mt-2">
+                  {Array.from({ length: q.lines ?? 4 }).map((_, li) => (
+                    <div key={li} className="border-b border-slate-200 h-6 w-full" />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {/* Marking Criteria */}
       <div className="bg-white rounded-xl shadow-sm border border-border p-7 mb-5">
         <div className="font-serif text-[20px] text-foreground mb-4">Marking Criteria</div>
         <div className="overflow-x-auto">
@@ -1324,6 +1384,8 @@ export default function Home() {
           </table>
         </div>
       </div>
+
+      {/* Teacher Marking Guide */}
       {assess.teacherMarkingGuide && (
         <div className="bg-slate-800 rounded-xl p-5 mb-5 text-white">
           <div className="text-[12px] font-bold text-slate-400 uppercase tracking-wider mb-2">Marking Guide</div>
@@ -1362,13 +1424,13 @@ export default function Home() {
             <div className="text-[13px] text-slate-500 max-w-sm text-center">The AI service may be temporarily unavailable. You can go back and try again, or return to your search results.</div>
             <div className="flex gap-3 mt-2">
               <button
-                onClick={() => setCurrentScreen('results')}
+                onClick={() => navigate('results')}
                 className="bg-primary text-white border-none px-5 py-2.5 rounded-xl text-[13px] font-semibold cursor-pointer hover:bg-teal-700"
               >
                 ← Back to results
               </button>
               <button
-                onClick={() => setCurrentScreen('dashboard')}
+                onClick={() => navigate('dashboard')}
                 className="bg-slate-100 text-slate-600 border-none px-5 py-2.5 rounded-xl text-[13px] font-semibold cursor-pointer hover:bg-slate-200"
               >
                 Go to Dashboard
@@ -1487,7 +1549,7 @@ export default function Home() {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
-                  onClick={() => { handleSelectClass(cls); setCurrentScreen('dashboard'); }}
+                  onClick={() => { handleSelectClass(cls); navigate('dashboard'); }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border-none cursor-pointer transition-colors ${selectedClassId === cls.id ? 'bg-teal-600 text-white hover:bg-teal-700' : 'bg-teal-50 text-teal-700 hover:bg-teal-100'}`}
                   aria-label={`Search resources for ${cls.name}`}
                 >
@@ -1518,8 +1580,8 @@ export default function Home() {
         <UnitPlanner
           unitContext={unitContext}
           onUpdate={setUnitContext}
-          onContinue={() => setCurrentScreen('search')}
-          onSkip={() => setCurrentScreen('search')}
+          onContinue={() => navigate('search')}
+          onSkip={() => navigate('search')}
           voiceLang={voiceLang}
         />
       )}
@@ -1529,7 +1591,7 @@ export default function Home() {
       {currentScreen === 'slideshow' && slidedeckData && (
         <Slideshow
           data={slidedeckData}
-          onClose={() => setCurrentScreen('lesson')}
+          onClose={() => navigate('lesson')}
           subject={searchParams.subject}
           yearLevel={searchParams.yearLevel}
           topic={searchParams.topic}
@@ -1541,13 +1603,13 @@ export default function Home() {
             setResources([r]);
             setAlignmentResult({ alignmentScore: r.alignmentScore, syllabus: `${r.yearLevel} ${r.subject}`, strand: 'Loaded from library', outcomes: r.outcomeIds.map(id => ({ id, description: id })), notes: '', usedFallback: false });
             setSearchParams(prev => ({ ...prev, subject: r.subject, yearLevel: r.yearLevel, topic: r.topic }));
-            setCurrentScreen('results');
+            navigate('results');
           }}
           onLoadLesson={(l: SavedLesson) => {
             setLessonPlan({ resourceType: 'Lesson Plan', outcomeCode: '', outcomeDescription: l.topic, successCriteria: [], objective: l.objective, duration: l.duration, activities: l.activities, localExample: l.localExample, questions: l.questions, usedFallback: false });
             setTeacherNotes('Loaded from library.');
             setSearchParams(prev => ({ ...prev, subject: l.subject, yearLevel: l.yearLevel, topic: l.topic }));
-            setCurrentScreen('lesson');
+            navigate('lesson');
           }}
         />
       )}
@@ -1559,7 +1621,7 @@ export default function Home() {
           preferredLanguage={preferredLanguage}
           onWeekSelect={(week) => {
             setSearchParams(prev => ({ ...prev, topic: week.topic }));
-            setCurrentScreen('search');
+            navigate('search');
           }}
         />
       )}

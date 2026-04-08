@@ -1,7 +1,6 @@
 import { Router, type IRouter } from "express";
 import { GetResourcesBody, GetRecentResourcesResponse, GetDashboardStatsResponse } from "@workspace/api-zod";
 import { groq, GROQ_MODEL } from "../lib/groq";
-import { getDemoScenario } from "../lib/demoScenarios";
 import { getTierAScore } from "../lib/trustedSources";
 import { searchEducationalResources, type TavilyResult } from "../lib/tavily";
 
@@ -48,6 +47,7 @@ async function scoreWebResultsWithGroq(
   interests: string[],
   unitNote: string,
   langNote: string,
+  resourceTypeFilter?: string,
 ): Promise<any[]> {
   const resultsBlock = webResults.map((r, i) =>
     `[${i + 1}] Title: ${r.title}\nURL: ${r.url}\nSnippet: ${r.content.slice(0, 400)}`
@@ -56,12 +56,19 @@ async function scoreWebResultsWithGroq(
   const interestsNote = interests.length > 0
     ? `\nStudent interests: ${interests.join(", ")}. Connect resources to these where relevant.`
     : "";
+  const resourceTypeNote = resourceTypeFilter
+    ? `\nIMPORTANT: Every result must have "type": "${resourceTypeFilter}".`
+    : "";
+
+  const typeField = resourceTypeFilter
+    ? `"type": "${resourceTypeFilter}" (required — do not change this value),`
+    : `"type": string (one of: Lesson Plan, Worksheet, Assessment, Interactive, Video, Article),`;
 
   const prompt = `You are an Australian curriculum alignment expert. Below are ${webResults.length} real web pages found from trusted Australian educational sources. Score and describe each one for ${yearLevel} ${subject} students studying "${topic}" in ${state}.
 
 Curriculum outcomes:
 ${outcomesText}
-${unitNote}${interestsNote}${langNote}
+${unitNote}${interestsNote}${resourceTypeNote}${langNote}
 
 Web pages to score:
 ${resultsBlock}
@@ -71,7 +78,7 @@ For EACH web page, return a JSON object. Return ONLY a JSON array, no markdown:
   "index": number (1-based, matching the [N] above),
   "title": string (improve the title if needed, keep it descriptive),
   "source": string (organisation name, e.g. "CSIRO", "ABC Education", "Bureau of Meteorology"),
-  "type": string (one of: Lesson Plan, Worksheet, Assessment, Interactive, Video, Article),
+  ${typeField}
   "description": string (2-3 sentences describing what the resource contains and how it can be used),
   "alignmentScore": number between 50-100,
   "safetyRating": "verified" or "unverified",
@@ -111,7 +118,7 @@ For trustFlags: geographic = Australian-focused or US/UK-centric? cultural = Fir
         urlType: "direct",   // Tavily URLs are real verified web pages
         title: s.title,
         source: s.source,
-        type: s.type,
+        type: resourceTypeFilter || s.type,
         description: s.description,
         alignmentScore: s.alignmentScore,
         safetyRating: s.safetyRating,
@@ -132,18 +139,12 @@ router.post("/resources", async (req, res): Promise<void> => {
   const parsed = GetResourcesBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
-  const { subject, yearLevel, topic, state, alignmentResult } = parsed.data;
+  const { subject, yearLevel, topic, state, alignmentResult, resourceType } = parsed.data;
   const interests = (req.body as Record<string, unknown>).studentInterests as string[] | undefined ?? [];
   const unitContext = (req.body as Record<string, unknown>).unitContext as Record<string, string> | undefined;
   const preferredLanguage = (req.body as Record<string, unknown>).preferredLanguage as string | undefined;
+  const resourceTypeFilter = resourceType?.trim() ?? "";
 
-  const demo = getDemoScenario({ yearLevel, state, subject, topic });
-  if (demo) {
-    await new Promise(r => setTimeout(r, 400));
-    const enriched = { ...demo.resources, resources: enrichWithTrust(demo.resources.resources) };
-    res.json(enriched);
-    return;
-  }
 
   const outcomesText = alignmentResult.outcomes.map((o) => `${o.id}: ${o.description}`).join("\n");
   const unitNote = unitContext?.unitTitle
@@ -151,6 +152,9 @@ router.post("/resources", async (req, res): Promise<void> => {
     : "";
   const langNote = preferredLanguage && preferredLanguage !== "en-AU"
     ? `\nRespond in language code: ${preferredLanguage}.`
+    : "";
+  const resourceTypeNote = resourceTypeFilter
+    ? `\nIMPORTANT: Only return resources of type "${resourceTypeFilter}". Every result must have "type": "${resourceTypeFilter}".`
     : "";
 
   const overallTimeout = setTimeout(() => {
@@ -161,7 +165,8 @@ router.post("/resources", async (req, res): Promise<void> => {
 
   try {
     // Step 1: Tavily real web search on trusted Australian domains
-    const tavilyQuery = `${yearLevel} ${subject} "${topic}" Australian curriculum teaching resources ${state}`;
+    const tavilyTypeKeyword = resourceTypeFilter ? ` ${resourceTypeFilter.toLowerCase()}` : "";
+    const tavilyQuery = `${yearLevel} ${subject} "${topic}" Australian curriculum${tavilyTypeKeyword} teaching resources ${state}`;
     let webResults: TavilyResult[] = [];
     try {
       webResults = await searchEducationalResources(tavilyQuery, 5);
@@ -173,7 +178,7 @@ router.post("/resources", async (req, res): Promise<void> => {
       // Step 2: Groq scores the real web results → preserves real URLs
       const scored = await scoreWebResultsWithGroq(
         webResults, subject, yearLevel, topic, state,
-        outcomesText, interests, unitNote, langNote,
+        outcomesText, interests, unitNote, langNote, resourceTypeFilter,
       );
 
       if (scored.length > 0) {
@@ -189,7 +194,7 @@ router.post("/resources", async (req, res): Promise<void> => {
 
 Relevant curriculum outcomes:
 ${outcomesText}
-${unitNote}${langNote}
+${unitNote}${resourceTypeNote}${langNote}
 
 Only suggest resources from trusted Australian sources like CSIRO, ABC Education, Bureau of Meteorology, Khan Academy, Scootle, state education departments, or universities.
 IMPORTANT: For the "url" field you MUST provide a real, existing URL for the resource on that organisation's website.
@@ -239,6 +244,8 @@ Return ONLY valid JSON, no markdown:
         ...r,
         url: scootleUrl,
         urlType: 'search' as const,
+        // Enforce the requested resource type if one was specified
+        ...(resourceTypeFilter ? { type: resourceTypeFilter } : {}),
       };
     });
 

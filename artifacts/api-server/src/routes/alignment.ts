@@ -3,7 +3,6 @@ import { GetAlignmentBody } from "@workspace/api-zod";
 import { groq, GROQ_MODEL } from "../lib/groq";
 import { curricullm, CURRICULLM_MODEL } from "../lib/curricullm";
 import { getOutcomesForSubjectAndYear } from "../lib/curriculum";
-import { getDemoScenario } from "../lib/demoScenarios";
 
 const router: IRouter = Router();
 const TIMEOUT_MS = 10000;
@@ -58,13 +57,6 @@ router.post("/alignment", async (req, res): Promise<void> => {
   const { subject, yearLevel, topic, state } = parsed.data;
   const unitContext = (req.body as Record<string, unknown>).unitContext as Record<string, string> | undefined;
   const preferredLanguage = (req.body as Record<string, unknown>).preferredLanguage as string | undefined;
-
-  const demo = getDemoScenario({ yearLevel, state, subject, topic });
-  if (demo) {
-    await new Promise(r => setTimeout(r, 400));
-    res.json({ ...demo.alignment, aiProvider: "CurricuLLM-AU (demo)" });
-    return;
-  }
 
   const curriculumData = getOutcomesForSubjectAndYear(subject, yearLevel);
   if (!curriculumData || curriculumData.outcomes.length === 0) {
