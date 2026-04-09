@@ -109,19 +109,18 @@ function buildFocusedQueryVariants(
   const normalizedState = state.toLowerCase();
   const stageHint = yearLevel.toLowerCase() === "year 11" || yearLevel.toLowerCase() === "year 12" ? "stage 6" : "";
   const seniorHint = yearLevel.toLowerCase() === "year 11" || yearLevel.toLowerCase() === "year 12" ? "senior secondary" : "";
-  const resourceHint = resourceType ? resourceType.toLowerCase() : "";
+  const wantsLessonPlanLikePage = !resourceType || resourceType.toLowerCase() === "lesson plan";
 
   const variants = [
     `${topic} ${yearLevel} ${subject} ${state} teaching resource`,
     `${topic} ${subject} ${yearLevel} Australian curriculum`,
     `${topic} ${subject} Australia classroom resource`,
-    `${topic} ${subject} ${yearLevel} lesson plan Australia`,
     `${topic} ${subject} ${stageHint}`.trim(),
     `${topic} ${subject} ${seniorHint}`.trim(),
   ];
 
-  if (resourceHint) {
-    variants.push(`${topic} ${subject} ${resourceHint} Australia`);
+  if (wantsLessonPlanLikePage) {
+    variants.push(`${topic} ${subject} ${yearLevel} lesson plan Australia`);
   }
 
   if (normalizedState === "nsw") {
