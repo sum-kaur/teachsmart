@@ -260,20 +260,13 @@ const getBannerIcon = (icon: ReviewBanner["icon"]) =>
 
 export default function Home() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
   const [showQR, setShowQR] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [isCreatingShareLink, setIsCreatingShareLink] = useState(false);
   const [shareLinkError, setShareLinkError] = useState<string | null>(null);
   const [showFallbackShare, setShowFallbackShare] = useState(false);
 
-  useEffect(() => {
-    const onOnline = () => setIsOffline(false);
-    const onOffline = () => setIsOffline(true);
-    window.addEventListener('online', onOnline);
-    window.addEventListener('offline', onOffline);
-    return () => { window.removeEventListener('online', onOnline); window.removeEventListener('offline', onOffline); };
-  }, []);
 
   // Browser back/forward support via hash (avoids conflict with wouter's pushState wrapper)
   const navigate = useCallback((screen: Screen) => {
@@ -528,7 +521,7 @@ export default function Home() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(12000),
+      signal: AbortSignal.timeout(60000),
     });
   }, []);
 
@@ -2434,14 +2427,9 @@ export default function Home() {
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans">
       {renderQRModal()}
-      {isOffline && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-amber-500 text-white text-[13px] font-medium text-center py-2 px-4">
-          You are offline — showing cached content. New searches will resume when connected.
-        </div>
-      )}
       <button
         onClick={() => setMobileNavOpen(true)}
-        className={`fixed left-4 z-40 lg:hidden inline-flex items-center justify-center rounded-xl border border-border bg-white/95 p-2 text-slate-600 shadow-sm ${isOffline ? 'top-14' : 'top-4'}`}
+        className="fixed left-4 top-4 z-40 lg:hidden inline-flex items-center justify-center rounded-xl border border-border bg-white/95 p-2 text-slate-600 shadow-sm"
         aria-label="Open navigation menu"
       >
         <Menu className="w-4 h-4" />

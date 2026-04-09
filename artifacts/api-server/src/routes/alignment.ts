@@ -5,7 +5,7 @@ import { curricullm, CURRICULLM_MODEL } from "../lib/curricullm";
 import { getOutcomesForSubjectAndYear } from "../lib/curriculum";
 
 const router: IRouter = Router();
-const TIMEOUT_MS = 10000;
+const TIMEOUT_MS = 30000;
 
 function buildFallbackAlignment(subject: string, yearLevel: string, state: string, topic: string) {
   return {

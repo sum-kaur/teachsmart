@@ -6,7 +6,7 @@ import { searchEducationalResources, type BraveResult } from "../lib/brave";
 import { findCuratedResources } from "../lib/curatedResources";
 
 const router: IRouter = Router();
-const TIMEOUT_MS = 18000;
+const TIMEOUT_MS = 55000;
 const SUBJECT_HINTS: Record<string, string[]> = {
   science: ["science", "chemistry", "biology", "physics", "experiment", "laboratory", "compound", "reaction"],
   mathematics: ["mathematics", "maths", "math", "equation", "algebra", "number", "graph", "function"],
@@ -343,7 +343,7 @@ For EACH web page, return a JSON object. Return ONLY a JSON array, no markdown:
 For trustFlags: geographic = Australian-focused or US/UK-centric? cultural = First Nations perspectives respected? currency = AC v9 codes (AC9...) or old AC v8?`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000);
+  const timeout = setTimeout(() => controller.abort(), 30000);
 
   try {
     const completion = await callCurriculumAI({
