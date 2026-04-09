@@ -1,12 +1,12 @@
 import { Router, type IRouter } from "express";
 import { GetResourcesBody, GetRecentResourcesResponse, GetDashboardStatsResponse } from "@workspace/api-zod";
-import { callCurriculumAI } from "../lib/curricullm";
+import { groq, GROQ_MODEL } from "../lib/groq";
 import { getTierAScore } from "../lib/trustedSources";
 import { searchEducationalResources, type BraveResult } from "../lib/brave";
 import { findCuratedResources } from "../lib/curatedResources";
 
 const router: IRouter = Router();
-const TIMEOUT_MS = 55000;
+const TIMEOUT_MS = 45000;
 const SUBJECT_HINTS: Record<string, string[]> = {
   science: ["science", "chemistry", "biology", "physics", "experiment", "laboratory", "compound", "reaction"],
   mathematics: ["mathematics", "maths", "math", "equation", "algebra", "number", "graph", "function"],
@@ -92,7 +92,6 @@ function inferSourceLabel(urlString: string) {
 }
 
 function inferResourceKind(urlString: string, title: string, resourceTypeFilter?: string) {
-  if (resourceTypeFilter) return resourceTypeFilter;
   const lowerTitle = title.toLowerCase();
   const lowerUrl = urlString.toLowerCase();
   if (lowerUrl.endsWith(".pdf") || lowerTitle.includes("worksheet")) return "Worksheet";
@@ -301,7 +300,6 @@ async function scoreWebResultsWithGroq(
   interests: string[],
   unitNote: string,
   langNote: string,
-  resourceTypeFilter?: string,
 ): Promise<any[]> {
   const resultsBlock = webResults.map((r, i) =>
     `[${i + 1}] Title: ${r.title}\nURL: ${r.url}\nSnippet: ${r.content.slice(0, 400)}`
@@ -315,7 +313,7 @@ async function scoreWebResultsWithGroq(
 
 Curriculum outcomes:
 ${outcomesText}
-${unitNote}${interestsNote}${langNote}${resourceTypeFilter ? `\nThe teacher specifically selected "${resourceTypeFilter}" as the desired resource type. Every returned result must therefore have "type": "${resourceTypeFilter}" and the description should explain how the page could support that classroom use.` : ""}
+${unitNote}${interestsNote}${langNote}
 
 Web pages to score:
 ${resultsBlock}
@@ -325,7 +323,7 @@ For EACH web page, return a JSON object. Return ONLY a JSON array, no markdown:
   "index": number (1-based, matching the [N] above),
   "title": string (improve the title if needed, keep it descriptive),
   "source": string (organisation name, e.g. "CSIRO", "ABC Education", "Bureau of Meteorology"),
-  "type": string (one of: Lesson Plan, Worksheet, Discussion, Assessment, Interactive, Video, Article),
+  "type": string (one of: Lesson Plan, Worksheet, Assessment, Interactive, Video, Article),
   "description": string (2-3 sentences describing what the resource contains and how it can be used),
   "alignmentScore": number between 50-100,
   "safetyRating": "verified" or "unverified",
@@ -343,16 +341,18 @@ For EACH web page, return a JSON object. Return ONLY a JSON array, no markdown:
 For trustFlags: geographic = Australian-focused or US/UK-centric? cultural = First Nations perspectives respected? currency = AC v9 codes (AC9...) or old AC v8?`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const timeout = setTimeout(() => controller.abort(), 12000);
 
   try {
-    const completion = await callCurriculumAI({
-      prompt,
-      maxTokens: 3000,
-      temperature: 0.25,
+    const completion = await groq.chat.completions.create({
+      model: GROQ_MODEL,
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 3000,
+      temperature: 0.3,
     });
     clearTimeout(timeout);
-    const cleaned = completion.text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    const text = completion.choices[0]?.message?.content ?? "";
+    const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const scored: any[] = JSON.parse(cleaned);
 
     return scored.map((s) => {
@@ -365,7 +365,7 @@ For trustFlags: geographic = Australian-focused or US/UK-centric? cultural = Fir
         verifiedLink: true,
         title: s.title,
         source: s.source,
-        type: resourceTypeFilter || s.type,
+        type: s.type,
         description: s.description,
         alignmentScore: s.alignmentScore,
         safetyRating: s.safetyRating,
@@ -457,12 +457,14 @@ Return ONLY valid JSON, no markdown:
 
     for (let attempt = 0; attempt <= MAX_AI_RETRIES; attempt++) {
       try {
-        const completion = await callCurriculumAI({
-          prompt: groqPrompt,
-          maxTokens: 2800,
-          temperature: 0.45,
+        const completion = await groq.chat.completions.create({
+          model: GROQ_MODEL,
+          messages: [{ role: "user", content: groqPrompt }],
+          max_tokens: 2800,
+          temperature: 0.5,
         });
-        const rawSuggestions = parseAiSuggestionPayload(completion.text);
+        const text = completion.choices[0]?.message?.content ?? "";
+        const rawSuggestions = parseAiSuggestionPayload(text);
         const normalizedSuggestions = rawSuggestions.map((resource, index) =>
           normalizeAiSuggestion(resource, index, subject, yearLevel, topic, alignmentResult, resourceTypeFilter)
         );
@@ -532,7 +534,7 @@ Return ONLY valid JSON, no markdown:
       // Step 2: Groq scores the real web results → preserves real URLs
       const scored = await scoreWebResultsWithGroq(
         webResults, subject, yearLevel, topic, state,
-        outcomesText, interests, unitNote, langNote, resourceTypeFilter,
+        outcomesText, interests, unitNote, langNote,
       );
 
       const aiSuggestions = await loadAiSuggestions();

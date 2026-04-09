@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { callCurriculumAI, reviewCurriculumFaithfulness } from "../lib/curricullm";
+import { groq, GROQ_MODEL } from "../lib/groq";
 
 const router: IRouter = Router();
 const TIMEOUT_MS = 30000;
@@ -704,28 +704,21 @@ Return ONLY valid JSON — no markdown fences, no code blocks, no commentary:
       await new Promise(r => setTimeout(r, delayMs));
     }
     try {
-      const groqCall = callCurriculumAI({
-        prompt,
-        maxTokens: 8000,
-        temperature: 0.45,
+      const groqCall = groq.chat.completions.create({
+        model: GROQ_MODEL,
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 8000,
+        temperature: 0.65,
+        stream: false,
       });
       const timedOut = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("Groq timeout")), TIMEOUT_MS)
       );
       const completion = await Promise.race([groqCall, timedOut]);
-      const cleaned = completion.text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      const reviewed = await reviewCurriculumFaithfulness({
-        promptContext: `Slide deck generation for ${yearLevel} ${subject} in ${state} on "${topic}".
-Curriculum alignment: ${JSON.stringify(alignmentResult || {})}
-Selected resource: ${selectedResource?.title || "none"} from ${selectedResource?.source || "none"}
-Lesson plan context:
-${lessonJson}`,
-        draftJson: cleaned,
-        maxTokens: 8000,
-      });
-      const reviewedCleaned = reviewed.text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      const parsed = JSON.parse(reviewedCleaned);
-      res.json({ ...parsed, usedFallback: false, aiProvider: completion.provider, curriculumReviewedBy: reviewed.provider });
+      const text = completion.choices[0]?.message?.content ?? "";
+      const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      const parsed = JSON.parse(cleaned);
+      res.json({ ...parsed, usedFallback: false });
       return;
     } catch (err: unknown) {
       lastErr = err;

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { GenerateLessonBody } from "@workspace/api-zod";
-import { callCurriculumAI, reviewCurriculumFaithfulness } from "../lib/curricullm";
+import { groq, GROQ_MODEL } from "../lib/groq";
 
 const router: IRouter = Router();
 const TIMEOUT_MS = 14000;
@@ -513,10 +513,6 @@ Requirements:
 - Include 3 sections: Section A (2-3 short answer, 2-4 marks each), Section B (1-2 structured, 4-6 marks each), Section C (1 extended response, 8-10 marks)
 - All questions must be answerable using "${resource.title}" from ${resource.source}
 - Students should be able to reference specific content from the resource in their answers
-- Every question must name or clearly point to a claim, example, perspective, data point, quotation, image, experiment, event, or concept that is actually described in the resource metadata above
-- Do NOT write generic school assessment questions that could fit any topic or any source
-- Do NOT ask students to use prior knowledge unless the question explicitly starts from the source and then extends it
-- If the resource description is broad, keep questions tightly tied to the described content instead of inventing finer details
 - Total marks must match totalMarks
 - Include exactly 4 marking criteria`;
 }
@@ -572,29 +568,18 @@ router.post("/lesson", async (req, res): Promise<void> => {
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const generation = await callCurriculumAI({
-      prompt,
-      maxTokens: 6000,
-      temperature: 0.55,
+    const completion = await groq.chat.completions.create({
+      model: GROQ_MODEL,
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 6000,
+      temperature: 0.7,
     });
     clearTimeout(timeout);
-    const cleaned = generation.text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-    const reviewed = await reviewCurriculumFaithfulness({
-      promptContext: `Lesson generation for ${yearLevel} ${subject} in ${state} on "${topic}".
-Resource type: ${resourceType}
-Curriculum outcomes:
-${outcomesText}
-Resource:
-- Title: ${resourceInfo.title}
-- Source: ${resourceInfo.source}
-- Description: ${resourceInfo.description}`,
-      draftJson: cleaned,
-      maxTokens: 6000,
-    });
-    const reviewedCleaned = reviewed.text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    const text = completion.choices[0]?.message?.content ?? "";
+    const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     // Always force-inject resourceType so the frontend discriminated union works
     // even if Groq omits or misnames the field in its response.
-    res.json({ ...JSON.parse(reviewedCleaned), resourceType, usedFallback: false, aiProvider: generation.provider, curriculumReviewedBy: reviewed.provider });
+    res.json({ ...JSON.parse(cleaned), resourceType, usedFallback: false });
   } catch (err) {
     clearTimeout(timeout);
     req.log.warn({ err }, "AI lesson call failed, using fallback");
